@@ -7,6 +7,10 @@ import { reload } from 'expo-router/build/global-state/routing';
 
 
 
+
+
+
+
 const AddButton = () => {
     const [icon_1] = useState(new Animated.Value(40));
   const [icon_2] = useState(new Animated.Value(40));
@@ -17,7 +21,7 @@ const AddButton = () => {
   const popIn = () => {
     setPop(true);
     Animated.timing(icon_1, {
-      toValue: 130,
+      toValue: 200,
       duration: 500,
       useNativeDriver: false,
     }).start();
@@ -56,7 +60,23 @@ const AddButton = () => {
     <View style={{
         flex: 1
       }}>
-    <TouchableOpacity style={styles.cont} onPress={() => {
+    <Animated.View style={[styles.cont, { bottom: icon_1}]}>
+        <TouchableOpacity>
+        <Image
+        source={require('../assets/images/file.webp')}
+        style={styles.icon}
+      />
+        </TouchableOpacity>
+      </Animated.View>
+      <Animated.View style={[styles.cont, { bottom: icon_2}]}>
+        <TouchableOpacity>
+        <Image
+        source={require('../assets/images/folder.webp')}
+        style={styles.icon}
+      />
+        </TouchableOpacity>
+      </Animated.View>
+      <TouchableOpacity style={styles.cont} onPress={() => {
           pop === false ? popIn() : popOut();
         }}>
       <Image
@@ -64,14 +84,6 @@ const AddButton = () => {
         style={styles.image}
       />
     </TouchableOpacity>
-    <Animated.View style={[styles.cont, { bottom: icon_1}]}>
-        <TouchableOpacity>
-        <Image
-        source={require('../assets/images/text-152333_640.webp')}
-       
-      />
-        </TouchableOpacity>
-      </Animated.View>
     </View>
   );
 };
@@ -80,17 +92,15 @@ export default AddButton;
 
 const styles = StyleSheet.create({
   cont: {
-    position: 'absolute',
-    bottom : 85,
-    alignSelf: 'flex-end',
     backgroundColor: 'blue',
-    zIndex: 1,
-    height: 60,
-    width: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    right: 15
+     width: 60,
+     height: 60,
+     position: 'absolute',
+     bottom: 40,
+     right: 40,
+     borderRadius: 50,
+     justifyContent: 'center',
+     alignItems: 'center',
     
 
   },
@@ -99,4 +109,11 @@ const styles = StyleSheet.create({
     height: 45,
     width: 45,
   },
+  icon: {
+    color: '#FFFF',
+    tintColor: 'white',
+    height: 40,
+    width: 40,
+  },
+
 });
