@@ -48,7 +48,7 @@ export default function UserProfileScreen() {
       await checkLocalProfilePicture(storedUserID, storedToken, forUserID);
     };
 
-    init()
+    init
   }, [forUserID]);
 
   const checkLocalProfilePicture = async (userID: string, token: string, forUserID: string) => {
