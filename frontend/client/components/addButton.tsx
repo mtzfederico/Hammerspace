@@ -12,6 +12,18 @@ import { reload } from 'expo-router/build/global-state/routing';
 
 
 const AddButton = () => {
+
+  
+    const [isTextVisible, setIsTextVisible] = useState(false);
+  
+    const toggleTextVisibility = () => {
+      setIsTextVisible(!isTextVisible);
+    };
+    const TextPosition= 120
+    const iconPopIn1 = 140
+    const iconPopIn2 = 250
+
+
     const [icon_1] = useState(new Animated.Value(40));
   const [icon_2] = useState(new Animated.Value(40));
   const [icon_3] = useState(new Animated.Value(40));
@@ -21,12 +33,12 @@ const AddButton = () => {
   const popIn = () => {
     setPop(true);
     Animated.timing(icon_1, {
-      toValue: 200,
+      toValue: iconPopIn1,
       duration: 500,
       useNativeDriver: false,
     }).start();
     Animated.timing(icon_2, {
-      toValue: 110,
+      toValue: iconPopIn2,
       duration: 500,
       useNativeDriver: false,
     }).start();
@@ -58,26 +70,36 @@ const AddButton = () => {
     
   return (
     <View style={{
-        flex: 1
+        flex: 1,
+
       }}>
     <Animated.View style={[styles.cont, { bottom: icon_1}]}>
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.touchable}>
         <Image
         source={require('../assets/images/file.webp')}
         style={styles.icon}
       />
         </TouchableOpacity>
       </Animated.View>
+      
+      {isTextVisible &&<Text style={[styles.text, {bottom: iconPopIn1+20, right: TextPosition}]}>Create a File </Text>}
+      
+      
+
       <Animated.View style={[styles.cont, { bottom: icon_2}]}>
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.touchable}>
         <Image
         source={require('../assets/images/folder.webp')}
         style={styles.icon}
       />
         </TouchableOpacity>
       </Animated.View>
+      {isTextVisible &&<Text style={[styles.text, {bottom: iconPopIn2+20, right: TextPosition}]}>Create a Folder </Text>}
+
+
       <TouchableOpacity style={styles.cont} onPress={() => {
           pop === false ? popIn() : popOut();
+          toggleTextVisibility()
         }}>
       <Image
         source={require('../assets/images/plus.png')}
@@ -101,6 +123,8 @@ const styles = StyleSheet.create({
      borderRadius: 50,
      justifyContent: 'center',
      alignItems: 'center',
+     overflow: 'hidden',
+     
     
 
   },
@@ -110,10 +134,23 @@ const styles = StyleSheet.create({
     width: 45,
   },
   icon: {
-    color: '#FFFF',
+    color: 'white',
     tintColor: 'white',
     height: 40,
     width: 40,
+    position: 'absolute'
+    
+  },
+  text: {
+    fontSize: 16,
+    position: 'absolute'
   },
 
+  touchable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'blue',
+  }
 });
