@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
@@ -39,7 +40,7 @@ func handleLogin(c *gin.Context) {
 		return
 	}
 
-	valid, err := isPasswordCorrect(loginData.UserID, loginData.Password)
+	valid, err := isPasswordCorrect(c, loginData.UserID, loginData.Password)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleLogin] Failed to verify credentials")
@@ -52,7 +53,7 @@ func handleLogin(c *gin.Context) {
 	}
 
 	// generate an authentication token
-	token, err := generateAuthToken(loginData.UserID)
+	token, err := generateAuthToken(c, loginData.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
 		log.WithField("error", err).Error("[handleLogin] Failed to generate authToken")
@@ -77,7 +78,7 @@ func handleLogout(c *gin.Context) {
 	}
 
 	// verify that the token is valid
-	valid, err := isAuthTokenValid(request.UserID, request.AuthToken)
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
@@ -90,7 +91,7 @@ func handleLogout(c *gin.Context) {
 	}
 
 	// remoe the token
-	err = removeAuthToken(request.UserID, request.AuthToken)
+	err = removeAuthToken(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
 		log.WithField("error", err).Error("[handleLogout] Failed to remove token")
@@ -131,7 +132,7 @@ func handleSignup(c *gin.Context) {
 	}
 
 	// Data is valid, add to DB
-	err = createAccount(signupData.UserID, signupData.Email, signupData.Password)
+	err = createAccount(c, signupData.UserID, signupData.Email, signupData.Password)
 
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Error creating account, Please try again later"})
@@ -194,8 +195,8 @@ func isUserIDValid(userID string) bool {
 }
 
 // Checks if the password is correct for the userID specified
-func isPasswordCorrect(userID string, password string) (bool, error) {
-	rows, err := db.Query("select password from users where userID=?;", userID)
+func isPasswordCorrect(ctx context.Context, userID string, password string) (bool, error) {
+	rows, err := db.QueryContext(ctx, "select password from users where userID=?;", userID)
 	if err != nil {
 		return false, err
 	}
@@ -225,9 +226,9 @@ func isPasswordCorrect(userID string, password string) (bool, error) {
 	return false, nil
 }
 
-func isAuthTokenValid(userID string, token string) (bool, error) {
+func isAuthTokenValid(ctx context.Context, userID string, token string) (bool, error) {
 	log.WithFields(log.Fields{"userID": userID, "token": token}).Trace("[isAuthTokenValid] Checking token")
-	rows, err := db.Query("select count(*) as count from authTokens where userID=? AND tokenID=?", userID, token)
+	rows, err := db.QueryContext(ctx, "select count(*) as count from authTokens where userID=? AND tokenID=?", userID, token)
 	if err != nil {
 		return false, err
 	}
@@ -253,13 +254,13 @@ func isAuthTokenValid(userID string, token string) (bool, error) {
 
 // Generates an authToken.
 // Returns the token and nil on success and an empty string and an error if there is an issue
-func generateAuthToken(userID string) (string, error) {
+func generateAuthToken(ctx context.Context, userID string) (string, error) {
 	authToken, err := generateBase64ID(10)
 	if err != nil {
 		return "", err
 	}
 
-	rows, err := db.Query("SELECT COUNT(*) FROM authTokens WHERE userID=? AND tokenID=?;", userID, authToken)
+	rows, err := db.QueryContext(ctx, "SELECT COUNT(*) FROM authTokens WHERE userID=? AND tokenID=?;", userID, authToken)
 	if err != nil {
 		return "", err
 	}
@@ -269,25 +270,25 @@ func generateAuthToken(userID string) (string, error) {
 		rows.Scan(&count)
 		if count != 0 {
 			log.Debug("[generateAuthToken] authToken already in DB. Generating another one.")
-			return generateAuthToken(userID)
+			return generateAuthToken(ctx, userID)
 		}
 	}
 
 	log.WithField("userID", userID).Debug("[generateAuthToken] Generated authToken")
 
 	// store it on the DB
-	_, err = db.Exec("INSERT INTO authTokens (tokenID, userID, loginDate) VALUES (?, ?, now());", authToken, userID)
+	_, err = db.ExecContext(ctx, "INSERT INTO authTokens (tokenID, userID, loginDate) VALUES (?, ?, now());", authToken, userID)
 	return authToken, err
 }
 
 // Removes the authToken from the DB. It verifies that the authToken is for the specified user.
-func removeAuthToken(userID string, authToken string) error {
-	_, err := db.Exec("DELETE FROM authTokens WHERE userID=? AND tokenID=?;", userID, authToken)
+func removeAuthToken(ctx context.Context, userID string, authToken string) error {
+	_, err := db.ExecContext(ctx, "DELETE FROM authTokens WHERE userID=? AND tokenID=?;", userID, authToken)
 	return err
 }
 
 // Adds the new account to the DB
-func createAccount(userID string, email string, newPass string) error {
+func createAccount(ctx context.Context, userID string, email string, newPass string) error {
 	// https://stackoverflow.com/questions/5881169/what-column-type-length-should-i-use-for-storing-a-bcrypt-hashed-password-in-a-d
 	newPassHashed, err := bcrypt.GenerateFromPassword([]byte(newPass), BcryptHashCost)
 	if err != nil {
@@ -295,12 +296,12 @@ func createAccount(userID string, email string, newPass string) error {
 	}
 
 	log.Debug("creating account")
-	_, err = db.Exec("INSERT INTO users (userID, email, password, roleID, createdDate) VALUES (?, ?, ?, ?, now());", userID, email, newPassHashed, DefaultRoleID)
+	_, err = db.ExecContext(ctx, "INSERT INTO users (userID, email, password, roleID, createdDate) VALUES (?, ?, ?, ?, now());", userID, email, newPassHashed, DefaultRoleID)
 	return err
 }
 
 // Changes the users password. newPass is the password in plaintext. This function hashes the password.
-func changePassword(userID string, newPass string) error {
+func changePassword(ctx context.Context, userID string, newPass string) error {
 	newPassHashed, err := bcrypt.GenerateFromPassword([]byte(newPass), BcryptHashCost)
 	if err != nil {
 		return err
@@ -308,7 +309,7 @@ func changePassword(userID string, newPass string) error {
 
 	log.WithField("newPassHashed", string(newPassHashed)).Debug("[changePassword] pass hashed")
 
-	_, err = db.Exec("UPDATE users SET password=? WHERE userID=?", newPassHashed, userID)
+	_, err = db.ExecContext(ctx, "UPDATE users SET password=? WHERE userID=?", newPassHashed, userID)
 	return err
 }
 
