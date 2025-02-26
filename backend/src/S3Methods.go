@@ -45,6 +45,7 @@ func getS3Client() (*s3.Client, error) {
 }
 
 // Get a file from S3 with the specified objKey
+// The objKey is the name/id given to the file in S3. It is needed to get the file
 func getFile(ctx context.Context, s3Client *s3.Client, bucketName, objKey string) (io.ReadCloser, error) {
 	getObjectOutput, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
@@ -76,6 +77,7 @@ func getFile(ctx context.Context, s3Client *s3.Client, bucketName, objKey string
 }
 
 // Uploads the file at the filePath to the bucket and gives it the specified objKey
+// The objKey is the name/id given to the file in S3. It is needed to retrieve the file later
 func uploadFile(ctx context.Context, s3Client *s3.Client, bucketName, filePath, objKey string) (*s3.PutObjectOutput, error) {
 	// https://github.com/realchandan/pgbackup/blob/1353f1cd131ff338800b69ddb861901e76151691/main.go#L314
 	file, err := os.Open(filePath)
