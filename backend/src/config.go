@@ -20,6 +20,16 @@ type Config struct {
 	DBPassword string `yaml:"DBPassword" binding:"required"`
 	// The name of the DB to use
 	DBName string `yaml:"DBName" binding:"required"`
+	// The name of the bucket used
+	S3BucketName string `yaml:"S3BucketName" binding:"required"`
+	// The S3 URL endpoint. Cloudflare's R2 uses the format: "https://<accountID>.r2.cloudflarestorage.com"
+	S3Endpoint string `yaml:"S3Endpoint" binding:"required"`
+	// The S3 Access Key ID
+	S3AccessKeyID string `yaml:"S3AccessKeyID" binding:"required"`
+	// The S3 Access Key Secret
+	S3AccessKeySecret string `yaml:"S3AccessKeySecret" binding:"required"`
+	// The temporary directory used to store files uploaded to the server. Make sure it ends with a '/'
+	TMPStorageDir string `yaml:"TMPStorageDir" binding:"required"`
 	// The log level. Options: "panic", "fatal", "error", "warn", "info", "debug", "trace".
 	// https://github.com/sirupsen/logrus/blob/dd1b4c2e81afc5c255f216a722b012ed26be57df/logrus.go#L25
 	LogLevel string `yaml:"LogLevel" binding:"required"`
