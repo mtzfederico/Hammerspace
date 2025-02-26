@@ -35,3 +35,6 @@ CREATE TABLE IF NOT EXISTS authTokens (
   CONSTRAINT authTokens_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
 
+-- Test User. Password is "testPassword123"
+-- INSERT INTO users (userID, email, password, roleID, createdDate) VALUES ("testUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now());
+
