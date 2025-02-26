@@ -19,7 +19,7 @@ import (
 var LastCommitInfo string
 
 // The server's config
-var config Config
+var serverConfig Config
 
 // The database connection pool
 var db *sql.DB
@@ -32,12 +32,12 @@ func main() {
 		log.Fatal("[main] config flag missing. use --config path/to/config.yaml")
 	}
 
-	config.readFile(*configPath)
+	serverConfig.readFile(*configPath)
 
 	// if a logFile was secified, set it as the output
-	if config.LogFile != "" {
+	if serverConfig.LogFile != "" {
 		// If the log file doesn't exist, create it, otherwise append to the file
-		file, err := os.OpenFile(config.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+		file, err := os.OpenFile(serverConfig.LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		if err != nil {
 			log.WithField("Error", err).Fatal("[main] Logging file error")
 		}
@@ -48,31 +48,31 @@ func main() {
 	}
 
 	// Set loglevel
-	if config.LogLevel != "" {
-		level, err := log.ParseLevel(config.LogLevel)
+	if serverConfig.LogLevel != "" {
+		level, err := log.ParseLevel(serverConfig.LogLevel)
 
 		if err != nil {
 			log.WithField("err", err).Error("[main] DebugLevel has an invalid value")
 		} else {
-			log.Info("[main] Log Level set to ", config.LogLevel)
+			log.Info("[main] Log Level set to ", serverConfig.LogLevel)
 			log.SetLevel(level)
 		}
 	}
 
-	if config.ListenOn == "" {
+	if serverConfig.ListenOn == "" {
 		log.Fatal("[main] No ListenOn specified")
 	}
 
-	if config.GINRelease {
+	if serverConfig.GINRelease {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	cfg := mysql.Config{
-		User:                 config.DBUser,
-		Passwd:               config.DBPassword,
+		User:                 serverConfig.DBUser,
+		Passwd:               serverConfig.DBPassword,
 		Net:                  "tcp",
-		Addr:                 config.DBAddress,
-		DBName:               config.DBName,
+		Addr:                 serverConfig.DBAddress,
+		DBName:               serverConfig.DBName,
 		AllowNativePasswords: true,
 	}
 
@@ -101,7 +101,8 @@ func main() {
 	router.POST("login", handleLogin)
 	router.POST("logout", handleLogout)
 	router.POST("signup", handleSignup)
+	router.POST("uploadFile", handleFileUpload)
 	// router.POST("changePassword", handleChangePassword)
 
-	router.Run(config.ListenOn)
+	router.Run(serverConfig.ListenOn)
 }
