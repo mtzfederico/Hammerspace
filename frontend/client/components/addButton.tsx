@@ -1,8 +1,9 @@
 
-import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , ImageBackground} from 'react-native';
+import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
 import React, { useState} from 'react';
 import { reload } from 'expo-router/build/global-state/routing';
 
+import { pickDocument } from './documentPicker';
 
 
 
@@ -20,13 +21,14 @@ const AddButton = () => {
       setIsTextVisible(!isTextVisible);
     };
     const TextPosition= 120
-    const iconPopIn1 = 140
+    const iconPopIn1 = 180
     const iconPopIn2 = 250
+    const restState= 100
 
 
-    const [icon_1] = useState(new Animated.Value(40));
-  const [icon_2] = useState(new Animated.Value(40));
-  const [icon_3] = useState(new Animated.Value(40));
+  const [icon_1] = useState(new Animated.Value(restState));
+  const [icon_2] = useState(new Animated.Value(restState));
+  const [icon_3] = useState(new Animated.Value(restState));
 
   const [pop, setPop] = useState(false);
 
@@ -52,21 +54,31 @@ const AddButton = () => {
   const popOut = () => {
     setPop(false);
     Animated.timing(icon_1, {
-      toValue: 40,
+      toValue: restState,
       duration: 500,
       useNativeDriver: false,
     }).start();
     Animated.timing(icon_2, {
-      toValue: 40,
+      toValue: restState,
       duration: 500,
       useNativeDriver: false,
     }).start();
     Animated.timing(icon_3, {
-      toValue: 40,
+      toValue: restState,
       duration: 500,
       useNativeDriver: false,
     }).start();
   }
+
+  const handleDocumentPick = async () => {
+    await pickDocument();
+  };
+
+  const colorScheme = useColorScheme();
+
+  const isDarkMode = colorScheme === 'dark';
+
+  const textStyle = isDarkMode ? styles.darkText : styles.lightText;
     
   return (
     <View style={{
@@ -74,7 +86,7 @@ const AddButton = () => {
 
       }}>
     <Animated.View style={[styles.cont, { bottom: icon_1}]}>
-        <TouchableOpacity style={styles.touchable}>
+        <TouchableOpacity style={styles.touchable} onPress={handleDocumentPick}>
         <Image
         source={require('../assets/images/file.webp')}
         style={styles.icon}
@@ -82,7 +94,7 @@ const AddButton = () => {
         </TouchableOpacity>
       </Animated.View>
       
-      {isTextVisible &&<Text style={[styles.text, {bottom: iconPopIn1+20, right: TextPosition}]}>Create a File </Text>}
+      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn1+20, right: TextPosition}]}>Create a File </Text>}
       
       
 
@@ -94,7 +106,7 @@ const AddButton = () => {
       />
         </TouchableOpacity>
       </Animated.View>
-      {isTextVisible &&<Text style={[styles.text, {bottom: iconPopIn2+20, right: TextPosition}]}>Create a Folder </Text>}
+      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]}>Create a Folder </Text>}
 
 
       <TouchableOpacity style={styles.cont} onPress={() => {
@@ -118,7 +130,7 @@ const styles = StyleSheet.create({
      width: 60,
      height: 60,
      position: 'absolute',
-     bottom: 40,
+     bottom: 100,
      right: 40,
      borderRadius: 50,
      justifyContent: 'center',
@@ -141,7 +153,14 @@ const styles = StyleSheet.create({
     position: 'absolute'
     
   },
-  text: {
+
+  lightText: {
+    color: 'black',
+    fontSize: 16,
+    position: 'absolute'
+  },
+  darkText: {
+    color: 'white',
     fontSize: 16,
     position: 'absolute'
   },
