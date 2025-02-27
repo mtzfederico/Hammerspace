@@ -102,7 +102,7 @@ func uploadFile(ctx context.Context, client *s3.Client, bucketName, filePath, ob
 	return putObjectOutput, nil
 }
 
-// Uploads the data at the filePath to the bucket and gives it the specified objKey
+// Uploads the bytes to the bucket and gives it the specified objKey
 // The objKey is the name/id given to the file in S3. It is needed to retrieve the file later
 func uploadBytes(ctx context.Context, client *s3.Client, bucketName string, bytes io.Reader, size int64, objKey string) (*s3.PutObjectOutput, error) {
 	putObjectOutput, err := client.PutObject(ctx, &s3.PutObjectInput{
