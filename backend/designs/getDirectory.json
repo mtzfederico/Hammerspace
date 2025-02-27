@@ -1,0 +1,31 @@
+```{
+    "success": "true",
+    "directory": "/",
+    "items": [
+        {
+            "id": "549bb158-0de3-4cd4-8997-5bef3d2433a7",
+            "name": "Secret Folder 1",
+            "type": "folder"
+        },
+        {
+            "id": "20a72ac2-ebce-477b-bee9-b05f49e1cfaa",
+            "name": "Memes",
+            "type": "folder"
+        },
+        {
+            "id": "066463f8-c82a-4317-b7f8-85a9b2c79a5b",
+            "name": "test.txt",
+            "type": "text/plain"
+        },
+        {
+            "id": "7c2a4c1a-d71b-4049-895b-808b6c8577b2",
+            "name": "janemba.jpeg",
+            "type" : "image/jpeg"
+        },
+        {
+            "id": "be5364de-6e03-4086-8264-df92ce711f2f",
+            "name": "lmao.pdf",
+            "type" : "application/pdf"
+        }
+    ]
+}```

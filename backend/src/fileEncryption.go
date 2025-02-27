@@ -68,7 +68,7 @@ func testEncryption() error {
 	}
 
 	// Create a file to write the contents to
-	filename := "testFile.age"
+	filename := "../tmp/testFile.age"
 	f, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("failed to create file %q, %v", filename, err)
