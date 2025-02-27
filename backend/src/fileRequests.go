@@ -15,7 +15,7 @@ func handleFileUpload(c *gin.Context) {
 		Upload file:
 			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "file=@testFile.txt" localhost:9090/uploadFile
 	*/
-/*
+
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -23,7 +23,7 @@ func handleFileUpload(c *gin.Context) {
 
 	userID := c.PostForm("userID")
 	authToken := c.PostForm("authToken")
-
+/*
 	if userID == "" || authToken == "" {
 		c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
 		log.Error("[handleFileUpload] No userID or authToken in request")
@@ -42,8 +42,9 @@ func handleFileUpload(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
 		return
 	}
-		*/
 		
+		*/
+		fmt.Printf("userID %s authToken %s\n", userID,authToken)
 
 	file, err := c.FormFile("file")
 	if err != nil {

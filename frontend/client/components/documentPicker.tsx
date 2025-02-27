@@ -17,6 +17,8 @@ async function pickDocument() {
     }
 
     var fileName = String(`${result.assets[0].name}`)
+    var userID = "ggggggggggrrrrrrrrrrrrrr"
+    var authToken = "bbbrrr"
 
     const formData = new FormData();
     formData.append('file', {
@@ -25,7 +27,8 @@ async function pickDocument() {
       type: result.assets[0].mimeType,
       size: result.assets[0].size,
     });
-
+    formData.append("userID", userID);
+    formData.append("authToken", authToken);
 
    /* console.log("before test")
     const response = await fetch('http://192.168.107.78:9090/testing');
@@ -39,7 +42,7 @@ async function pickDocument() {
 
     //IP of PC
    
-    const response = await fetch('http://216.37.100.25:9090/uploadFile', {
+    const response = await fetch('http://192.168.107.78:9090/uploadFile', {
       method: 'POST',
       body: formData,
       headers: {
