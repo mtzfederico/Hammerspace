@@ -1,11 +1,14 @@
 import * as DocumentPicker from 'expo-document-picker';
 
+
+const ip = process.env.IP_ADDRESS
 // Function to open the document picker and handle the selected file
 async function pickDocument() {
   try {
     const result = await DocumentPicker.getDocumentAsync({
       type: '*/*', // Allow any file type to be selected
       multiple: false, // Only allow single file selection
+      copyToCacheDirectory: true,
     });
 
     if (result.type === 'cancel') {
@@ -13,14 +16,47 @@ async function pickDocument() {
       return;
     }
 
-    // Handle the selected file
-    const { uri, name, size, mimeType } = result.assets[0];
-    console.log('Document picked:', { uri, name, size, mimeType });
+    var fileName = String(`${result.assets[0].name}`)
 
-    // You can now process the file, e.g., upload it, display it, etc.
+    const formData = new FormData();
+    formData.append('file', {
+      uri: result.assets[0].uri,
+      name: fileName,
+      type: result.assets[0].mimeType,
+      size: result.assets[0].size,
+    });
+
+
+   /* console.log("before test")
+    const response = await fetch('http://192.168.107.78:9090/testing');
+    console.log("after fetch")
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return { success: true, data };
+*/
+
+    //IP of PC
+   
+    const response = await fetch('http://216.37.100.25:9090/uploadFile', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.ok) {
+      console.log('File uploaded successfully!');
+    } else {
+      console.error('File upload failed:', response.statusText);
+    }
+      
   } catch (err) {
     console.warn('Error picking document', err);
   }
 }
+
 
 export { pickDocument };

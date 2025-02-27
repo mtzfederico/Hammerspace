@@ -102,6 +102,7 @@ func main() {
 	router.POST("logout", handleLogout)
 	router.POST("signup", handleSignup)
 	router.POST("uploadFile", handleFileUpload)
+	router.GET("testing", handleTesting)
 	// router.POST("changePassword", handleChangePassword)
 
 	router.Run(serverConfig.ListenOn)

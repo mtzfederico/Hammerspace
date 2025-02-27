@@ -15,7 +15,7 @@ func handleFileUpload(c *gin.Context) {
 		Upload file:
 			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "file=@testFile.txt" localhost:9090/uploadFile
 	*/
-
+/*
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -42,6 +42,8 @@ func handleFileUpload(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
 		return
 	}
+		*/
+		
 
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -59,4 +61,14 @@ func handleFileUpload(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 	}
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size})
+}
+
+
+func handleTesting(c *gin.Context){
+
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+	c.String(200, "Hello WOrld")
 }
