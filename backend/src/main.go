@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	_ "embed"
 	"flag"
+	"fmt"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +25,9 @@ var serverConfig Config
 
 // The database connection pool
 var db *sql.DB
+
+// The s3 client
+var s3Client *s3.Client
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "Path to the configuration file")
@@ -63,6 +68,8 @@ func main() {
 		log.Fatal("[main] No ListenOn specified")
 	}
 
+	log.WithField("LastCommitInfo", LastCommitInfo).Info("Starting server")
+
 	if serverConfig.GINRelease {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -87,10 +94,17 @@ func main() {
 	// Verify that connection to DB is working
 	pingErr := db.Ping()
 	if pingErr != nil {
-		log.WithField("pingErr", pingErr).Fatal("Failed to connect to DB")
+		log.WithField("pingErr", pingErr).Fatal("[main] Failed to connect to DB")
 	}
 
-	log.WithField("LastCommitInfo", LastCommitInfo).Info("Starting server")
+	if s3Client == nil {
+		s3Client, err = getS3Client()
+
+		if err != nil {
+			// should probabl be fatal
+			log.WithField("err", err).Error("[main] Failed to setup S3 client")
+		}
+	}
 	router := gin.Default()
 
 	// Handle 404s
@@ -104,5 +118,11 @@ func main() {
 	router.POST("uploadFile", handleFileUpload)
 	// router.POST("changePassword", handleChangePassword)
 
-	router.Run(serverConfig.ListenOn)
+	err = encryptFile("/Users/FedeMtz/Desktop/NYIT/Spring 2025/Hammerspace/backend/tmp/testFile.txt")
+	if err != nil {
+		fmt.Printf("[main] encryptFile error: ")
+		fmt.Println(err)
+	}
+
+	// router.Run(serverConfig.ListenOn)
 }

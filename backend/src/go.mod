@@ -3,6 +3,7 @@ module github.com/hammerspace
 go 1.22.2
 
 require (
+	filippo.io/age v1.2.1
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/aws/aws-sdk-go-v2 v1.36.2
 	github.com/aws/aws-sdk-go-v2/config v1.29.7
@@ -11,7 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/crypto v0.23.0
+	golang.org/x/crypto v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -52,7 +53,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 )

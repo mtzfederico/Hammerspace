@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -59,4 +60,19 @@ func handleFileUpload(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 	}
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size})
+}
+
+func handleGetFile(c *gin.Context) {
+
+	s3Client, err := getS3Client()
+	if err != nil {
+		log.Fatal(err)
+	}
+	file, err := getFile(c, s3Client, "", "")
+	if err != nil {
+		// TODO
+	}
+
+	c.DataFromReader(http.StatusOK, 20, "contentType", file, nil)
+
 }
