@@ -41,6 +41,8 @@ async function pickDocument() {
 */
 
     //IP of PC
+
+    // school : 216.37.100.25
    
     const response = await fetch('http://192.168.107.78:9090/uploadFile', {
       method: 'POST',
