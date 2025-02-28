@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,5 +75,34 @@ func handleGetFile(c *gin.Context) {
 	}
 
 	c.DataFromReader(http.StatusOK, 20, "contentType", file, nil)
-
 }
+
+// Returns a new v7 UUID.
+// id, err := getNewFileID()
+// id.String() to get it as a string " xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+func getNewFileID() (uuid.UUID, error) {
+	id, err := uuid.NewV7()
+	return id, err
+}
+
+/*
+func getMIMEType(extension string) string {
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types#important_mime_types_for_web_developers
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types/Common_types
+	// https://en.wikipedia.org/wiki/Media_type
+	switch extension {
+	case "txt":
+		return "text/plain"
+	case "png":
+		return "image/png"
+	case "jpg", "jpeg":
+		return "image/jpeg"
+	case "pdf":
+		return "application/pdf"
+	case "mp4":
+		return "video/mp4"
+	default:
+		return "application/octet-stream"
+	}
+}
+*/
