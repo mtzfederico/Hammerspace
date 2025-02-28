@@ -20,6 +20,8 @@ type BasicRequest struct {
 	AuthToken string `json:"authToken"`
 }
 
-type FolderRequest struct {
-	DirName		string	`json:"dirName"`
+type CreateFolderRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	DirName   string `json:"dirName"`
 }
