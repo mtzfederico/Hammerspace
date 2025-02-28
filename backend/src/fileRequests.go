@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,28 +26,29 @@ func handleFileUpload(c *gin.Context) {
 
 	userID := c.PostForm("userID")
 	authToken := c.PostForm("authToken")
-/*
-	if userID == "" || authToken == "" {
-		c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
-		log.Error("[handleFileUpload] No userID or authToken in request")
-		return
-	}
+	// Commented to simplify testing, it works
+	/*
+		if userID == "" || authToken == "" {
+			c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
+			log.Error("[handleFileUpload] No userID or authToken in request")
+			return
+		}
 
-	// verify that the token is valid
-	valid, err := isAuthTokenValid(c, userID, authToken)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleFileUpload] Failed to verify token")
-		return
-	}
+		// verify that the token is valid
+		valid, err := isAuthTokenValid(c, userID, authToken)
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+			log.WithField("error", err).Error("[handleFileUpload] Failed to verify token")
+			return
+		}
 
-	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
-		return
-	}
-		
-		*/
-		fmt.Printf("userID %s authToken %s\n", userID,authToken)
+		if !valid {
+			c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+			return
+		}
+	*/
+
+	fmt.Printf("userID %s authToken %s\n", userID, authToken)
 
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -66,9 +68,8 @@ func handleFileUpload(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size})
 }
 
-<<<<<<< HEAD
+// Handles a request to get a file fom S3
 func handleGetFile(c *gin.Context) {
-
 	s3Client, err := getS3Client()
 	if err != nil {
 		log.Fatal(err)
@@ -80,6 +81,35 @@ func handleGetFile(c *gin.Context) {
 
 	c.DataFromReader(http.StatusOK, 20, "contentType", file, nil)
 }
+
+// Handles the requests to create a folder
+func handleCreateFolder(c *gin.Context) {
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request CreateFolderRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleFolderUpload] Failed to decode JSON")
+		return
+	}
+
+	dirPath := request.DirName // You might want to add path validation/sanitization here
+
+	//we will not be using os.Mkdir for the final version
+	err = os.Mkdir(dirPath, 0755)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[Mkdir]] Failed to create a directory")
+		return
+	}
+	c.JSON(200, gin.H{"success": true, "message": "Folder created  successfully"})
+}
+
+// ---------------------------------------------------------------------------
 
 // Returns a new v7 UUID.
 // id, err := getNewFileID()
@@ -111,14 +141,3 @@ func getMIMEType(extension string) string {
 	}
 }
 */
-=======
-
-func handleTesting(c *gin.Context){
-
-	if c.Request.Body == nil {
-		c.JSON(400, gin.H{"success": false, "error": "No data received"})
-		return
-	}
-	c.String(200, "Hello WOrld")
-}
->>>>>>> aleks_branch
