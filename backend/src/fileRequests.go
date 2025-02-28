@@ -81,6 +81,7 @@ func handleGetFile(c *gin.Context) {
 // id, err := getNewFileID()
 // id.String() to get it as a string " xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 func getNewFileID() (uuid.UUID, error) {
+	// another option: https://planetscale.com/blog/why-we-chose-nanoids-for-planetscales-api
 	id, err := uuid.NewV7()
 	return id, err
 }
