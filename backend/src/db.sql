@@ -49,3 +49,16 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 
 -- Test public key for "AGE-SECRET-KEY-13ZV95MTF4J8K75DR5J884E9G2FRSZNJKMRHK9TV4TF7V6TTUGETQ9MZTQ7"
 -- INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
+
+-- UUIDv7 is 36 char long
+CREATE TABLE IF NOT EXISTS files (
+  id            VARCHAR(36)   PRIMARY KEY,
+  parentDir     VARCHAR(50)   NOT NULL,
+  name          VARCHAR(50)   NOT NULL,
+  type          VARCHAR(50)   NOT NULL,
+  size          INT           NOT NULL,
+  userID        VARCHAR(50)   NOT NULL,
+  createdDate   DATETIME      NOT NULL,
+  lastModified  DATETIME      DEFAULT NULL,
+  CONSTRAINT files_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
+);
