@@ -78,13 +78,15 @@ func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) 
 
 // Uploads the file at the filePath to the bucket and gives it the specified objKey
 // The objKey is the name/id given to the file in S3. It is needed to retrieve the file later
-func uploadFile(ctx context.Context, client *s3.Client, bucketName, filePath, objKey string) (*s3.PutObjectOutput, error) {
+func uploadFile(ctx context.Context, client *s3.Client, bucketName string, file *os.File, objKey string) (*s3.PutObjectOutput, error) {
 	// https://github.com/realchandan/pgbackup/blob/1353f1cd131ff338800b69ddb861901e76151691/main.go#L314
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
+	/*
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+	*/
 
 	info, err := file.Stat()
 	if err != nil {
