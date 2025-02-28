@@ -25,7 +25,7 @@ func handleFileUpload(c *gin.Context) {
 
 	userID := c.PostForm("userID")
 	authToken := c.PostForm("authToken")
-
+/*
 	if userID == "" || authToken == "" {
 		c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
 		log.Error("[handleFileUpload] No userID or authToken in request")
@@ -44,6 +44,9 @@ func handleFileUpload(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
 		return
 	}
+		
+		*/
+		fmt.Printf("userID %s authToken %s\n", userID,authToken)
 
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -63,6 +66,7 @@ func handleFileUpload(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size})
 }
 
+<<<<<<< HEAD
 func handleGetFile(c *gin.Context) {
 
 	s3Client, err := getS3Client()
@@ -107,3 +111,14 @@ func getMIMEType(extension string) string {
 	}
 }
 */
+=======
+
+func handleTesting(c *gin.Context){
+
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+	c.String(200, "Hello WOrld")
+}
+>>>>>>> aleks_branch

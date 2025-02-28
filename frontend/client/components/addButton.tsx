@@ -3,7 +3,9 @@ import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorSche
 import React, { useState} from 'react';
 import { reload } from 'expo-router/build/global-state/routing';
 
-import { pickDocument } from './documentPicker';
+import { pickDocument } from './sendFile';
+import CreateFolder  from './addFolder';
+
 
 
 
@@ -14,7 +16,7 @@ import { pickDocument } from './documentPicker';
 
 const AddButton = () => {
 
-  
+    const [visible, setVisible] = useState(false); 
     const [isTextVisible, setIsTextVisible] = useState(false);
   
     const toggleTextVisibility = () => {
@@ -74,6 +76,13 @@ const AddButton = () => {
     await pickDocument();
   };
 
+  const handleFolderCreation = () => {
+    setVisible(!visible)
+    console.log("Vising is bere " + visible)
+    
+  };
+
+    
   const colorScheme = useColorScheme();
 
   const isDarkMode = colorScheme === 'dark';
@@ -99,14 +108,16 @@ const AddButton = () => {
       
 
       <Animated.View style={[styles.cont, { bottom: icon_2}]}>
-        <TouchableOpacity style={styles.touchable}>
+        <TouchableOpacity style={styles.touchable} onPress={handleFolderCreation}>
         <Image
         source={require('../assets/images/folder.webp')}
         style={styles.icon}
       />
-        </TouchableOpacity>
+        </TouchableOpacity >
+       
       </Animated.View>
-      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]}>Create a Folder </Text>}
+     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}/>}
+      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create a Folder </Text>}
 
 
       <TouchableOpacity style={styles.cont} onPress={() => {
@@ -118,7 +129,10 @@ const AddButton = () => {
         style={styles.image}
       />
     </TouchableOpacity>
+    
     </View>
+
+    
   );
 };
 
@@ -135,7 +149,7 @@ const styles = StyleSheet.create({
      borderRadius: 50,
      justifyContent: 'center',
      alignItems: 'center',
-     overflow: 'hidden',
+    overflow: 'hidden'
      
     
 
