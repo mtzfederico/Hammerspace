@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	log "github.com/sirupsen/logrus"
 
 	"filippo.io/age"
@@ -14,18 +15,18 @@ import (
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(filePath, s3ObjKey string) error {
+func encryptAndUploadFile(filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to open file %q. %v", filePath, err)
+		return nil, fmt.Errorf("failed to open file %q. %v", filePath, err)
 	}
 	defer fileIn.Close()
 
 	// get public keys
 	recipients, err := getPublicKeys()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// encrypt
@@ -35,16 +36,16 @@ func encryptAndUploadFile(filePath, s3ObjKey string) error {
 	// https://gobyexample.com/variadic-functions
 	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	n, err := io.Copy(ageWriter, fileIn)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = ageWriter.Close()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.WithField("bytesEncrypted", n).Trace("[encryptFile] Encrypted file")
@@ -54,13 +55,23 @@ func encryptAndUploadFile(filePath, s3ObjKey string) error {
 	// upload file
 	res, err := uploadBytes(context.Background(), s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	fmt.Print("[encryptFile] result: ")
-	fmt.Println(res)
-
-	return nil
+	return res, err
+	// Example Usage:
+	/*
+		filePath := "tmp/testImage-0.png"
+		parts := strings.Split(filePath, "/tmp/")
+		newFilename := parts[len(parts)-1] + ".age"
+		res, err = encryptAndUploadFile(filePath, newFilename)
+		if err != nil {
+			fmt.Printf("[main] encryptFile error: ")
+			fmt.Println(err)
+		}
+		fmt.Print("result: ")
+		fmt.Println(res)
+	*/
 }
 
 func getPublicKeys() ([]age.Recipient, error) {
