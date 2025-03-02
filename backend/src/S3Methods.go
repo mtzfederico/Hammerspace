@@ -46,8 +46,9 @@ func getS3Client() (*s3.Client, error) {
 
 // Get a file from S3 with the specified objKey
 // The objKey is the name/id given to the file in S3. It is needed to get the file
-func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) (io.ReadCloser, error) {
-	getObjectOutput, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+// The contents are at .Body
+func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) (*s3.GetObjectOutput, error) {
+	getObjectOutput, err := client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objKey),
 	})
@@ -56,23 +57,30 @@ func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) 
 		return nil, fmt.Errorf("getObjectOutput error, %v", err)
 	}
 
-	return getObjectOutput.Body, nil
-
+	return getObjectOutput, nil
+	// Example Usage:
 	/*
+		filename := "testImage-0.png.age"
+		res, err := getFile(context.Background(), s3Client, serverConfig.S3BucketName, filename)
+		if err != nil {
+			fmt.Printf("[main] getFile error: ")
+			fmt.Println(err)
+		}
+
 		// Create a file to write the S3 Object contents to.
 		f, err := os.Create(filename)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create file %q, %v", filename, err)
+			fmt.Printf("failed to create file %q, %v", filename, err)
+			return
 		}
 		// Copy from the reader to new File
-		nCopied, err := io.Copy(f, getObjectOutput.Body)
+		nCopied, err := io.Copy(f, res.Body)
 		if err != nil {
 			print("Error copying data: ", err)
-			return nil, err
+			return
 		}
 
 		fmt.Printf("file copied, %d bytes\n", nCopied)
-		return nil
 	*/
 }
 
