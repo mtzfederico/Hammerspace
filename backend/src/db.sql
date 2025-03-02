@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- Files/items table
 -- id is a UUIDv7 which is 36 char long. parentDir is the folder tha this item is in. Empty or '/' is the root/home directory of the user
 -- Type is the type that the file is. We could use the MIME Types https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types
--- Processed is to indicate whether the file has been checked/inspected or not
+-- Processed is to indicate whether the file has been checked/inspected or not.
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
   parentDir     VARCHAR(50)   NOT NULL,
