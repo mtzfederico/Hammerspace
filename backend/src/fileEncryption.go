@@ -12,6 +12,8 @@ import (
 	"filippo.io/age"
 )
 
+// Encrpts the file at the specified path and uploads it to S3 with the specified object key
+// Missing way of specifing the publicKeys
 func encryptAndUploadFile(filePath, s3ObjKey string) error {
 	// get file
 	fileIn, err := os.Open(filePath)
@@ -21,14 +23,17 @@ func encryptAndUploadFile(filePath, s3ObjKey string) error {
 	defer fileIn.Close()
 
 	// get public keys
-	recipient, err := getPublicKeys()
+	recipients, err := getPublicKeys()
 	if err != nil {
 		return err
 	}
 
 	// encrypt
 	encryptedData := &bytes.Buffer{}
-	ageWriter, err := age.Encrypt(encryptedData, recipient)
+	// variadic function
+	// https://go.dev/ref/spec#Passing_arguments_to_..._parameters
+	// https://gobyexample.com/variadic-functions
+	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
 		return err
 	}
@@ -58,8 +63,10 @@ func encryptAndUploadFile(filePath, s3ObjKey string) error {
 	return nil
 }
 
-func getPublicKeys() (*age.X25519Recipient, error) {
+func getPublicKeys() ([]age.Recipient, error) {
+	var recipients []age.Recipient
 	publicKey := "age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj"
 	recipient, err := age.ParseX25519Recipient(publicKey)
-	return recipient, err
+	recipients = append(recipients, recipient)
+	return recipients, err
 }
