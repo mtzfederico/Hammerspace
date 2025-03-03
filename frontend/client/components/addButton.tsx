@@ -14,7 +14,10 @@ import CreateFolder  from './addFolder';
 
 
 
-const AddButton = () => {
+const AddButton = ({addFolder}) => {
+  
+  console.log("addFOlder is here " +addFolder)
+   
 
     const [visible, setVisible] = useState(false); 
     const [isTextVisible, setIsTextVisible] = useState(false);
@@ -81,6 +84,8 @@ const AddButton = () => {
     console.log("Vising is bere " + visible)
     
   };
+  
+  
 
     
   const colorScheme = useColorScheme();
@@ -91,9 +96,10 @@ const AddButton = () => {
     
   return (
     <View style={{
-        flex: 1,
-
-      }}>
+        flex: 1, 
+      }}
+      importantForAccessibility='no-hide-descendants'>
+       
     <Animated.View style={[styles.cont, { bottom: icon_1}]}>
         <TouchableOpacity style={styles.touchable} onPress={handleDocumentPick}>
         <Image
@@ -116,7 +122,7 @@ const AddButton = () => {
         </TouchableOpacity >
        
       </Animated.View>
-     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}/>}
+     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} />}
       {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create a Folder </Text>}
 
 
@@ -185,5 +191,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'blue',
+  },
+  view: {
+    flex: 1,
   }
 });

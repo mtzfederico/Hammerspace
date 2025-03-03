@@ -1,12 +1,11 @@
 package main
 
-
 import (
 	"os"
+
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
-
 
 // Handles the requests to uplooad files to the server
 func handleFolderUpload(c *gin.Context) {
@@ -26,7 +25,8 @@ func handleFolderUpload(c *gin.Context) {
 	dirPath := request.DirName // You might want to add path validation/sanitization here
 
 	//we will not be using os.Mkdir for the final version
-	err = os.Mkdir(dirPath, 0755)
+	   
+	os.Mkdir(dirPath, 0755)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
 	log.WithField("error", err).Error("[Mkdir]] Failed to create a directory")
