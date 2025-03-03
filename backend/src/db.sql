@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- Processed is to indicate whether the file has been checked/inspected or not.
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
+  objKey        VARCHAR(36)   NOT NULL,
   parentDir     VARCHAR(50)   NOT NULL,
   name          VARCHAR(50)   NOT NULL,
   type          VARCHAR(50)   NOT NULL,
