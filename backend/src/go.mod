@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.77.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.9.0
+	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.24.0
 	gopkg.in/yaml.v3 v3.0.1

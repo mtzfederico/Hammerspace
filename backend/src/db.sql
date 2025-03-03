@@ -49,3 +49,34 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 
 -- Test public key for "AGE-SECRET-KEY-13ZV95MTF4J8K75DR5J884E9G2FRSZNJKMRHK9TV4TF7V6TTUGETQ9MZTQ7"
 -- INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
+
+-- Files/items table
+-- id is a UUIDv7 which is 36 char long. parentDir is the folder tha this item is in. Empty or '/' is the root/home directory of the user
+-- Type is the type that the file is. We could use the MIME Types https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types
+-- Processed is to indicate whether the file has been checked/inspected or not.
+CREATE TABLE IF NOT EXISTS files (
+  id            VARCHAR(36)   PRIMARY KEY,
+  parentDir     VARCHAR(50)   NOT NULL,
+  name          VARCHAR(50)   NOT NULL,
+  type          VARCHAR(50)   NOT NULL,
+  size          INT           NOT NULL,
+  userID        VARCHAR(50)   NOT NULL,
+  processed     BOOL          NOT NULL  DEFAULT false,
+  createdDate   DATETIME      NOT NULL,
+  lastModified  DATETIME      DEFAULT NULL,
+  CONSTRAINT files_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
+);
+
+-- items shared table
+CREATE TABLE IF NOT EXISTS sharedFiles (
+  id            VARCHAR(36)   PRIMARY KEY,
+  fileID        VARCHAR(36)   PRIMARY KEY,
+  userID        VARCHAR(50)   NOT NULL,
+  fileOwner     VARCHAR(50)   NOT NULL,
+  isReadOnly    BOOL          NOT NULL  DEFAULT true,
+  createdDate   DATETIME      NOT NULL,
+  lastModified  DATETIME      DEFAULT NULL,
+  CONSTRAINT sharedFiles_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE
+  CONSTRAINT sharedFiles_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
+  CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE
+);

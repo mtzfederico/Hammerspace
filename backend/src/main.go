@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	_ "embed"
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -115,14 +114,17 @@ func main() {
 	router.POST("login", handleLogin)
 	router.POST("logout", handleLogout)
 	router.POST("signup", handleSignup)
-	router.POST("uploadFile", handleFileUpload)
 	// router.POST("changePassword", handleChangePassword)
 
-	err = encryptFile("/Users/FedeMtz/Desktop/NYIT/Spring 2025/Hammerspace/backend/tmp/testFile.txt")
-	if err != nil {
-		fmt.Printf("[main] encryptFile error: ")
-		fmt.Println(err)
-	}
+	router.POST("uploadFile", handleFileUpload)
+	router.POST("getFile", handleGetFile)
+	router.POST("shareFile", handleShareFile)
+	router.POST("removeFile", handleRemoveFile)
 
-	// router.Run(serverConfig.ListenOn)
+	router.POST("createFolder", handleCreateFolder)
+	router.POST("getDir", handleGetDirectory)
+	router.POST("shareFolder", handleShareDirectory)
+	router.POST("removeFolder", handleRemoveFolder)
+
+	router.Run(serverConfig.ListenOn)
 }

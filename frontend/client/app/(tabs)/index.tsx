@@ -10,9 +10,9 @@ import { TouchableOpacity, Text } from 'react-native';
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      {/* Other components can be placed here */
-      AddButton()
-      }
+      /* Other components can be placed here */
+      <AddButton></AddButton>
+      
       
     </View>
   );
