@@ -33,7 +33,7 @@ type GetDirectoryRequest struct {
 	DirName   string `json:"dirName"`
 }
 
-type GetDirectoryRequest struct {
+type GetFileRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
 	// The fileID in the DB, NOT the S3 objKey
