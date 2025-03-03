@@ -24,13 +24,17 @@ type BasicRequest struct {
 type CreateFolderRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
-	DirName   string `json:"dirName"`
+	// The name that the user sees
+	DirName string `json:"dirName"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	ParentDir string `json:"parentDir"`
 }
 
 type GetDirectoryRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
-	DirName   string `json:"dirName"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	DirID string `json:"dirID"`
 }
 
 type GetFileRequest struct {

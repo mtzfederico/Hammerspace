@@ -51,8 +51,10 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
 
 -- Files/items table
--- id is a UUIDv7 which is 36 char long. parentDir is the folder tha this item is in. Empty or '/' is the root/home directory of the user
+-- id is a UUIDv7 which is 36 char long.
+-- parentDir is the ID of the folder that this item is in. 'root' is the root/home directory of the user. Otherwise it is the ID of the parent dir
 -- Type is the type that the file is. We could use the MIME Types https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types
+-- If it is a folder, then type is 'folder' and size is 0
 -- Processed is to indicate whether the file has been checked/inspected or not.
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
