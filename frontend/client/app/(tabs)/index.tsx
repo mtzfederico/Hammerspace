@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Image, StyleSheet, Platform } from 'react-native';
 import { View} from 'react-native';
-import {Input, Button} from 'react-native-elements';
 import  AddButton  from  '../../components/addButton'
-import  Flat  from  '../../components/flatExample'
 import DisplayFolders from '@/components/displayFolders';
 
 import { TouchableOpacity, Text } from 'react-native';
@@ -15,26 +13,36 @@ import { ScrollView } from 'react-native-reanimated/lib/typescript/Animated';
 
 export default function HomeScreen() {
 const [folders, setFolders] = useState([]);
+const [files, setFiles] = useState([]);
 
-   const addFolder = (name: string) => {
+  // Merged array of folders and files
+  const mergedData = [...folders, ...files];
+
+   const addFolder = (name: string, type: string) => {
+
     const newFolder = {
-      id: folders.length + 1, // Assign new id to the folder
+    //id: folders.length + 1, // Assign new id to the folder
       name,
+      type
     };
+    console.log('index Type + ' + type)
     setFolders([...folders, newFolder]);
   };
+  const addFile = (name: string, uri: string) => {
+    const newFile = { name, type: 'File', uri }; // Add file with type "File"
+    setFiles([...files, newFile]);
+  };
+
 
   return (
+
     <View style={styles.container}>
-      <DisplayFolders folders={folders} /> {/* Display the folder list */}
-      <AddButton addFolder={addFolder} /> {/* Pass addFolder function to AddButton */}
+      <DisplayFolders data={mergedData} /> {/* Display the folder list */}
+      <AddButton addFolder={addFolder} addFile={addFile}/> {/* Pass addFolder function to AddButton */}
     </View>
   );
 };
   
-
-
-
 
 const styles = StyleSheet.create({
   container: {

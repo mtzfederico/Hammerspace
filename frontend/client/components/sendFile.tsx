@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 
 const ip = process.env.IP_ADDRESS
 // Function to open the document picker and handle the selected file
-async function pickDocument() {
+async function pickDocument({addFile}) {
   try {
     const result = await DocumentPicker.getDocumentAsync({
       type: '*/*', // Allow any file type to be selected
@@ -17,6 +17,8 @@ async function pickDocument() {
     }
 
     var fileName = String(`${result.assets[0].name}`)
+    var fileURI = String(`${result.assets[0].uri}`)
+    console.log(fileURI)
     var userID = "ggggggggggrrrrrrrrrrrrrr"
     var authToken = "bbbrrr"
 
@@ -42,8 +44,9 @@ async function pickDocument() {
 
     //IP of PC
 
-    // school : 216.37.100.25
+    // school : 216.37.97.95
    
+    console.log("before fetch")
     const response = await fetch('http://192.168.107.78:9090/uploadFile', {
       method: 'POST',
       body: formData,
@@ -54,6 +57,9 @@ async function pickDocument() {
 
     if (response.ok) {
       console.log('File uploaded successfully!');
+      
+      addFile(fileName, fileURI)
+      
     } else {
       console.error('File upload failed:', response.statusText);
     }

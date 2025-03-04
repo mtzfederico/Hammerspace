@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Button, StyleSheet, View, Image, Text, useColorScheme , FlatList, StatusBar} from "react-native";
+import React, { useState} from "react";
+import { StyleSheet, View,useColorScheme , StatusBar} from "react-native";
 import Dialog from "react-native-dialog";
 import sendFolder from "./sendFolder";
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import Flat from './flatExample'
+
+
 
 interface CreateFolderProps {
   isVisible: boolean;
@@ -31,6 +31,11 @@ const handleInput = (text) => {
  const handleSubmission = () => {
     // Process the input value here (e.g., save it, display it, etc.)
     const input = inputValue.trim()
+    const type = "Directory"
+    if(input == "") {
+      alert("please enter Folder name")
+
+    }
     console.log('Input Value:', input);
     setIsVisible(false)
     ; // Close the dialog
@@ -39,7 +44,7 @@ const handleInput = (text) => {
     sendFolder(input) 
 
     // dipslay Folder on screen
-    addFolder(input)
+    addFolder(input, type)
 
     console.log("folder created")
 

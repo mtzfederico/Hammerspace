@@ -1,8 +1,5 @@
-
 import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
 import React, { useState} from 'react';
-import { reload } from 'expo-router/build/global-state/routing';
-
 import { pickDocument } from './sendFile';
 import CreateFolder  from './addFolder';
 
@@ -14,9 +11,9 @@ import CreateFolder  from './addFolder';
 
 
 
-const AddButton = ({addFolder}) => {
+const AddButton = ({addFolder, addFile}) => {
   
-  console.log("addFOlder is here " +addFolder)
+ 
    
 
     const [visible, setVisible] = useState(false); 
@@ -76,7 +73,7 @@ const AddButton = ({addFolder}) => {
   }
 
   const handleDocumentPick = async () => {
-    await pickDocument();
+    await pickDocument({addFile});
   };
 
   const handleFolderCreation = () => {

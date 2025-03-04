@@ -2,11 +2,13 @@ import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView}
 
 
 
+const imageHeight =60
+const imageWidth = 60
 
-const imageWidth = 80
 
+const DisplayFolders = ({ data }) => {
 
-const DisplayFolders = ({ folders }) => {
+  
   const colorScheme = useColorScheme();
 
   const isDarkMode = colorScheme === 'dark';
@@ -14,6 +16,28 @@ const DisplayFolders = ({ folders }) => {
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
+
+  const renderItem = ({ item }) => {
+    console.log("name " + item.name)
+    console.log("uri " + item.uri)
+    if (item.type === 'Directory') {
+      return (
+        <View style={backgroundStyle}>
+          <Image source={require('../assets/images/folder.webp')}style={styles.image} />
+            <Text style={textStyle}>{item.name}</Text>
+        </View>
+      );
+    } else if (item.type === 'File') {
+      return (
+        <View style={backgroundStyle}>
+          <Image source={{ uri: `${item.uri}` }} style={styles.image} />
+            <Text style={textStyle}>{item.name}</Text>
+        </View>
+      );
+    } else {
+      return null;
+    }
+  };
    
   
   return (
@@ -22,15 +46,9 @@ const DisplayFolders = ({ folders }) => {
       <FlatList
         horizontal
         contentContainerStyle={{ gap: 40 }}
-        data={folders}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={backgroundStyle}>
-              <Image source={require('../assets/images/folder.webp')}style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
-            
-          </View>
-        )}
+        data={data}
+        keyExtractor={(item) => item.name}
+        renderItem={renderItem}
       />
       </SafeAreaView>
     </View>
@@ -53,22 +71,27 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   image: {
-    height: 60,
-    width: imageWidth,
+    width: '100%',
+
+    height: '100%',
+
+    resizeMode: 'cover' 
   },
   darkBackground: {
     flex: 1,
-    backgroundColor: "black",
+     backgroundColor: "#333",
     tintColor: 'black',
-    height: 45,
-    width: 45,
+    height: imageHeight,
+    width: imageWidth,
+    marginBottom: 10,
+    
     
   },
   lightBackground: {
     flex: 1,
     backgroundColor: "white",
-    height: 45,
-    width: 45,
+    height: imageHeight,
+    width: imageWidth,
   },
 
   lightText: {
