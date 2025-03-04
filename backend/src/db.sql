@@ -72,13 +72,16 @@ CREATE TABLE IF NOT EXISTS files (
 -- items shared table
 CREATE TABLE IF NOT EXISTS sharedFiles (
   id            VARCHAR(36)   PRIMARY KEY,
-  fileID        VARCHAR(36)   PRIMARY KEY,
+  fileID        VARCHAR(36)   NOT NULL,
   userID        VARCHAR(50)   NOT NULL,
   fileOwner     VARCHAR(50)   NOT NULL,
   isReadOnly    BOOL          NOT NULL  DEFAULT true,
   createdDate   DATETIME      NOT NULL,
   lastModified  DATETIME      DEFAULT NULL,
-  CONSTRAINT sharedFiles_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE
-  CONSTRAINT sharedFiles_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
+  CONSTRAINT sharedFiles_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE,
+  CONSTRAINT sharedFiles_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
   CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE
 );
+
+-- update files set parentDir = "root" where id = "01955ebb-6732-72da-b323-19649f133efa";
+select * from files;

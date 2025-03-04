@@ -43,3 +43,17 @@ type GetFileRequest struct {
 	// The fileID in the DB, NOT the S3 objKey
 	FileID string `json:"fileID"`
 }
+
+type GetDirectoryResponse struct {
+	Success   bool                        `json:"success"`
+	DirID     string                      `json:"dirID"`
+	ParentDir string                      `json:"ParentDir"`
+	Items     []GetDirectoryResponseItems `json:"items"`
+}
+
+type GetDirectoryResponseItems struct {
+	Name     string `json:"name"`
+	ID       string `json:"id"`
+	FileType string `json:"type"`
+	Size     int    `json:"size" binding:"omitempty"`
+}

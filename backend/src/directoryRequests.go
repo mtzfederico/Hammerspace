@@ -8,6 +8,9 @@ import (
 )
 
 func handleGetDirectory(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "root"}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -35,8 +38,16 @@ func handleGetDirectory(c *gin.Context) {
 	}
 
 	// Query DB
+	items, err := getItemsInDir(c, request.UserID, request.DirID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get items in directory")
+		return
+	}
 
+	response := GetDirectoryResponse{true, request.DirID, "notImplementedYet", items}
 	// Return json
+	c.JSON(200, response)
 }
 
 // When a director and thus everything inside is deleted
@@ -107,4 +118,33 @@ func handleCreateDirectory(c *gin.Context) {
 func addDirectoryToDB(ctx context.Context, dirID, parentDir, name, userID string) error {
 	_, err := db.ExecContext(ctx, "INSERT INTO files (id, parentDir, name, type, size, userID, createdDate) VALUES (?, ?, ?, 'folder', 0, ?, now());", dirID, parentDir, name, userID)
 	return err
+}
+
+func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryResponseItems, error) {
+	var items []GetDirectoryResponseItems
+
+	rows, err := db.QueryContext(ctx, "select id, name, type, size from files where userID=? AND parentDir=?", userID, dirID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var item GetDirectoryResponseItems
+		err := rows.Scan(&item.ID, &item.Name, &item.FileType, &item.Size)
+		if err != nil {
+			/*
+				if err == sql.ErrNoRows {
+					return "", nil
+				}
+			*/
+			return nil, err
+		}
+
+		// log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[isAuthTokenValid]")
+		items = append(items, item)
+	}
+
+	return items, nil
 }

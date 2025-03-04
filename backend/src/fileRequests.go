@@ -86,6 +86,8 @@ func handleFileUpload(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
+
+	// Start processing the file here
 }
 
 // Handles a request to get a file fom S3
