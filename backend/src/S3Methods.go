@@ -129,3 +129,17 @@ func uploadBytes(ctx context.Context, client *s3.Client, bucketName string, byte
 
 	return putObjectOutput, nil
 }
+
+// Deletes the file with the specified objKey from S3
+func deleteFile(ctx context.Context, client *s3.Client, bucketName, objKey string) (*s3.DeleteObjectOutput, error) {
+	putObjectOutput, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objKey),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return putObjectOutput, nil
+}

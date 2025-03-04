@@ -11,13 +11,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	// User doesn't have access to item error
+	errUserAccessNotAllowed error = errors.New("user doesn't have access to item")
+	// File not found in the files DB error
+	errFileNotFound error = errors.New("file not found")
+)
+
 // Handles the requests to uplooad files to the server
 func handleFileUpload(c *gin.Context) {
 	/*
 		Login first:
 			curl --header "Content-Type: application/json" --data '{"userID":"testUser","password":"testPassword123"}' "http://localhost:9090/login"
 		Upload file:
-			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "file=@testFile.txt" localhost:9090/uploadFile
+			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testFile.txt" localhost:9090/uploadFile
 	*/
 
 	if c.Request.Body == nil {
@@ -128,7 +135,7 @@ func handleGetFile(c *gin.Context) {
 	}
 
 	// TODO: check that file exists, and the user has access to it, and get the s3 objKey
-	objKey, err := getObjectKey(c, request.FileID, request.UserID)
+	objKey, err := getObjectKey(c, request.FileID, request.UserID, true)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get object key")
@@ -148,26 +155,106 @@ func handleGetFile(c *gin.Context) {
 }
 
 func handleRemoveFile(c *gin.Context) {
-	// Auth
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request GetFileRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to decode JSON")
+		return
+	}
+
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
 
 	// Query DB
+	objKey, err := getObjectKey(c, request.FileID, request.UserID, false)
+	if err != nil {
+		if errors.Is(err, errUserAccessNotAllowed) {
+			// User is not the owner and can't delete it
+			c.JSON(300, gin.H{"success": false, "error": "Operation not allowed"})
+			log.WithField("error", err).Debug("[handleRemoveFile] User tried to delete file without proper permission")
+			return
+		}
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
 
-	// Return json
+	_, err = deleteFile(c, s3Client, serverConfig.S3BucketName, objKey)
+	if err != nil {
+		// handle the error
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
+
+	// remove from DB
+	err = removeFileFromDB(c, request.FileID, request.UserID)
+	if err != nil {
+		// handle the error
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to delete file from DB")
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true, "fileID": request.FileID})
 }
 
 // When an individual file is shared
 func handleShareFile(c *gin.Context) {
-	// Auth
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
 
-	// Query DB
+	var request GetFileRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to decode JSON")
+		return
+	}
+
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	// Check that file exists. This might be able to be done in the insert to sharedFiles due to the relation
+
+	// add file to sharedFiles table
 
 	// Return json
 }
 
 // ---------------------------------------------------------------------------
 
-// Check that the file actually exists and return the objKey used in s3
-func getObjectKey(ctx context.Context, fileID string, userID string) (string, error) {
+// Checks that the file actually exists and returns the objKey used in s3.
+// allowedShared is used to check if the file is shared with the user. When it is false, the sharedFiles DB will not be checked and if the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
+func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
 	rows, err := db.QueryContext(ctx, "select userID, objKey from files where id=?", fileID)
 	if err != nil {
 		return "", err
@@ -175,7 +262,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var fileOwnerUserID, objKey string
 		err := rows.Scan(&fileOwnerUserID, &objKey)
 		if err != nil {
@@ -185,13 +272,16 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 		log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[isAuthTokenValid]")
 
 		if userID != fileOwnerUserID {
+			if !allowedShared {
+				return "", errUserAccessNotAllowed
+			}
 			// check sharedFiles table
 			permission, err := hasSharedFilePermission(ctx, fileID, userID)
 			if err != nil {
 				return "", err
 			}
 			if permission == "" {
-				return "", errors.New("user doesn't have access to item")
+				return "", errUserAccessNotAllowed
 			}
 		}
 		// The user has access to this item
@@ -199,7 +289,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 	}
 
 	// This should probably never be reached
-	return "", errors.New("file not found")
+	return "", errFileNotFound
 }
 
 // Checks if the file is shared with the specified userID
@@ -238,6 +328,11 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 
 func saveFileToDB(ctx context.Context, fileID, parentDir, fileName, ownerUserID, fileType string, size int) error {
 	_, err := db.ExecContext(ctx, "INSERT INTO files (id, parentDir, name, type, size, userID, processed, createdDate) VALUES (?, ?, ?, ?, ?, ?, false, now());", fileID, parentDir, fileName, fileType, size, ownerUserID)
+	return err
+}
+
+func removeFileFromDB(ctx context.Context, fileID, userID string) error {
+	_, err := db.ExecContext(ctx, "DELETE FROM files WHERE id=?, userID=?) VALUES (?, ?);", fileID, userID)
 	return err
 }
 

@@ -37,6 +37,15 @@ type GetDirectoryRequest struct {
 	DirID string `json:"dirID"`
 }
 
+type ShareDirectoryRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	DirID      string `json:"dirID"`
+	WithUserID string `json:"withUserID"`
+	ReadOnly   bool   `json:"isReadOnly"`
+}
+
 type GetFileRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`

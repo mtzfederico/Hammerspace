@@ -120,6 +120,7 @@ func main() {
 	router.POST("getFile", handleGetFile)
 	router.POST("shareFile", handleShareFile)
 	router.POST("removeFile", handleRemoveFile)
+	router.POST("getSharedWith", handleGetSharedWith)
 
 	router.POST("createDir", handleCreateDirectory)
 	router.POST("getDir", handleGetDirectory)
