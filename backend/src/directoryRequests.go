@@ -2,14 +2,22 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	errDirNotFound error = errors.New("dirNotFound")
+)
+
 func handleGetDirectory(c *gin.Context) {
 	/*
 		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "root"}'
+
+		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "01955efc-ca5b-7b65-849e-ab9f1351de23"}'
 	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -37,7 +45,7 @@ func handleGetDirectory(c *gin.Context) {
 		return
 	}
 
-	// Query DB
+	// Get the items in the DB
 	items, err := getItemsInDir(c, request.UserID, request.DirID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
@@ -45,7 +53,19 @@ func handleGetDirectory(c *gin.Context) {
 		return
 	}
 
-	response := GetDirectoryResponse{true, request.DirID, "notImplementedYet", items}
+	// Get the directory's parentDir
+	parentDir, err := getParentDirID(c, request.DirID)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			// Ideally status code should not be 200. TODO: Check if the client can handle non 200 status codes
+			c.JSON(200, gin.H{"success": false, "error": "Directory doesn't exist"})
+			return
+		}
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get parentDir ID")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+	}
+
+	response := GetDirectoryResponse{true, request.DirID, parentDir, items}
 	// Return json
 	c.JSON(200, response)
 }
@@ -70,6 +90,9 @@ func handleShareDirectory(c *gin.Context) {
 
 // Handles the requests to create a folder
 func handleCreateDirectory(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/createDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirName": "memes","parentDir":"root"}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -116,7 +139,7 @@ func handleCreateDirectory(c *gin.Context) {
 }
 
 func addDirectoryToDB(ctx context.Context, dirID, parentDir, name, userID string) error {
-	_, err := db.ExecContext(ctx, "INSERT INTO files (id, parentDir, name, type, size, userID, createdDate) VALUES (?, ?, ?, 'folder', 0, ?, now());", dirID, parentDir, name, userID)
+	_, err := db.ExecContext(ctx, "INSERT INTO files (id, parentDir, name, type, size, userID, processed, createdDate) VALUES (?, ?, ?, 'folder', 0, ?, true, now());", dirID, parentDir, name, userID)
 	return err
 }
 
@@ -147,4 +170,35 @@ func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryRes
 	}
 
 	return items, nil
+}
+
+func getParentDirID(ctx context.Context, dirID string) (string, error) {
+	if dirID == "root" {
+		return "", nil
+	}
+
+	rows, err := db.QueryContext(ctx, "select parentDir from files where id=? AND type='folder'", dirID)
+	if err != nil {
+		return "", err
+	}
+
+	defer rows.Close()
+
+	var parentDir string
+	if rows.Next() {
+		err := rows.Scan(&parentDir)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", fmt.Errorf("rows.next error. %w", err)
+		} else {
+			log.WithField("dirID", dirID).Warn("[getParentDirID] No rows and no error")
+			return "", errDirNotFound
+		}
+	}
+
+	return parentDir, nil
 }

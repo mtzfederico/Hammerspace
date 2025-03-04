@@ -45,9 +45,11 @@ type GetFileRequest struct {
 }
 
 type GetDirectoryResponse struct {
-	Success   bool                        `json:"success"`
-	DirID     string                      `json:"dirID"`
-	ParentDir string                      `json:"ParentDir"`
+	Success bool   `json:"success"`
+	DirID   string `json:"dirID"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID.
+	// When getting the root directory, parentDir is optional. If it is there, it should be an empty string
+	ParentDir string                      `json:"ParentDir" binding:"omitempty"`
 	Items     []GetDirectoryResponseItems `json:"items"`
 }
 

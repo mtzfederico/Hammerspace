@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -88,10 +89,18 @@ func handleFileUpload(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
 
 	// Start processing the file here
+	err = processFile(c, filePath, fileID.String())
+	if err != nil {
+		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
+	}
 }
 
 // Handles a request to get a file fom S3
 func handleGetFile(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/getFile" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","fileID": "01955f82-7409-7cfc-a6ab-af5a70ca5897"}'
+	*/
+
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -157,6 +166,7 @@ func handleShareFile(c *gin.Context) {
 
 // ---------------------------------------------------------------------------
 
+// Check that the file actually exists and return the objKey used in s3
 func getObjectKey(ctx context.Context, fileID string, userID string) (string, error) {
 	rows, err := db.QueryContext(ctx, "select userID, objKey from files where id=?", fileID)
 	if err != nil {
@@ -169,11 +179,6 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 		var fileOwnerUserID, objKey string
 		err := rows.Scan(&fileOwnerUserID, &objKey)
 		if err != nil {
-			/*
-				if err == sql.ErrNoRows {
-					return "", nil
-				}
-			*/
 			return "", err
 		}
 
@@ -186,7 +191,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 				return "", err
 			}
 			if permission == "" {
-				return "", fmt.Errorf("user doesn't have access to item")
+				return "", errors.New("user doesn't have access to item")
 			}
 		}
 		// The user has access to this item
@@ -194,7 +199,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string) (string, er
 	}
 
 	// This should probably never be reached
-	return "", fmt.Errorf("file not found")
+	return "", errors.New("file not found")
 }
 
 // Checks if the file is shared with the specified userID
@@ -228,7 +233,7 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 		}
 	}
 
-	return "", fmt.Errorf("")
+	return "", errors.New("")
 }
 
 func saveFileToDB(ctx context.Context, fileID, parentDir, fileName, ownerUserID, fileType string, size int) error {
