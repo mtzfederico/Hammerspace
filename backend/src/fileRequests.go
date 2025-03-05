@@ -58,7 +58,7 @@ func handleFileUpload(c *gin.Context) {
 		}
 	*/
 
-	// TODO: check that parentDir is valid and that the user can create a new directory in that location
+	// TODO: check that parentDir is a valid folder and that the user can create a new directory in that location.
 
 	fmt.Printf("userID %s authToken %s\n", userID, authToken)
 
@@ -217,12 +217,15 @@ func handleRemoveFile(c *gin.Context) {
 
 // When an individual file is shared
 func handleShareFile(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/shareFile" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","fileID": "0195677e-5b7e-7445-b3e6-2f3dddb22683", "withUserID": "anotherTestUser", "isReadOnly": true}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
 	}
 
-	var request GetFileRequest
+	var request ShareFileRequest
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
@@ -243,11 +246,27 @@ func handleShareFile(c *gin.Context) {
 		return
 	}
 
-	// Check that file exists. This might be able to be done in the insert to sharedFiles due to the relation
+	// TODO: Check that the file is not already shared
 
-	// add file to sharedFiles table
+	id, err := getNewFileID()
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		return
+	}
 
-	// Return json
+	// TODO Check that file exists. This might be able to be done in the insert to sharedFiles due to the relation
+
+	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.FileID, request.WithUserID, request.UserID, request.ReadOnly)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to add share to DB")
+		return
+	}
+
+	// TODO get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
+
+	c.JSON(200, gin.H{"success": true})
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +314,77 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowedShar
 // Checks if the file is shared with the specified userID
 // returns a string with the permission: "write" or "read"
 func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (string, error) {
+	// Check if the is shared
+	permission, err := querySharedFilesTable(ctx, fileID, withUserID)
+	if err != nil {
+		return "", fmt.Errorf("error from querySharedFilesTable. %w", err)
+	}
+
+	if permission != "" {
+		return permission, nil
+	}
+
+	// Check if a parentDir is shared
+	permission, err = checkIfParentDirIsShared(ctx, fileID, withUserID, 0)
+	if err != nil {
+		return "", fmt.Errorf("error from checkIfParentDirIsShared. %w", err)
+	}
+
+	return permission, nil
+}
+
+// fileID is the id of an item in the files table, it starts with a file and gets called recursively with a dirID.
+// callNumber should be set to zero, it gets increased when the function calls itself.
+func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, callNumber int) (string, error) {
+	if fileID == "" || fileID == "root" {
+		// Stop recursion
+		return "", errors.New("root directory reached")
+	}
+
+	rows, err := db.QueryContext(ctx, "select parentDir from files where id=?", fileID)
+	if err != nil {
+		return "", err
+	}
+
+	defer rows.Close()
+
+	if !rows.Next() {
+		err = rows.Err()
+		if err != nil {
+			return "", err
+		}
+
+		// No rows found
+		return "", fmt.Errorf("file not found. callNumber %d", callNumber)
+	}
+
+	var parentDir string
+	err = rows.Scan(&parentDir)
+	if err != nil {
+		return "", err
+	}
+
+	log.WithFields(log.Fields{"userID": withUserID, "fileID": fileID, "parentDir": parentDir, "callNumber": callNumber}).Trace("[checkIfParentDirIsShared] Got parentDir")
+
+	// Check if the parentDir is in the sharedFiles table
+	permission, err := querySharedFilesTable(ctx, parentDir, withUserID)
+	if err != nil {
+		return "", err
+	}
+
+	if permission != "" {
+		// Found the permission
+		return permission, nil
+	}
+
+	// Call itself
+	callNumber++
+	return checkIfParentDirIsShared(ctx, parentDir, withUserID, callNumber)
+}
+
+// Checks the sharedFiles table if the fileID is shared with the userID.
+// If no items are found, it retturns an empty string and no error
+func querySharedFilesTable(ctx context.Context, fileID, withUserID string) (string, error) {
 	rows, err := db.QueryContext(ctx, "select isReadOnly from sharedFiles where fileID=? AND userID=?", fileID, withUserID)
 	if err != nil {
 		return "", err
@@ -302,15 +392,10 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var isReadOnly bool
 		err := rows.Scan(&isReadOnly)
 		if err != nil {
-			/*
-				if err == sql.ErrNoRows {
-					return "", nil
-				}
-			*/
 			return "", err
 		}
 
@@ -323,7 +408,13 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 		}
 	}
 
-	return "", errors.New("")
+	err = rows.Err()
+	if err != nil {
+		return "", err
+	}
+
+	// No rows found
+	return "", nil
 }
 
 func saveFileToDB(ctx context.Context, fileID, parentDir, fileName, ownerUserID, fileType string, size int) error {

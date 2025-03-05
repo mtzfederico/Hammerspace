@@ -53,6 +53,15 @@ type GetFileRequest struct {
 	FileID string `json:"fileID"`
 }
 
+type ShareFileRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	// The fileID in the DB, NOT the S3 objKey
+	FileID     string `json:"fileID"`
+	WithUserID string `json:"withUserID"`
+	ReadOnly   bool   `json:"isReadOnly"`
+}
+
 type GetDirectoryResponse struct {
 	Success bool   `json:"success"`
 	DirID   string `json:"dirID"`

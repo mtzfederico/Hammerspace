@@ -127,5 +127,15 @@ func main() {
 	router.POST("shareDir", handleShareDirectory)
 	router.POST("removeDir", handleRemoveDirectory)
 
+	/*
+		// For Testing:
+		permission, err := hasSharedFilePermission(context.Background(), "0195677e-5b7e-7445-b3e6-2f3dddb22683", "anotherTestUser")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println(permission)
+	*/
+
 	router.Run(serverConfig.ListenOn)
 }

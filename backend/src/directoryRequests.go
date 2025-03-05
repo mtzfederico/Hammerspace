@@ -107,25 +107,15 @@ func handleShareDirectory(c *gin.Context) {
 		return
 	}
 
-	// TODO: Check that the file is not already shared
+	// The DB part is the same as with a file, but all of the file inside of the directory have to be reencrypted
 
-	id, err := getNewFileID()
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
-		return
-	}
+	// INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES ('a-very-unique-id-01234', '01956305-5cac-7697-b31b-d60684a2c865', 'anotherTestUser', 'testUser', true, now());
 
-	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.DirID, request.WithUserID, request.UserID, request.ReadOnly)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to add share to DB")
-		return
-	}
+	// TODO: Check that the directory is not already shared
 
 	// get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
 
-	c.JSON(200, gin.H{"success": true})
+	c.JSON(200, gin.H{"success": false})
 }
 
 // Returns the user's that have access to a file/folder
@@ -165,7 +155,7 @@ func handleGetSharedWith(c *gin.Context) {
 
 	// TODO: Check that the user can actually get this info
 
-	users, err := getUserswithFileAccess(c, request.FileID)
+	users, err := getUsersWithFileAccess(c, request.FileID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
 		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
@@ -264,7 +254,7 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 		return "", nil
 	}
 
-	rows, err := db.QueryContext(ctx, "select parentDir from files where id=? AND type='folder'", dirID)
+	rows, err := db.QueryContext(ctx, "select parentDir from files where id=?", dirID)
 	if err != nil {
 		return "", err
 	}
@@ -291,7 +281,7 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 }
 
 // Returns a list of userIDs that have access to the fileID specified. The fileID can also be a folder
-func getUserswithFileAccess(ctx context.Context, fileID string) ([]string, error) {
+func getUsersWithFileAccess(ctx context.Context, fileID string) ([]string, error) {
 	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
 	rows, err := db.QueryContext(ctx, "select userID from sharedFiles where fileID=?", fileID)
 	if err != nil {
