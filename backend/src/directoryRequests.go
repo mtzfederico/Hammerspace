@@ -123,6 +123,8 @@ func handleShareDirectory(c *gin.Context) {
 		return
 	}
 
+	// get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
+
 	c.JSON(200, gin.H{"success": true})
 }
 

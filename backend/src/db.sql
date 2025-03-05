@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- parentDir is the ID of the folder that this item is in. 'root' is the root/home directory of the user. Otherwise it is the ID of the parent dir
 -- Type is the type that the file is. We could use the MIME Types https://developer.mozilla.org/en-US/docs/Web/HTTP/MIME_types
 -- If it is a folder, then type is 'folder' and size is 0
--- Processed is to indicate whether the file has been checked/inspected or not.
+-- Processed is to indicate whether the file has been checked/inspected or not. true means that it is ready to be accessed.
 -- objKey is the S3 object key. it is null on folders
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
@@ -74,12 +74,15 @@ CREATE TABLE IF NOT EXISTS files (
 );
 
 -- items shared table
+-- processed is for files that have been marked as shared, but the new file that is encrypted with this user's pubkey has not been uploaded yet.
+-- true means that it is ready to be accessed by the user that it is shared with.
 CREATE TABLE IF NOT EXISTS sharedFiles (
   id            VARCHAR(36)   PRIMARY KEY,
   fileID        VARCHAR(36)   NOT NULL,
   userID        VARCHAR(50)   NOT NULL,
   fileOwner     VARCHAR(50)   NOT NULL,
   isReadOnly    BOOL          NOT NULL  DEFAULT true,
+  processed     BOOL          NOT NULL  DEFAULT false,
   createdDate   DATETIME      NOT NULL,
   lastModified  DATETIME      DEFAULT NULL,
   CONSTRAINT sharedFiles_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE,
