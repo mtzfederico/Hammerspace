@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"net/mail"
 
-	_ "strings"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +23,8 @@ const (
 	MaxUserIDLength   int    = 14
 	DefaultRoleID     string = "user"
 	// The cost that bcrypt uses to hash passwords
-	BcryptHashCost int = 14
+	BcryptHashCost          int    = 14
+	AllowedUserIDCharacters string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456689.-_"
 )
 
 func handleLogin(c *gin.Context) {
@@ -125,6 +126,7 @@ func handleSignup(c *gin.Context) {
 		return
 	}
 
+	// TODO: This could be improved with checks for characters
 	passLen := len(signupData.Password)
 	if passLen < MinPasswordLength || passLen > MaxPasswordLength {
 		c.JSON(500, gin.H{"success": false, "error": "Password must be between 5 and 30 characters long"})
@@ -191,7 +193,14 @@ func isEmailValid(email string) bool {
 func isUserIDValid(userID string) bool {
 	// TODO: check that userID is unique
 	len := len(userID)
-	return len >= MinUserIDLength && len <= MaxUserIDLength
+	if !(len >= MinUserIDLength && len <= MaxUserIDLength) {
+		return false
+	}
+
+	return !strings.ContainsFunc(userID, func(r rune) bool {
+		// return true if an any of the characters in userID is not in AllowedUserIDCharacters
+		return !strings.ContainsRune(AllowedUserIDCharacters, r)
+	})
 }
 
 // Checks if the password is correct for the userID specified
