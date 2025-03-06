@@ -120,11 +120,12 @@ func main() {
 	router.POST("getFile", handleGetFile)
 	router.POST("shareFile", handleShareFile)
 	router.POST("removeFile", handleRemoveFile)
+	router.POST("getSharedWith", handleGetSharedWith)
 
-	router.POST("createFolder", handleCreateFolder)
+	router.POST("createDir", handleCreateDirectory)
 	router.POST("getDir", handleGetDirectory)
-	router.POST("shareFolder", handleShareDirectory)
-	router.POST("removeFolder", handleRemoveFolder)
+	router.POST("shareDir", handleShareDirectory)
+	router.POST("removeDir", handleRemoveDirectory)
 
 	router.Run(serverConfig.ListenOn)
 }

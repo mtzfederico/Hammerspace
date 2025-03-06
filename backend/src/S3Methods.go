@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,15 +16,15 @@ import (
 // Creates an S3 client using the options in settings.yaml
 func getS3Client() (*s3.Client, error) {
 	if serverConfig.S3AccessKeyID == "" {
-		return nil, fmt.Errorf("no S3AccessKeyID in config file")
+		return nil, errors.New("no S3AccessKeyID in config file")
 	}
 
 	if serverConfig.S3AccessKeySecret == "" {
-		return nil, fmt.Errorf("no S3AccessKeySecret in config file")
+		return nil, errors.New("no S3AccessKeySecret in config file")
 	}
 
 	if serverConfig.S3Endpoint == "" {
-		return nil, fmt.Errorf("no S3Endpoint in config file")
+		return nil, errors.New("no S3Endpoint in config file")
 	}
 
 	// checsum calculation and validation need to be turned off when using R2
@@ -54,7 +55,7 @@ func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) 
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("getObjectOutput error, %v", err)
+		return nil, fmt.Errorf("getObjectOutput error, %w", err)
 	}
 
 	return getObjectOutput, nil
@@ -120,6 +121,20 @@ func uploadBytes(ctx context.Context, client *s3.Client, bucketName string, byte
 		Key:           aws.String(objKey),
 		Body:          bytes,
 		ContentLength: &size,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return putObjectOutput, nil
+}
+
+// Deletes the file with the specified objKey from S3
+func deleteFile(ctx context.Context, client *s3.Client, bucketName, objKey string) (*s3.DeleteObjectOutput, error) {
+	putObjectOutput, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objKey),
 	})
 
 	if err != nil {

@@ -24,18 +24,63 @@ type BasicRequest struct {
 type CreateFolderRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
-	DirName   string `json:"dirName"`
+	// The name that the user sees
+	DirName string `json:"dirName"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	ParentDir string `json:"parentDir"`
 }
 
 type GetDirectoryRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
-	DirName   string `json:"dirName"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	DirID string `json:"dirID"`
 }
 
-type GetDirectoryRequest struct {
+type ShareDirectoryRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID
+	DirID      string `json:"dirID"`
+	WithUserID string `json:"withUserID"`
+	ReadOnly   bool   `json:"isReadOnly"`
+}
+
+type GetFileRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
 	// The fileID in the DB, NOT the S3 objKey
 	FileID string `json:"fileID"`
+}
+
+type ShareFileRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	// The fileID in the DB, NOT the S3 objKey
+	FileID     string `json:"fileID"`
+	WithUserID string `json:"withUserID"`
+	ReadOnly   bool   `json:"isReadOnly"`
+}
+
+type GetDirectoryResponse struct {
+	Success bool   `json:"success"`
+	DirID   string `json:"dirID"`
+	// For the root/home it is 'root', otherwise it is the parentDir's ID.
+	// When getting the root directory, parentDir is optional. If it is there, it should be an empty string
+	ParentDir string                      `json:"ParentDir" binding:"omitempty"`
+	Items     []GetDirectoryResponseItems `json:"items"`
+}
+
+type GetDirectoryResponseItems struct {
+	Name     string `json:"name"`
+	ID       string `json:"id"`
+	FileType string `json:"type"`
+	Size     int    `json:"size" binding:"omitempty"`
+}
+
+// Used to form a list with users that have access to a file and the permission that they have
+type UserFilePermission struct {
+	UserID string `json:"userID"`
+	// The file access permission. "read" or "write"
+	Permission string `json:"permission"`
 }
