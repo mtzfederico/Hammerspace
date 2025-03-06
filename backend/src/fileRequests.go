@@ -272,7 +272,8 @@ func handleShareFile(c *gin.Context) {
 // ---------------------------------------------------------------------------
 
 // Checks that the file actually exists and returns the objKey used in s3.
-// allowedShared is used to check if the file is shared with the user. When it is false, the sharedFiles DB will not be checked and if the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
+// allowedShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
+// When it is false, the sharedFiles DB will not be checked and if the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
 func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
 	rows, err := db.QueryContext(ctx, "select userID, objKey from files where id=?", fileID)
 	if err != nil {
@@ -288,16 +289,17 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowedShar
 			return "", err
 		}
 
-		log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[isAuthTokenValid]")
+		log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[getObjectKey]")
 
 		if userID != fileOwnerUserID {
+			// If the user doesn't own the file, check if they have access to it
 			if !allowedShared {
 				return "", errUserAccessNotAllowed
 			}
 			// check sharedFiles table
 			permission, err := hasSharedFilePermission(ctx, fileID, userID)
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("hasSharedFilePermission error. %w", err)
 			}
 			if permission == "" {
 				return "", errUserAccessNotAllowed
@@ -333,6 +335,8 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 	return permission, nil
 }
 
+// Recursively checks if a directory and any of its parent directories are shared with the specified userID.
+// Should not be called directly. Use hasSharedFilePermission() instead
 // fileID is the id of an item in the files table, it starts with a file and gets called recursively with a dirID.
 // callNumber should be set to zero, it gets increased when the function calls itself.
 func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, callNumber int) (string, error) {
@@ -341,27 +345,13 @@ func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, ca
 		return "", errors.New("root directory reached")
 	}
 
-	rows, err := db.QueryContext(ctx, "select parentDir from files where id=?", fileID)
+	parentDir, err := getParentDirID(ctx, fileID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("getParentDirID error. callNumber %d. %w", callNumber, err)
 	}
 
-	defer rows.Close()
-
-	if !rows.Next() {
-		err = rows.Err()
-		if err != nil {
-			return "", err
-		}
-
-		// No rows found
+	if parentDir == "" {
 		return "", fmt.Errorf("file not found. callNumber %d", callNumber)
-	}
-
-	var parentDir string
-	err = rows.Scan(&parentDir)
-	if err != nil {
-		return "", err
 	}
 
 	log.WithFields(log.Fields{"userID": withUserID, "fileID": fileID, "parentDir": parentDir, "callNumber": callNumber}).Trace("[checkIfParentDirIsShared] Got parentDir")
@@ -399,7 +389,7 @@ func querySharedFilesTable(ctx context.Context, fileID, withUserID string) (stri
 			return "", err
 		}
 
-		log.WithFields(log.Fields{"userID": withUserID, "isReadOnly": isReadOnly, "fileID": fileID}).Trace("[isAuthTokenValid]")
+		log.WithFields(log.Fields{"userID": withUserID, "isReadOnly": isReadOnly, "fileID": fileID}).Trace("[querySharedFilesTable] Found sharedFiles record")
 
 		if isReadOnly {
 			return "read", nil

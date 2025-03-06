@@ -77,3 +77,10 @@ type GetDirectoryResponseItems struct {
 	FileType string `json:"type"`
 	Size     int    `json:"size" binding:"omitempty"`
 }
+
+// Used to form a list with users that have access to a file and the permission that they have
+type UserFilePermission struct {
+	UserID string `json:"userID"`
+	// The file access permission. "read" or "write"
+	Permission string `json:"permission"`
+}
