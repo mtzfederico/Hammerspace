@@ -22,8 +22,10 @@ const (
 	MinUserIDLength   int    = 5
 	MaxUserIDLength   int    = 14
 	DefaultRoleID     string = "user"
-	// The cost that bcrypt uses to hash passwords
-	BcryptHashCost          int    = 14
+	// The cost that bcrypt uses to hash passwords. This is a good explanation of what the cost is https://stackoverflow.com/a/25586134.
+	// 14 is overkill for most laptops and very basic servers. Use https://github.com/mtzfederico/bcrypt-cost-benchmark to get a good value for the system running this code.
+	BcryptHashCost int = 14
+	// The characters that are allowed to be in a userID
 	AllowedUserIDCharacters string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456689.-_"
 )
 
@@ -212,7 +214,7 @@ func isPasswordCorrect(ctx context.Context, userID string, password string) (boo
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var hash []byte
 		err := rows.Scan(&hash)
 		if err != nil {
@@ -232,6 +234,12 @@ func isPasswordCorrect(ctx context.Context, userID string, password string) (boo
 			return true, nil
 		}
 	}
+
+	err = rows.Err()
+	if err != nil {
+		return false, err
+	}
+
 	return false, nil
 }
 
@@ -244,18 +252,23 @@ func isAuthTokenValid(ctx context.Context, userID string, token string) (bool, e
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var count int
 		err := rows.Scan(&count)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return false, nil
-			}
 			return false, err
 		}
 
 		log.WithFields(log.Fields{"userID": userID, "token": token, "count": count}).Trace("[isAuthTokenValid]")
 		return (count == 1), nil
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
 	}
 
 	return false, nil
@@ -274,12 +287,17 @@ func generateAuthToken(ctx context.Context, userID string) (string, error) {
 		return "", err
 	}
 
-	for rows.Next() {
+	if rows.Next() {
 		var count int
 		rows.Scan(&count)
 		if count != 0 {
 			log.Debug("[generateAuthToken] authToken already in DB. Generating another one.")
 			return generateAuthToken(ctx, userID)
+		}
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", err
 		}
 	}
 
