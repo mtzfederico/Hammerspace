@@ -114,7 +114,7 @@ func main() {
 	router.POST("login", handleLogin)
 	router.POST("logout", handleLogout)
 	router.POST("signup", handleSignup)
-	// router.POST("changePassword", handleChangePassword)
+	router.POST("changePassword", handleChangePassword)
 
 	router.POST("uploadFile", handleFileUpload)
 	router.POST("getFile", handleGetFile)

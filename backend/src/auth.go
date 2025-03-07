@@ -147,7 +147,6 @@ func handleSignup(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true})
 }
 
-/*
 func handleChangePassword(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -158,15 +157,15 @@ func handleChangePassword(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to decode JSON")
 		return
 	}
 
 	// verify that the token is valid
-	valid, err := isAuthTokenValid(request.UserID, request.AuthToken)
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to verify token")
 		return
 	}
 
@@ -175,14 +174,26 @@ func handleChangePassword(c *gin.Context) {
 		return
 	}
 
-	err = changePassword(request.UserID, request.NewPassword)
+	valid, err = isPasswordCorrect(c, request.UserID, request.CurrentPassword)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleChangePassword] Failed to verify credentials")
+		return
+	}
+
+	if !valid {
+		c.JSON(200, gin.H{"success": false, "error": "Current password is wrong"})
+		return
+	}
+
+	err = changePassword(c, request.UserID, request.NewPassword)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to change password")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to change password")
 	}
 
 	c.JSON(200, gin.H{"success": true})
-}*/
+}
 
 // Endpoint methods end
 
@@ -334,7 +345,7 @@ func changePassword(ctx context.Context, userID string, newPass string) error {
 		return err
 	}
 
-	log.WithField("newPassHashed", string(newPassHashed)).Debug("[changePassword] pass hashed")
+	log.WithField("newPassHashed", string(newPassHashed)).Trace("[changePassword] pass hashed")
 
 	_, err = db.ExecContext(ctx, "UPDATE users SET password=? WHERE userID=?", newPassHashed, userID)
 	return err
