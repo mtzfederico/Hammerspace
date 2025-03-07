@@ -11,6 +11,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type ChangePassRequest struct {
+	UserID          string `json:"userID"`
+	AuthToken       string `json:"authToken"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
 type LogoutRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
