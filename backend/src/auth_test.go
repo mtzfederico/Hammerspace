@@ -4,8 +4,10 @@ import (
 	"testing"
 )
 
+// Run the tests using the command go test
+
 func TestIsUserIDValid(t *testing.T) {
-	items := map[string]bool{"bob": false, "1234": false, "12345": true, "myUser0": true, "sample_user": true, "john.doe": true, "noobMaster69": true, "first-last": true, "user@name": false, "user;name": false, "user,name": false}
+	items := map[string]bool{"bob": false, "1234": false, "12345": true, "myUser0": true, "sample_user": true, "john.doe": true, "noobMaster69": true, "first-last": true, "user@name": false, "user;name": false, "user,name": false, "😀": false, "aioh 😀": false, "thisUsernameIsWayTooLong": false}
 
 	for key, value := range items {
 		result := isUserIDValid(key)
