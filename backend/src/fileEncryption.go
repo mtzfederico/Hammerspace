@@ -15,7 +15,7 @@ import (
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
@@ -52,7 +52,7 @@ func encryptAndUploadFile(filePath, s3ObjKey string) (*s3.PutObjectOutput, error
 
 	// age --decrypt -i "/Users/FedeMtz/Downloads/testing-age-key copy.txt" testImage-0.png.age > out-testImage-0.png
 	// upload file
-	res, err := uploadBytes(context.Background(), s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
+	res, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
 	if err != nil {
 		return nil, err
 	}
