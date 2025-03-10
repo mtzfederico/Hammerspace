@@ -1,45 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { Image, StyleSheet, Platform } from 'react-native';
 import { View} from 'react-native';
+import initDB, { seeFiles, getFoldersByParentID, getFilesByParentID, insertFolder ,insertFile,  createTables, testDBname, dropDatabase} from '../../../client/services/database'
 import  AddButton  from  '../../components/addButton'
 import DisplayFolders from '@/components/displayFolders';
-
-import { TouchableOpacity, Text } from 'react-native';
+import FolderNavigation from '@/components/FolderView';
 import { SafeAreaView } from 'react-native';
-import { ScrollView } from 'react-native-reanimated/lib/typescript/Animated';
-
 
 
 
 export default function HomeScreen() {
-const [folders, setFolders] = useState([]);
-const [files, setFiles] = useState([]);
 
-  // Merged array of folders and files
-  const mergedData = [...folders, ...files];
+ 
+  useEffect(() => {
+    // Call createTables to initialize the database on app startup
+  //initDB()
+ //dropDatabase()
+  //createTables()
+ // seeFiles()
+  
+   getFoldersByParentID(currentID, setFolders)
+   getFilesByParentID(currentID, setFiles)
+ 
+  }, []); // Empty dependency array ensures it runs only once on startup
+  
 
-   const addFolder = (name: string, type: string) => {
+  const [folders, setFolders] = useState<any>([]);
+  const [files, setFiles] = useState<any>([]);
+  const [currentID, setCurrentID] = useState('root'); // Start with root as the current directory
 
-    const newFolder = {
-    //id: folders.length + 1, // Assign new id to the folder
-      name,
-      type
-    };
-    console.log('index Type + ' + type)
-    setFolders([...folders, newFolder]);
+
+  
+
+  const addFolder = (name, type, dirID, parentID) => {
+    console.log("in addFOlder " + name + " " + type + " " + dirID + " " + currentID)
+    insertFolder(name, dirID, parentID)
+    setCurrentID(dirID); // Set the current folder to the new folder's dirID
+    
+    testDBname()
+
   };
-  const addFile = (name: string, uri: string) => {
-    const newFile = { name, type: 'File', uri }; // Add file with type "File"
-    setFiles([...files, newFile]);
+  
+  
+  const addFile = (name: string, uri: string, dirID: string, parentID , size:  number) => {
+    console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " +size)
+    insertFile(name, uri, dirID, parentID, size); 
+    setCurrentID(dirID); // Set the current folder to the new folder's dirID
+    testDBname()
   };
 
 
   return (
-
-    <View style={styles.container}>
-      <DisplayFolders data={mergedData} /> {/* Display the folder list */}
-      <AddButton addFolder={addFolder} addFile={addFile}/> {/* Pass addFolder function to AddButton */}
-    </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <FolderNavigation initialParentID={currentID} addFolder={addFolder} addFile={addFile} /> {/* Start from root folder */}
+    </SafeAreaView>
   );
 };
   

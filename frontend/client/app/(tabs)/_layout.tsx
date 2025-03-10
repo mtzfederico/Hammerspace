@@ -1,17 +1,19 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-
+import initDB from '../../../client/services/database'
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { SQLiteProvider, useSQLiteContext} from 'expo-sqlite';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    <SQLiteProvider databaseName='hammerspace.db' onInit={initDB}>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -41,5 +43,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </SQLiteProvider>
   );
 }

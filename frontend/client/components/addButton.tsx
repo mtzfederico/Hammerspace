@@ -11,8 +11,8 @@ import CreateFolder  from './addFolder';
 
 
 
-const AddButton = ({addFolder, addFile}) => {
-  
+const AddButton = ({addFolder, addFile, parentID}) => {
+    console.log("Addbutton parentID " + parentID)
  
    
 
@@ -73,7 +73,8 @@ const AddButton = ({addFolder, addFile}) => {
   }
 
   const handleDocumentPick = async () => {
-    await pickDocument({addFile});
+    
+    await pickDocument(parentID, addFile);
   };
 
   const handleFolderCreation = () => {
@@ -117,9 +118,8 @@ const AddButton = ({addFolder, addFile}) => {
         style={styles.icon}
       />
         </TouchableOpacity >
-       
       </Animated.View>
-     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} />}
+     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} parentID={parentID} />}
       {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create a Folder </Text>}
 
 
