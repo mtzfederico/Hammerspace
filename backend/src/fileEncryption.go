@@ -36,16 +36,16 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.P
 	// https://gobyexample.com/variadic-functions
 	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start encrypting the file: %w", err)
 	}
 
 	n, err := io.Copy(ageWriter, fileIn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encrypt the file : %w", err)
 	}
 	err = ageWriter.Close()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to close the ageWriter: %w", err)
 	}
 
 	log.WithField("bytesEncrypted", n).Trace("[encryptFile] Encrypted file")
@@ -54,7 +54,7 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.P
 	// upload file
 	res, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to upload the file: %w", err)
 	}
 
 	return res, err
