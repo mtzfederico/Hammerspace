@@ -128,9 +128,7 @@ func handleSignup(c *gin.Context) {
 		return
 	}
 
-	// TODO: This could be improved with checks for characters
-	passLen := len(signupData.Password)
-	if passLen < MinPasswordLength || passLen > MaxPasswordLength {
+	if !isValidPassword(signupData.Password) {
 		c.JSON(500, gin.H{"success": false, "error": "Password must be between 5 and 30 characters long"})
 		return
 	}
@@ -186,6 +184,11 @@ func handleChangePassword(c *gin.Context) {
 		return
 	}
 
+	if !isValidPassword(request.NewPassword) {
+		c.JSON(500, gin.H{"success": false, "error": "New password must be between 5 and 30 characters long"})
+		return
+	}
+
 	err = changePassword(c, request.UserID, request.NewPassword)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
@@ -216,8 +219,19 @@ func isUserIDValid(userID string) bool {
 	})
 }
 
+// It checks that the password is valid, it doesn't check if it is correct. For that use isPasswordCorrect()
+func isValidPassword(password string) bool {
+	// TODO: This could be improved with checks for characters
+	passLen := len(password)
+	return passLen >= MinPasswordLength && passLen <= MaxPasswordLength
+}
+
 // Checks if the password is correct for the userID specified
 func isPasswordCorrect(ctx context.Context, userID string, password string) (bool, error) {
+	if !isValidPassword(password) {
+		return false, nil
+	}
+
 	rows, err := db.QueryContext(ctx, "select password from users where userID=?;", userID)
 	if err != nil {
 		return false, err
