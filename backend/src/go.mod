@@ -12,6 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.9.0
 	github.com/google/uuid v1.6.0
+	github.com/h2non/filetype v1.1.3
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.24.0
 	gopkg.in/yaml.v3 v3.0.1

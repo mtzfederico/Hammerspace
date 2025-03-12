@@ -16,6 +16,7 @@ func processFile(ctx context.Context, filePath, fileID string) error {
 	}
 
 	// Inspect the file
+	// TODO: Make sure this works
 	kind, err := filetype.Match(buf)
 	if err != nil {
 		return fmt.Errorf("failed to get the fileType: %w", err)
