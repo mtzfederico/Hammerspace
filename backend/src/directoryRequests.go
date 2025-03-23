@@ -1,13 +1,38 @@
 package main
 
 import (
-	"os"
+	"context"
+	"errors"
+	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	errDirNotFound error = errors.New("dirNotFound")
+)
+
+
+
+type Folder struct {
+	ID          string    `json:"id"`
+	ParentDir   string    `json:"parentDir"`
+	Name        string    `json:"name"`
+	Type        string    `json:"type"`
+	URI         string    `json:"uri"`
+	FileSize    int       `json:"fileSize"`
+	UserID      string    `json:"userID"`
+	LastModified time.Time `json:"lastModified"`
+}
+
 func handleGetDirectory(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "root"}'
+
+		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "01955efc-ca5b-7b65-849e-ab9f1351de23"}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -34,13 +59,33 @@ func handleGetDirectory(c *gin.Context) {
 		return
 	}
 
-	// Query DB
+	// Get the items in the DB
+	items, err := getItemsInDir(c, request.UserID, request.DirID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get items in directory")
+		return
+	}
 
+	// Get the directory's parentDir
+	parentDir, err := getParentDirID(c, request.DirID)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			// Ideally status code should not be 200. TODO: Check if the client can handle non 200 status codes
+			c.JSON(200, gin.H{"success": false, "error": "Directory doesn't exist"})
+			return
+		}
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get parentDir ID")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+	}
+
+	response := GetDirectoryResponse{true, request.DirID, parentDir, items}
 	// Return json
+	c.JSON(200, response)
 }
 
-// When a folder and thus everything inside is deleted
-func handleRemoveFolder(c *gin.Context) {
+// When a director and thus everything inside is deleted
+func handleRemoveDirectory(c *gin.Context) {
 	// Auth
 
 	// Query DB
@@ -50,15 +95,95 @@ func handleRemoveFolder(c *gin.Context) {
 
 // When a whole directory is shared
 func handleShareDirectory(c *gin.Context) {
-	// Auth
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
 
-	// Query DB
+	var request ShareDirectoryRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to decode JSON")
+		return
+	}
 
-	// Return json
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	// The DB part is the same as with a file, but all of the file inside of the directory have to be reencrypted
+
+	// INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES ('a-very-unique-id-01234', '01956305-5cac-7697-b31b-d60684a2c865', 'anotherTestUser', 'testUser', true, now());
+
+	// TODO: Check that the directory is not already shared
+
+	// get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
+
+	c.JSON(200, gin.H{"success": false})
+}
+
+// Returns the user's that have access to a file/folder
+func handleGetSharedWith(c *gin.Context) {
+	// TODO: Figure out what happens when a user tries to access a file inside a directory shared with them. They might not have access to the actual file.
+	// When checking if they do have access, if there is no record for the actual file, check for a record for the parentDir
+	//
+	// what if the file is inside a dir that is inside the shared dir
+	// sharedDir > someDir > actualFile
+	//
+	// Maybe, make it recursive until the user has access or the root has been reached
+
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request GetFileRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to decode JSON")
+		return
+	}
+
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	// TODO: Check that the user can actually get this info
+
+	users, err := getUsersWithFileAccess(c, request.FileID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true, "users": users})
 }
 
 // Handles the requests to create a folder
-func handleCreateFolder(c *gin.Context) {
+func handleCreateDirectory(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/createDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirName": "memes","parentDir":"root"}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -72,14 +197,192 @@ func handleCreateFolder(c *gin.Context) {
 		return
 	}
 
-	dirPath := request.DirName // You might want to add path validation/sanitization here
-
-	//we will not be using os.Mkdir for the final version
-	err = os.Mkdir(dirPath, 0755)
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
-		log.WithField("error", err).Error("[Mkdir]] Failed to create a directory")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetFile] Failed to verify token")
 		return
 	}
-	c.JSON(200, gin.H{"success": true, "message": "Folder created  successfully"})
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	// TODO: Check that the user can create a new directory in that location
+
+	dirID, err := getNewFileID()
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
+		return
+	}
+
+	err = addDirectoryToDB(c, dirID.String(), request.ParentDir, request.DirName, request.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
+		return
+	}
+		
+	response := CreateDirectoryResponse{true, dirID.String()}
+		// Return json
+		c.JSON(200, response)
+}
+
+func addDirectoryToDB(ctx context.Context, dirID, parentDir, name, userID string) error {
+	_, err := db.ExecContext(ctx, "INSERT INTO files (id, parentDir, name, type, size, userID, processed, createdDate) VALUES (?, ?, ?, 'folder', 0, ?, true, now());", dirID, parentDir, name, userID)
+	return err
+}
+
+func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryResponseItems, error) {
+	var items []GetDirectoryResponseItems
+
+	rows, err := db.QueryContext(ctx, "select id, name, type, size from files where userID=? AND parentDir=?", userID, dirID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var item GetDirectoryResponseItems
+		err := rows.Scan(&item.ID, &item.Name, &item.FileType, &item.Size)
+		if err != nil {
+			/*
+				if err == sql.ErrNoRows {
+					return "", nil
+				}
+			*/
+			return nil, err
+		}
+
+		// log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[isAuthTokenValid]")
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+func getParentDirID(ctx context.Context, dirID string) (string, error) {
+	if dirID == "root" {
+		return "", nil
+	}
+
+	rows, err := db.QueryContext(ctx, "select parentDir from files where id=?", dirID)
+	if err != nil {
+		return "", err
+	}
+
+	defer rows.Close()
+
+	var parentDir string
+	if rows.Next() {
+		err := rows.Scan(&parentDir)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", fmt.Errorf("rows.next error. %w", err)
+		} else {
+			log.WithField("dirID", dirID).Warn("[getParentDirID] No rows and no error")
+			return "", errDirNotFound
+		}
+	}
+
+	return parentDir, nil
+}
+
+// Returns a list of userIDs that have access to the fileID specified. The fileID can also be a folder
+func getUsersWithFileAccess(ctx context.Context, fileID string) ([]string, error) {
+	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
+	rows, err := db.QueryContext(ctx, "select userID from sharedFiles where fileID=?", fileID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var userIDs []string
+	for rows.Next() {
+		var userID string
+		err := rows.Scan(&userID)
+		if err != nil {
+			return nil, err
+		}
+		userIDs = append(userIDs, userID)
+	}
+
+	return userIDs, nil
+}
+
+func handleSync(c *gin.Context) {
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request BasicRequest
+	err := c.BindJSON(&request)
+	if err != nil {	
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleSync] Failed to decode JSON")
+		return
+	}
+	fmt.Println("userID is here: " + request.UserID)
+	fmt.Println("token is here: " + request.AuthToken)
+
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	userID := request.UserID
+
+	if userID == "" {
+		c.JSON(400, gin.H{"error": "userID is required"})
+		return
+	}
+
+	
+
+	folders, err := getFolders(c, userID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
+		return
+	}
+	
+
+	c.JSON(200, gin.H{"folders": folders})
+}
+
+func getFolders(ctx context.Context, userID string) ([]Folder, error) {
+	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
+	rows, err := db.QueryContext(ctx, "SELECT id, parentDir, name, type, size, userID FROM files WHERE userID = ?", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var folders []Folder
+	for rows.Next() {
+		var folder Folder
+		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type,  &folder.FileSize, &folder.UserID); err != nil {
+			return nil, err
+		}
+		folders = append(folders, folder)
+	}
+	return folders, nil
 }

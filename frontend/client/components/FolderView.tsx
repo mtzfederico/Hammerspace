@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, useColorScheme } from 'react-native';
 import DisplayFolders from './displayFolders'; // Import DisplayFolders component
-import { getFoldersByParentID, getFilesByParentID} from '../../client/services/database';
+import { getFoldersByParentID, getFilesByParentID, syncWithBackend} from '../../client/services/database';
 import AddButton from './addButton';
+import * as SecureStore from 'expo-secure-store';
 import CreateFolder from './addFolder';
 import sendFolder from './sendFolder';
 
@@ -14,23 +15,34 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
   const [previousID, setPreviousID] = useState<string | null>(null); // To track the previous directory
   const [currentDirName, setCurrentDirName] = useState('Home');
   const [prevDirName, setPrevDirName] = useState<string>("");
-
+  const storedUserID =  String(SecureStore.getItem('userID'));
+  const storedToken =  String(SecureStore.getItem('authToken'));
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
+
+  console.log("userID is " + storedUserID)
   
   const refreshData = () => {
-    getFoldersByParentID(currentParentDirID, setFolders);
-    getFilesByParentID(currentParentDirID, setFiles);
+    getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
+    console.log("fetched folders is " +folders)
+    getFilesByParentID(currentParentDirID, storedUserID, setFiles);
   };
+
+  useEffect(() => {
+    const syncAndRefresh = async () => {
+      await syncWithBackend(storedUserID, storedToken);
+      refreshData();
+    };
+    syncAndRefresh();
+  }, []);
 
   useEffect(() => {
     // Fetch folders and files for the current directory
     refreshData()
   },[currentParentDirID]); // Re-run the effect when folders or files change
 
- 
 
   useEffect(() => {
     if (addFolder) {
@@ -44,6 +56,9 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
     }
   }, [addFile]);
 
+ 
+
+   console.log("folders is here " + folders )
 
   const handleFolderPress = async (dirID: string, folderName: string) => {
    

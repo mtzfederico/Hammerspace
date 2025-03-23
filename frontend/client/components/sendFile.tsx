@@ -1,10 +1,14 @@
 import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
+import * as SecureStore from 'expo-secure-store';
 
-var user = "testUser"
-    var token = "K1xS9ehuxeC5tw=="
+const apiUrl = String(process.env.API_URL);
 
-const ip = process.env.IP_ADDRESS
+
+const storedToken =  String(SecureStore.getItem('authToken'));
+const storedUserID =  String(SecureStore.getItem('userID'));
+
+
 // Function to open the document picker and handle the selected file
 async function pickDocument(parentDir ,addFile) {
 
@@ -35,8 +39,8 @@ async function pickDocument(parentDir ,addFile) {
       size: result.assets[0].size,
       parentDir: parentDir,
     });
-    formData.append("userID", user);
-    formData.append("authToken", token);
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
     
 
    /* console.log("before test")
@@ -55,7 +59,7 @@ async function pickDocument(parentDir ,addFile) {
     // 172.16.226.28 starbucks
    
     console.log("before fetch")
-    const response = await fetch('http://192.168.107.78:9090/uploadFile', {
+    const response = await fetch(`${apiUrl}/uploadFile`, {
       method: 'POST',
       body: formData,
       headers: {

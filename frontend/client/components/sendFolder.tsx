@@ -1,17 +1,24 @@
 import { insertFolder } from '../../client/services/database';
-
+import * as SecureStore from 'expo-secure-store';
 // 192.168.107.78
-    var user = "testUser"
-    var token = "K1xS9ehuxeC5tw=="
+   
+const apiUrl = String(process.env.API_URL);
+
+console.log((`"${apiUrl}/createFolder"`))
+
+
 
 const sendFolder = async (dirName, parentID) => {
+  const storedToken =  String(SecureStore.getItem('authToken'));
+  const storedUserID =   String(SecureStore.getItem('userID'));
+
   if (!parentID) {
     console.error('parentID is undefined. Ensure it is correctly passed.');
     return;
   }
   const jsonData = {
-    "useriD": user,
-    "authToken": token,
+    "useriD": storedUserID,
+    "authToken": storedToken,
     "dirName": dirName,
     "ParentDir": parentID
   }
@@ -19,7 +26,7 @@ const sendFolder = async (dirName, parentID) => {
   
     try {
         console.log('before error hopefully')
-      const response = await fetch('http://192.168.107.78:9090/createFolder', {
+      const response = await fetch(`${apiUrl}/createFolder`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

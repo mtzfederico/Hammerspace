@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system';
 
+const apiURL= process.env.API_URL
 
 
 export const initDB = async () => {
@@ -79,10 +80,10 @@ try {
   }
   
 
-export const insertFolder =  async (name: string, dirID: string, parentID: string) => {
+export const insertFolder =  async (name: string, dirID: string, parentID: string, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   db.runAsync(
-      'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"Directory",0,"null","testUser" 
+      'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"Directory",0,"null",userID
     );
   }
 
@@ -93,23 +94,23 @@ export const insertFolder =  async (name: string, dirID: string, parentID: strin
     console.log("result of call is here " +result)
   }
 
-export const insertFile = async (name: string, uri: string, dirID: string, parentID: string , size: number ) => {
+export const insertFile = async (name: string, uri: string, dirID: string, parentID: string , size: number , userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   try {
     console.log('Inserting file:', { name, uri, dirID, parentID, size });
   
   db.runAsync(
-    'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"File",size,uri, "testUser" );
+    'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"File",size,uri, userID );
   }catch (error) {
     console.error('Error inserting file' + error)
   }
   };
 
 
-export const getFoldersByParentID =  async (parentID: string, callback: (folders: any[]) => void) => {
+export const getFoldersByParentID =  async (parentID: string, userID: string,  callback: (folders: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   try{ 
-  const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir=? AND type="Directory"' ,parentID);
+  const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="Directory"' ,parentID, userID);
   const folders = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
   callback(folders);
   }catch (error) {
@@ -119,10 +120,10 @@ export const getFoldersByParentID =  async (parentID: string, callback: (folders
   };
 
 
-export const getFilesByParentID = async (parentID: string, callback: (files: any[]) => void) => {
+export const getFilesByParentID = async (parentID: string, userID: string, callback: (files: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db'); 
   try{ 
-    const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND type="File"' ,parentID);
+    const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND userID=? AND type="File"' ,parentID, userID);
     const files = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
     callback(files);
     }catch (error) {
@@ -131,5 +132,46 @@ export const getFilesByParentID = async (parentID: string, callback: (files: any
         
     };
 
+    export const syncWithBackend = async (userID: string, authToken: string) => {
+      const db = await SQLite.openDatabaseAsync('hammerspace.db');
+      try {
+        const response = await fetch(`${apiURL}/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userID, authToken }),
+        });
+    
+        if (!response.ok) {
+          console.error('Failed to sync with backend:', response.statusText);
+          return;
+        }
+    
+        const data = await response.json();
+    
+        if (Array.isArray(data.folders)) {
+          // Clear local folders for the given user
+          await db.runAsync('DELETE FROM folders WHERE userID = ?;', [userID]);
+    
+          // Insert synced folders
+          for (const folder of data.folders) {
+            console.log( folder.parentDir )
+        
+            await db.runAsync(
+              'INSERT OR REPLACE INTO folders (id, parentDir, name, type, fileSize, uri, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              folder.id, folder.parentDir, folder.name, "Directory", 0, "null", folder.userID
+            );
+            
+          }
+          console.log('Sync complete');
+        } else {
+          console.error('No folders received from backend');
+        }
+      } catch (error) {
+        console.error('Error syncing with backend:', error);
+      }
+    };
+    
 
 export default initDB

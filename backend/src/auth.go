@@ -48,7 +48,7 @@ func handleLogin(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(200, gin.H{"success": false, "error": "UserID and/or password is wrong"})
+		c.JSON(400, gin.H{"success": false, "error": "UserID and/or password is wrong"})
 		return
 	}
 
@@ -140,7 +140,14 @@ func handleSignup(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"success": true})
+	token, err := generateAuthToken(c, signupData.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleLogin] Failed to generate authToken")
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true , "userID": signupData.UserID, "authToken": token})
 }
 
 /*

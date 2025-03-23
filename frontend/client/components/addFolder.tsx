@@ -48,6 +48,10 @@ const handleInput = (text) => {
     }
     console.log("Create FOlder lolmal " + parentID)
     const dirID = await sendFolder(input, parentID); // Ensure you're passing parentID here
+    if(dirID == null) {
+      console.error("Failed to create folder");
+      return;
+    }
 
    
       // After receiving the dirID, pass it back to the parent component
