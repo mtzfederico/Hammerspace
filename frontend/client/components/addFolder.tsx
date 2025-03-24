@@ -1,19 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { Button, StyleSheet, View, Image, Text, useColorScheme , FlatList, StatusBar} from "react-native";
+import React, { useState} from "react";
+import { StyleSheet, View,useColorScheme , StatusBar} from "react-native";
 import Dialog from "react-native-dialog";
 import sendFolder from "./sendFolder";
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
-import Flat from './flatExample'
+
+
 
 interface CreateFolderProps {
   isVisible: boolean;
   setIsVisible: (visible: boolean) => void;
-  onFolderCreated: (newFolder: string) => void; // Callback to pass the new folder to the parent component
+  addFolder: (name: string, type: 'Directory', dirID: string, parentID:string) => void;
+  parentID: string; // Callback to pass the new folder to the parent component
 }
 
 
-const CreateFolder =  ({ isVisible, setIsVisible, addFolder}) => {
+const CreateFolder =  ({ isVisible, setIsVisible, addFolder, parentID}: CreateFolderProps) => {
 
+  console.log("Create Folder ParentID " + parentID)
 const [inputValue, setInputValue] = useState('');
 
 
@@ -28,21 +30,37 @@ const handleInput = (text) => {
  };
  
  
- const handleSubmission = () => {
+ const handleSubmission =  async () => {
     // Process the input value here (e.g., save it, display it, etc.)
     const input = inputValue.trim()
-    console.log('Input Value:', input);
-    setIsVisible(false)
-    ; // Close the dialog
+    const type = "Directory"
+    if(input == "") {
+      alert("please enter Folder name")
+
+    }
+   else {
+    setIsVisible(false); // Close the dialog
 
     // Create Folder in Backend
-    sendFolder(input) 
+    if (!parentID) {
+      console.error("ParentID is not set");
+      return;
+    }
+    console.log("Create FOlder lolmal " + parentID)
+    const dirID = await sendFolder(input, parentID); // Ensure you're passing parentID here
+    if(dirID == null) {
+      console.error("Failed to create folder");
+      return;
+    }
 
-    // dipslay Folder on screen
-    addFolder(input)
+   
+      // After receiving the dirID, pass it back to the parent component
+      console.log("handleSubmission " + input + " " + type + " " + dirID + " " + parentID) 
+      addFolder(input, type, dirID, parentID); // Ensure you're passing the correct parentID
+    
 
     console.log("folder created")
-
+  }
 
  }
 /*
@@ -93,7 +111,8 @@ return (
 
 
 
-export  default CreateFolder;
+
+export default CreateFolder;
 
 
 const styles = StyleSheet.create({

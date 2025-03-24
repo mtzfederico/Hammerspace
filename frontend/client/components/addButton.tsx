@@ -1,8 +1,5 @@
-
 import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
 import React, { useState} from 'react';
-import { reload } from 'expo-router/build/global-state/routing';
-
 import { pickDocument } from './sendFile';
 import CreateFolder  from './addFolder';
 
@@ -14,9 +11,9 @@ import CreateFolder  from './addFolder';
 
 
 
-const AddButton = ({addFolder}) => {
-  
-  console.log("addFOlder is here " +addFolder)
+const AddButton = ({addFolder, addFile, parentID}) => {
+    console.log("Addbutton parentID " + parentID)
+ 
    
 
     const [visible, setVisible] = useState(false); 
@@ -76,7 +73,8 @@ const AddButton = ({addFolder}) => {
   }
 
   const handleDocumentPick = async () => {
-    await pickDocument();
+    
+    await pickDocument(parentID, addFile);
   };
 
   const handleFolderCreation = () => {
@@ -120,9 +118,8 @@ const AddButton = ({addFolder}) => {
         style={styles.icon}
       />
         </TouchableOpacity >
-       
       </Animated.View>
-     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} />}
+     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} parentID={parentID} />}
       {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create a Folder </Text>}
 
 

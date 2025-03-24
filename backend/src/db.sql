@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- objKey is the S3 object key. it is null on folders
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
+  objKey        VARCHAR(36)   NOT NULL,
   parentDir     VARCHAR(50)   NOT NULL,
   name          VARCHAR(50)   NOT NULL,
   type          VARCHAR(50)   NOT NULL,

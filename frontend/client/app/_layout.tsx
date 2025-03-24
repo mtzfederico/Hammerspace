@@ -1,39 +1,71 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { Stack, Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
+import { useEffect, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
+import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  // Ensure splash screen is hidden once fonts and assets are loaded
   useEffect(() => {
-    if (loaded) {
+    if (loaded && isLoggedIn !== null) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, isLoggedIn]);
 
-  if (!loaded) {
+  // Check login status on mount
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const authToken = await SecureStore.getItem('authToken');
+      setIsLoggedIn(!!authToken); // If token exists, user is logged in
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (!loaded || isLoggedIn === null) {
+    // Wait for fonts and login check before rendering anything
     return null;
   }
+ 
+
+  // Show home or tab screen if logged in
+
+
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
       <StatusBar style="auto" />
+      <Stack>
+    
+          {/* Show login screen if the user is not logged in"*/}
+          <Stack.Screen
+            name="index" // This will auto-reference `app/login.tsx`
+            options={{ headerShown: false }}
+          />
+      
+          {/* Show the home or tab screen if the user is logged in */}
+          <Stack.Screen
+            name="tabs" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+  
+        <Stack.Screen
+            name="register" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+      </Stack>
     </ThemeProvider>
   );
 }

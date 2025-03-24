@@ -1,12 +1,15 @@
-import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView} from "react-native";
+import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions} from "react-native";
+import FolderView from "./FolderView";
 
 
+const imageHeight =60
+const imageWidth = 60
 
 
-const imageWidth = 80
+const DisplayFolders = ({ data , onFolderPress}) => {
 
-
-const DisplayFolders = ({ folders }) => {
+  console.log("display is happening ")
+  
   const colorScheme = useColorScheme();
 
   const isDarkMode = colorScheme === 'dark';
@@ -14,23 +17,51 @@ const DisplayFolders = ({ folders }) => {
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
-   
+  // Get the screen width to calculate numColumns dynamically
+  const screenWidth = Dimensions.get('window').width;
+
+  // Dynamically calculate number of columns based on screen width
+  const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
+
+
+  const renderItem = ({ item }) => {
+
+    if(item.type == 'Directory') {
+
+      return (
+        <View style={styles.imageContainer}>
+          <TouchableOpacity  onPress={() => {onFolderPress(item.id, item.name)}}>
+          <Image source={require('../assets/images/folder.webp')}style={styles.image} />
+            <Text style={textStyle}>{item.name}</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    
+    } else if(item.type == 'File') {
+      return (
+        <View style={styles.imageContainer}>
+          <Image source={{uri: item.uri}} style={styles.image} />
+          <Text style={textStyle}>{item.name}</Text>
+        </View>
+      );
+    }
+    else{ 
+    return null
+    }
+  }
+  
   
   return (
-    <View style={styles.container}>
+    <View style={backgroundStyle}>
       <SafeAreaView style={{ flex: 1 }}>
       <FlatList
-        horizontal
-        contentContainerStyle={{ gap: 40 }}
-        data={folders}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={backgroundStyle}>
-              <Image source={require('../assets/images/folder.webp')}style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
-            
-          </View>
-        )}
+        
+        style={styles.list}
+        contentContainerStyle={{ gap: 80 }}
+        data={data}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        numColumns={numColumns}
       />
       </SafeAreaView>
     </View>
@@ -41,6 +72,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
+  },
+  list: {
+    width: '100%',
+    height: '800%',
   },
   itemContainer: {
     backgroundColor: '#f1f1f1',
@@ -53,22 +88,28 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   image: {
-    height: 60,
     width: imageWidth,
+
+    height: imageHeight,
+
+    resizeMode: 'cover' 
   },
   darkBackground: {
     flex: 1,
-    backgroundColor: "black",
-    tintColor: 'black',
-    height: 45,
-    width: 45,
+   backgroundColor: "black",
+    height: '100%',
+    width: '100%',
+    marginBottom: 10,
+    
+    
     
   },
   lightBackground: {
     flex: 1,
     backgroundColor: "white",
-    height: 45,
-    width: 45,
+    height: '100%',
+    width: '100%',
+    padding:10
   },
 
   lightText: {
@@ -82,7 +123,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width : imageWidth
    
-  },
+  }, imageContainer : {
+    marginHorizontal: 30,
+    flex: 1
+  }
   
   
 });

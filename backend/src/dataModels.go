@@ -91,3 +91,8 @@ type UserFilePermission struct {
 	// The file access permission. "read" or "write"
 	Permission string `json:"permission"`
 }
+
+type CreateDirectoryResponse struct {
+	Success bool   `json:"success"`
+	DirID   string `json:"dirID"`
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -12,6 +13,17 @@ import (
 var (
 	errDirNotFound error = errors.New("dirNotFound")
 )
+
+type Folder struct {
+	ID           string    `json:"id"`
+	ParentDir    string    `json:"parentDir"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	URI          string    `json:"uri"`
+	FileSize     int       `json:"fileSize"`
+	UserID       string    `json:"userID"`
+	LastModified time.Time `json:"lastModified"`
+}
 
 func handleGetDirectory(c *gin.Context) {
 	/*
@@ -338,4 +350,69 @@ func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, 
 
 	// Check the parentDir
 	return getUsersWithFileAccess(ctx, parentDir, callNumber, userPermissions)
+}
+
+func handleSync(c *gin.Context) {
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request BasicRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleSync] Failed to decode JSON")
+		return
+	}
+	fmt.Println("userID is here: " + request.UserID)
+	fmt.Println("token is here: " + request.AuthToken)
+
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		return
+	}
+
+	userID := request.UserID
+
+	if userID == "" {
+		c.JSON(400, gin.H{"error": "userID is required"})
+		return
+	}
+
+	folders, err := getFolders(c, userID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
+		return
+	}
+
+	c.JSON(200, gin.H{"folders": folders})
+}
+
+func getFolders(ctx context.Context, userID string) ([]Folder, error) {
+	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
+	rows, err := db.QueryContext(ctx, "SELECT id, parentDir, name, type, size, userID FROM files WHERE userID = ?", userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var folders []Folder
+	for rows.Next() {
+		var folder Folder
+		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID); err != nil {
+			return nil, err
+		}
+		folders = append(folders, folder)
+	}
+	return folders, nil
 }
