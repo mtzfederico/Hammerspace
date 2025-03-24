@@ -15,11 +15,11 @@ import (
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file %q. %v", filePath, err)
+		return nil, fmt.Errorf("failed to open file %q. %w", filePath, err)
 	}
 	defer fileIn.Close()
 
@@ -36,26 +36,25 @@ func encryptAndUploadFile(filePath, s3ObjKey string) (*s3.PutObjectOutput, error
 	// https://gobyexample.com/variadic-functions
 	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start encrypting the file: %w", err)
 	}
 
 	n, err := io.Copy(ageWriter, fileIn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to encrypt the file : %w", err)
 	}
 	err = ageWriter.Close()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to close the ageWriter: %w", err)
 	}
 
 	log.WithField("bytesEncrypted", n).Trace("[encryptFile] Encrypted file")
 
 	// age --decrypt -i "/Users/FedeMtz/Downloads/testing-age-key copy.txt" testImage-0.png.age > out-testImage-0.png
-
 	// upload file
-	res, err := uploadBytes(context.Background(), s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
+	res, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, encryptedData, int64(encryptedData.Len()), s3ObjKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to upload the file: %w", err)
 	}
 
 	return res, err

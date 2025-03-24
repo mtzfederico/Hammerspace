@@ -11,6 +11,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type ChangePassRequest struct {
+	UserID          string `json:"userID"`
+	AuthToken       string `json:"authToken"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
 type LogoutRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
@@ -29,8 +36,6 @@ type CreateFolderRequest struct {
 	// For the root/home it is 'root', otherwise it is the parentDir's ID
 	ParentDir string `json:"parentDir"`
 }
-
-
 
 type GetDirectoryRequest struct {
 	UserID    string `json:"userID"`
@@ -78,6 +83,13 @@ type GetDirectoryResponseItems struct {
 	ID       string `json:"id"`
 	FileType string `json:"type"`
 	Size     int    `json:"size" binding:"omitempty"`
+}
+
+// Used to form a list with users that have access to a file and the permission that they have
+type UserFilePermission struct {
+	UserID string `json:"userID"`
+	// The file access permission. "read" or "write"
+	Permission string `json:"permission"`
 }
 
 type CreateDirectoryResponse struct {

@@ -114,17 +114,18 @@ func main() {
 	router.POST("login", handleLogin)
 	router.POST("logout", handleLogout)
 	router.POST("signup", handleSignup)
-	// router.POST("changePassword", handleChangePassword)
+	router.POST("changePassword", handleChangePassword)
 
 	router.POST("uploadFile", handleFileUpload)
 	router.POST("getFile", handleGetFile)
 	router.POST("shareFile", handleShareFile)
 	router.POST("removeFile", handleRemoveFile)
+	router.POST("getSharedWith", handleGetSharedWith)
 
-	router.POST("createFolder", handleCreateDirectory)
+	router.POST("createDir", handleCreateDirectory)
 	router.POST("getDir", handleGetDirectory)
-	router.POST("shareFolder", handleShareDirectory)
-	router.POST("removeFolder", handleRemoveDirectory)
+	router.POST("shareDir", handleShareDirectory)
+	router.POST("removeDir", handleRemoveDirectory)
 	router.POST("sync", handleSync)
 
 	router.Run(serverConfig.ListenOn)

@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"net/mail"
 
-	_ "strings"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -22,8 +22,11 @@ const (
 	MinUserIDLength   int    = 5
 	MaxUserIDLength   int    = 14
 	DefaultRoleID     string = "user"
-	// The cost that bcrypt uses to hash passwords
+	// The cost that bcrypt uses to hash passwords. This is a good explanation of what the cost is https://stackoverflow.com/a/25586134.
+	// 14 is overkill for most laptops and very basic servers. Use https://github.com/mtzfederico/bcrypt-cost-benchmark to get a good value for the system running this code.
 	BcryptHashCost int = 14
+	// The characters that are allowed to be in a userID
+	AllowedUserIDCharacters string = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456689.-_"
 )
 
 func handleLogin(c *gin.Context) {
@@ -125,8 +128,7 @@ func handleSignup(c *gin.Context) {
 		return
 	}
 
-	passLen := len(signupData.Password)
-	if passLen < MinPasswordLength || passLen > MaxPasswordLength {
+	if !isValidPassword(signupData.Password) {
 		c.JSON(500, gin.H{"success": false, "error": "Password must be between 5 and 30 characters long"})
 		return
 	}
@@ -150,7 +152,6 @@ func handleSignup(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true , "userID": signupData.UserID, "authToken": token})
 }
 
-/*
 func handleChangePassword(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -161,15 +162,15 @@ func handleChangePassword(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to decode JSON")
 		return
 	}
 
 	// verify that the token is valid
-	valid, err := isAuthTokenValid(request.UserID, request.AuthToken)
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to verify token")
 		return
 	}
 
@@ -178,14 +179,31 @@ func handleChangePassword(c *gin.Context) {
 		return
 	}
 
-	err = changePassword(request.UserID, request.NewPassword)
+	valid, err = isPasswordCorrect(c, request.UserID, request.CurrentPassword)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleChangePassword] Failed to verify credentials")
+		return
+	}
+
+	if !valid {
+		c.JSON(200, gin.H{"success": false, "error": "Current password is wrong"})
+		return
+	}
+
+	if !isValidPassword(request.NewPassword) {
+		c.JSON(500, gin.H{"success": false, "error": "New password must be between 5 and 30 characters long"})
+		return
+	}
+
+	err = changePassword(c, request.UserID, request.NewPassword)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleLogout] Failed to change password")
+		log.WithField("error", err).Error("[handleChangePassword] Failed to change password")
 	}
 
 	c.JSON(200, gin.H{"success": true})
-}*/
+}
 
 // Endpoint methods end
 
@@ -198,11 +216,29 @@ func isEmailValid(email string) bool {
 func isUserIDValid(userID string) bool {
 	// TODO: check that userID is unique
 	len := len(userID)
-	return len >= MinUserIDLength && len <= MaxUserIDLength
+	if !(len >= MinUserIDLength && len <= MaxUserIDLength) {
+		return false
+	}
+
+	return !strings.ContainsFunc(userID, func(r rune) bool {
+		// return true if an any of the characters in userID is not in AllowedUserIDCharacters
+		return !strings.ContainsRune(AllowedUserIDCharacters, r)
+	})
+}
+
+// It checks that the password is valid, it doesn't check if it is correct. For that use isPasswordCorrect()
+func isValidPassword(password string) bool {
+	// TODO: This could be improved with checks for characters
+	passLen := len(password)
+	return passLen >= MinPasswordLength && passLen <= MaxPasswordLength
 }
 
 // Checks if the password is correct for the userID specified
 func isPasswordCorrect(ctx context.Context, userID string, password string) (bool, error) {
+	if !isValidPassword(password) {
+		return false, nil
+	}
+
 	rows, err := db.QueryContext(ctx, "select password from users where userID=?;", userID)
 	if err != nil {
 		return false, err
@@ -210,7 +246,7 @@ func isPasswordCorrect(ctx context.Context, userID string, password string) (boo
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var hash []byte
 		err := rows.Scan(&hash)
 		if err != nil {
@@ -230,6 +266,12 @@ func isPasswordCorrect(ctx context.Context, userID string, password string) (boo
 			return true, nil
 		}
 	}
+
+	err = rows.Err()
+	if err != nil {
+		return false, err
+	}
+
 	return false, nil
 }
 
@@ -242,18 +284,23 @@ func isAuthTokenValid(ctx context.Context, userID string, token string) (bool, e
 
 	defer rows.Close()
 
-	for rows.Next() {
+	if rows.Next() {
 		var count int
 		err := rows.Scan(&count)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				return false, nil
-			}
 			return false, err
 		}
 
 		log.WithFields(log.Fields{"userID": userID, "token": token, "count": count}).Trace("[isAuthTokenValid]")
 		return (count == 1), nil
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
 	}
 
 	return false, nil
@@ -272,12 +319,17 @@ func generateAuthToken(ctx context.Context, userID string) (string, error) {
 		return "", err
 	}
 
-	for rows.Next() {
+	if rows.Next() {
 		var count int
 		rows.Scan(&count)
 		if count != 0 {
 			log.Debug("[generateAuthToken] authToken already in DB. Generating another one.")
 			return generateAuthToken(ctx, userID)
+		}
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", err
 		}
 	}
 
@@ -314,7 +366,7 @@ func changePassword(ctx context.Context, userID string, newPass string) error {
 		return err
 	}
 
-	log.WithField("newPassHashed", string(newPassHashed)).Debug("[changePassword] pass hashed")
+	log.WithField("newPassHashed", string(newPassHashed)).Trace("[changePassword] pass hashed")
 
 	_, err = db.ExecContext(ctx, "UPDATE users SET password=? WHERE userID=?", newPassHashed, userID)
 	return err

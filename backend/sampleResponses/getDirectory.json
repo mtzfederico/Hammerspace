@@ -1,0 +1,19 @@
+{
+    "success":true,
+    "dirID":"root",
+    "ParentDir":"",
+    "items":[
+        {
+            "name":"testFile.txt",
+            "id":"01955f82-7409-7cfc-a6ab-af5a70ca5897",
+            "type":"text/plain",
+            "size":20
+        },
+        {
+            "name":"memes",
+            "id":"01956305-5cac-7697-b31b-d60684a2c865",
+            "type":"folder",
+            "size":0
+        }
+    ]
+}

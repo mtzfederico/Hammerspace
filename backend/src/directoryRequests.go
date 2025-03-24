@@ -14,16 +14,14 @@ var (
 	errDirNotFound error = errors.New("dirNotFound")
 )
 
-
-
 type Folder struct {
-	ID          string    `json:"id"`
-	ParentDir   string    `json:"parentDir"`
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
-	URI         string    `json:"uri"`
-	FileSize    int       `json:"fileSize"`
-	UserID      string    `json:"userID"`
+	ID           string    `json:"id"`
+	ParentDir    string    `json:"parentDir"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	URI          string    `json:"uri"`
+	FileSize     int       `json:"fileSize"`
+	UserID       string    `json:"userID"`
 	LastModified time.Time `json:"lastModified"`
 }
 
@@ -121,27 +119,34 @@ func handleShareDirectory(c *gin.Context) {
 		return
 	}
 
-	// The DB part is the same as with a file, but all of the file inside of the directory have to be reencrypted
-
-	// INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES ('a-very-unique-id-01234', '01956305-5cac-7697-b31b-d60684a2c865', 'anotherTestUser', 'testUser', true, now());
-
 	// TODO: Check that the directory is not already shared
 
-	// get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
+	id, err := getNewFileID()
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		return
+	}
+
+	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.DirID, request.WithUserID, request.UserID, request.ReadOnly)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to add share to DB")
+		return
+	}
+
+	// The DB part is the same as with a file, but all of the file inside of the directory have to be reencrypted
+
+	// TODO: get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
 
 	c.JSON(200, gin.H{"success": false})
 }
 
 // Returns the user's that have access to a file/folder
 func handleGetSharedWith(c *gin.Context) {
-	// TODO: Figure out what happens when a user tries to access a file inside a directory shared with them. They might not have access to the actual file.
-	// When checking if they do have access, if there is no record for the actual file, check for a record for the parentDir
-	//
-	// what if the file is inside a dir that is inside the shared dir
-	// sharedDir > someDir > actualFile
-	//
-	// Maybe, make it recursive until the user has access or the root has been reached
-
+	/*
+		curl -X POST "localhost:9090/getSharedWith" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","fileID": "0195677e-5b7e-7445-b3e6-2f3dddb22683"}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -169,7 +174,7 @@ func handleGetSharedWith(c *gin.Context) {
 
 	// TODO: Check that the user can actually get this info
 
-	users, err := getUsersWithFileAccess(c, request.FileID)
+	users, err := getUsersWithFileAccess(c, request.FileID, 0, nil)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
 		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
@@ -225,10 +230,8 @@ func handleCreateDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
-		
-	response := CreateDirectoryResponse{true, dirID.String()}
-		// Return json
-		c.JSON(200, response)
+
+	c.JSON(200, gin.H{"success": true, "dirID": dirID})
 }
 
 func addDirectoryToDB(ctx context.Context, dirID, parentDir, name, userID string) error {
@@ -265,6 +268,7 @@ func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryRes
 	return items, nil
 }
 
+// It reeturns the parentDir for the fileID/dirID
 func getParentDirID(ctx context.Context, dirID string) (string, error) {
 	if dirID == "root" {
 		return "", nil
@@ -296,27 +300,56 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 	return parentDir, nil
 }
 
-// Returns a list of userIDs that have access to the fileID specified. The fileID can also be a folder
-func getUsersWithFileAccess(ctx context.Context, fileID string) ([]string, error) {
+// Returns a list of userIDs that have access to the fileID specified and the permission type. The fileID can also be a folder
+func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, userPermissions []UserFilePermission) ([]UserFilePermission, error) {
 	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
-	rows, err := db.QueryContext(ctx, "select userID from sharedFiles where fileID=?", fileID)
+	// sharedDir > someDir > actualFile
+	//
+	// It is recursive until the root has been reached
+	//
+	// sharedDir is shared with userA
+	// someDir is shared with userB
+	// actualFile is shared with userC
+	// users that can access actualFile: userA, userB, userC
+
+	if userPermissions == nil {
+		userPermissions = []UserFilePermission{}
+	}
+
+	rows, err := db.QueryContext(ctx, "select userID, isReadOnly from sharedFiles where fileID=?", fileID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("QueryContext Error. callNumber: %d. %w", callNumber, err)
 	}
 
 	defer rows.Close()
 
-	var userIDs []string
+	// var newUserIDs []string
 	for rows.Next() {
 		var userID string
-		err := rows.Scan(&userID)
+		var isReadOnly bool
+		err := rows.Scan(&userID, &isReadOnly)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("rows.Scan Error. callNumber: %d. %w", callNumber, err)
 		}
-		userIDs = append(userIDs, userID)
+
+		if isReadOnly {
+			userPermissions = append(userPermissions, UserFilePermission{userID, "read"})
+		} else {
+			userPermissions = append(userPermissions, UserFilePermission{userID, "write"})
+		}
 	}
 
-	return userIDs, nil
+	parentDir, err := getParentDirID(ctx, fileID)
+	if err != nil {
+		return userPermissions, fmt.Errorf("getParentDirID Error. callNumber: %d. %w", callNumber, err)
+	}
+
+	if parentDir == "root" || parentDir == "" {
+		return userPermissions, nil
+	}
+
+	// Check the parentDir
+	return getUsersWithFileAccess(ctx, parentDir, callNumber, userPermissions)
 }
 
 func handleSync(c *gin.Context) {
@@ -327,7 +360,7 @@ func handleSync(c *gin.Context) {
 
 	var request BasicRequest
 	err := c.BindJSON(&request)
-	if err != nil {	
+	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
 		log.WithField("error", err).Error("[handleSync] Failed to decode JSON")
 		return
@@ -354,15 +387,12 @@ func handleSync(c *gin.Context) {
 		return
 	}
 
-	
-
 	folders, err := getFolders(c, userID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
 		return
 	}
-	
 
 	c.JSON(200, gin.H{"folders": folders})
 }
@@ -379,7 +409,7 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	var folders []Folder
 	for rows.Next() {
 		var folder Folder
-		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type,  &folder.FileSize, &folder.UserID); err != nil {
+		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID); err != nil {
 			return nil, err
 		}
 		folders = append(folders, folder)
