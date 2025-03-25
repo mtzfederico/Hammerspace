@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"net/mail"
 
 	"strings"
@@ -119,17 +120,30 @@ func handleSignup(c *gin.Context) {
 	}
 
 	if !isEmailValid(signupData.Email) {
-		c.JSON(500, gin.H{"success": false, "error": "Invalid email address"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid email address"})
 		return
 	}
 
 	if !isUserIDValid(signupData.UserID) {
-		c.JSON(500, gin.H{"success": false, "error": "Invalid UserID"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid UserID"})
 		return
 	}
 
 	if !isValidPassword(signupData.Password) {
-		c.JSON(500, gin.H{"success": false, "error": "Password must be between 5 and 30 characters long"})
+		c.JSON(400, gin.H{"success": false, "error": "Password must be between 5 and 30 characters long"})
+		return
+	}
+
+	isUnique, err := isUserIDUnique(c, signupData.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleSignup] Failed to check if userID is unique")
+		return
+	}
+
+	if !isUnique {
+		c.JSON(400, gin.H{"success": false, "error": "UserID already in use"})
+		log.Debug("[isUserIDUnique] authToken already in DB. Generating another one.")
 		return
 	}
 
@@ -192,7 +206,7 @@ func handleChangePassword(c *gin.Context) {
 	}
 
 	if !isValidPassword(request.NewPassword) {
-		c.JSON(500, gin.H{"success": false, "error": "New password must be between 5 and 30 characters long"})
+		c.JSON(400, gin.H{"success": false, "error": "New password must be between 5 and 30 characters long"})
 		return
 	}
 
@@ -213,8 +227,31 @@ func isEmailValid(email string) bool {
 	return err == nil
 }
 
+func isUserIDUnique(ctx context.Context, userID string) (bool, error) {
+	rows, err := db.QueryContext(ctx, "SELECT COUNT(*) FROM users WHERE userID=?;", userID)
+	if err != nil {
+		return false, fmt.Errorf("error querying DB. %w", err)
+	}
+
+	if rows.Next() {
+		var count int
+		rows.Scan(&count)
+		if count == 0 {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return false, fmt.Errorf("error getting rows. %w", err)
+		}
+	}
+	// TODO: write this error
+	return false, fmt.Errorf("")
+}
+
 func isUserIDValid(userID string) bool {
-	// TODO: check that userID is unique
 	len := len(userID)
 	if !(len >= MinUserIDLength && len <= MaxUserIDLength) {
 		return false
