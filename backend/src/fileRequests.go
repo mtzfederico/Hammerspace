@@ -62,7 +62,7 @@ func handleFileUpload(c *gin.Context) {
 
 	fmt.Printf("userID %s authToken %s\n", userID, authToken)
 
-	fileID, err := getNewFileID()
+	fileID, err := getNewID()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("[handleFileUpload] Failed to get a new file ID")
 	}
@@ -186,7 +186,7 @@ func handleRemoveFile(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, errUserAccessNotAllowed) {
 			// User is not the owner and can't delete it
-			c.JSON(300, gin.H{"success": false, "error": "Operation not allowed"})
+			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
 			log.WithField("error", err).Debug("[handleRemoveFile] User tried to delete file without proper permission")
 			return
 		}
@@ -248,7 +248,7 @@ func handleShareFile(c *gin.Context) {
 
 	// TODO: Check that the file is not already shared
 
-	id, err := getNewFileID()
+	id, err := getNewID()
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
 		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
@@ -418,9 +418,9 @@ func removeFileFromDB(ctx context.Context, fileID, userID string) error {
 }
 
 // Returns a new v7 UUID.
-// id, err := getNewFileID()
+// id, err := getNewID()
 // id.String() to get it as a string " xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-func getNewFileID() (uuid.UUID, error) {
+func getNewID() (uuid.UUID, error) {
 	// another option: https://planetscale.com/blog/why-we-chose-nanoids-for-planetscales-api
 	id, err := uuid.NewV7()
 	return id, err

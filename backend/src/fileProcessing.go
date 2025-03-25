@@ -32,7 +32,7 @@ func processFile(ctx context.Context, filePath, fileID string) error {
 
 	// TODO: process the mime type
 
-	objKey, err := getNewFileID()
+	objKey, err := getNewID()
 	if err != nil {
 		return fmt.Errorf("getNewFileID failed: %w", err)
 	}

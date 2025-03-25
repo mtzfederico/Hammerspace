@@ -70,8 +70,9 @@ func handleGetDirectory(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-// When a director and thus everything inside is deleted
+// When a directory and thus everything inside is deleted
 func handleRemoveDirectory(c *gin.Context) {
+	// TODO: Implement this
 	// Auth
 
 	// Query DB
@@ -109,7 +110,7 @@ func handleShareDirectory(c *gin.Context) {
 
 	// TODO: Check that the directory is not already shared
 
-	id, err := getNewFileID()
+	id, err := getNewID()
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
 		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
@@ -205,7 +206,7 @@ func handleCreateDirectory(c *gin.Context) {
 
 	// TODO: Check that the user can create a new directory in that location
 
-	dirID, err := getNewFileID()
+	dirID, err := getNewID()
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")

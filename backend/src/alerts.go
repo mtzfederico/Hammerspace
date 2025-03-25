@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TODO: Test everything on this file
+
 func handleGetAlerts(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -71,7 +73,7 @@ func getAlerts(ctx context.Context, userID string) ([]Alert, error) {
 
 // adds an alert for the specified userID with the specified values
 func addAlert(ctx context.Context, userID, description, fileID, fileOwner string) error {
-	alertID, err := getNewFileID()
+	alertID, err := getNewID()
 	if err != nil {
 		return fmt.Errorf("failed to get a new ID. %w", err)
 	}
