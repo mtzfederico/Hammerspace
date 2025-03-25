@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type SignupRequest struct {
 	Email    string `json:"email"`
 	UserID   string `json:"userID"`
@@ -95,4 +97,23 @@ type UserFilePermission struct {
 type CreateDirectoryResponse struct {
 	Success bool   `json:"success"`
 	DirID   string `json:"dirID"`
+}
+
+type Folder struct {
+	ID           string    `json:"id"`
+	ParentDir    string    `json:"parentDir"`
+	Name         string    `json:"name"`
+	Type         string    `json:"type"`
+	URI          string    `json:"uri"`
+	FileSize     int       `json:"fileSize"`
+	UserID       string    `json:"userID"`
+	LastModified time.Time `json:"lastModified"`
+}
+
+type Alert struct {
+	ID          string    `json:"id"`
+	Description string    `json:"description"`
+	FileID      string    `json:"name" binding:"omitempty"`
+	FileOwner   string    `json:"fileOwner"  binding:"omitempty"`
+	CreatedDate time.Time `json:"createdDate"`
 }

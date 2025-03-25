@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -13,17 +12,6 @@ import (
 var (
 	errDirNotFound error = errors.New("dirNotFound")
 )
-
-type Folder struct {
-	ID           string    `json:"id"`
-	ParentDir    string    `json:"parentDir"`
-	Name         string    `json:"name"`
-	Type         string    `json:"type"`
-	URI          string    `json:"uri"`
-	FileSize     int       `json:"fileSize"`
-	UserID       string    `json:"userID"`
-	LastModified time.Time `json:"lastModified"`
-}
 
 func handleGetDirectory(c *gin.Context) {
 	/*
@@ -53,7 +41,7 @@ func handleGetDirectory(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -115,7 +103,7 @@ func handleShareDirectory(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -168,7 +156,7 @@ func handleGetSharedWith(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -211,7 +199,7 @@ func handleCreateDirectory(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -371,26 +359,19 @@ func handleSync(c *gin.Context) {
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleGetFile] Failed to verify token")
+		log.WithField("error", err).Error("[handleSync] Failed to verify token")
 		return
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
-	userID := request.UserID
-
-	if userID == "" {
-		c.JSON(400, gin.H{"error": "userID is required"})
-		return
-	}
-
-	folders, err := getFolders(c, userID)
+	folders, err := getFolders(c, request.UserID)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
-		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleSync] Failed to get folders")
 		return
 	}
 

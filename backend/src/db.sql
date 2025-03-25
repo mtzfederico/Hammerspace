@@ -92,4 +92,18 @@ CREATE TABLE IF NOT EXISTS sharedFiles (
   CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE
 );
 
-
+-- A table with all the alerts/notifications that are active
+-- fileID and fileOwner are optinal and only used if the alert involves a file and or another user
+-- processed is used to know if it has been sent. Once the user dismisses it, we could delete it.
+CREATE TABLE IF NOT EXISTS activeAlerts (
+  id            VARCHAR(36)   PRIMARY KEY,
+  userID        VARCHAR(50)   NOT NULL,
+  description   VARCHAR(50)   NOT NULL,
+  fileID        VARCHAR(36),
+  fileOwner     VARCHAR(50),
+  processed     BOOL          NOT NULL  DEFAULT false,
+  createdDate   DATETIME      NOT NULL,
+  lastModified  DATETIME      DEFAULT NULL,
+  CONSTRAINT activeAlerts_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
+  CONSTRAINT activeAlerts_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE,
+);
