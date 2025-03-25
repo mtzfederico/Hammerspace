@@ -7,5 +7,5 @@ The UI is written using React Native with Typescript.
 * Install yarn with `npm install --global yarn`
 * install expo with `yarn add expo`
 * Download the [Expo Go App](https://apps.apple.com/app/id982107779)
-* run `npx expo` and scan the QR code with our phone. Follow the options on the screen for more things, such as as simulator (iOS requires Xcode on a Mac).
+* run `npx expo` and scan the QR code with your phone. Follow the options on the screen for more things, such as as simulator (iOS requires Xcode on a Mac).
 
