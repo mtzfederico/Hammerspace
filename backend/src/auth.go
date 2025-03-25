@@ -89,7 +89,7 @@ func handleLogout(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -149,7 +149,7 @@ func handleSignup(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"success": true , "userID": signupData.UserID, "authToken": token})
+	c.JSON(200, gin.H{"success": true, "userID": signupData.UserID, "authToken": token})
 }
 
 func handleChangePassword(c *gin.Context) {
@@ -175,7 +175,7 @@ func handleChangePassword(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -277,6 +277,9 @@ func isPasswordCorrect(ctx context.Context, userID string, password string) (boo
 
 func isAuthTokenValid(ctx context.Context, userID string, token string) (bool, error) {
 	log.WithFields(log.Fields{"userID": userID, "token": token}).Trace("[isAuthTokenValid] Checking token")
+	if userID == "" || token == "" {
+		return false, nil
+	}
 	rows, err := db.QueryContext(ctx, "select count(*) as count from authTokens where userID=? AND tokenID=?", userID, token)
 	if err != nil {
 		return false, err

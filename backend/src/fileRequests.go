@@ -53,7 +53,7 @@ func handleFileUpload(c *gin.Context) {
 		}
 
 		if !valid {
-			c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+			c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 			return
 		}
 	*/
@@ -130,7 +130,7 @@ func handleGetFile(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -177,7 +177,7 @@ func handleRemoveFile(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
@@ -242,7 +242,7 @@ func handleShareFile(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid authToken"})
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 
