@@ -314,7 +314,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowedShar
 }
 
 // Checks if the file is shared with the specified userID
-// returns a string with the permission: "write" or "read"
+// returns a string with the permission: "write", "read", or "" for no permission.
 func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (string, error) {
 	// Check if the is shared
 	permission, err := querySharedFilesTable(ctx, fileID, withUserID)
@@ -339,10 +339,12 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 // Should not be called directly. Use hasSharedFilePermission() instead
 // fileID is the id of an item in the files table, it starts with a file and gets called recursively with a dirID.
 // callNumber should be set to zero, it gets increased when the function calls itself.
+// It returns the permission: "read", "write", or "" for no permission.
 func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, callNumber int) (string, error) {
 	if fileID == "" || fileID == "root" {
 		// Stop recursion
-		return "", errors.New("root directory reached")
+		// return "", errors.New("root directory reached")
+		return "", nil
 	}
 
 	parentDir, err := getParentDirID(ctx, fileID)
@@ -373,7 +375,7 @@ func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, ca
 }
 
 // Checks the sharedFiles table if the fileID is shared with the userID.
-// If no items are found, it retturns an empty string and no error
+// If no items are found, it returns an empty string and no error
 func querySharedFilesTable(ctx context.Context, fileID, withUserID string) (string, error) {
 	rows, err := db.QueryContext(ctx, "select isReadOnly from sharedFiles where fileID=? AND userID=?", fileID, withUserID)
 	if err != nil {
