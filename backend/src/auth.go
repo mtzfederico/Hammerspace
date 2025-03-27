@@ -247,8 +247,8 @@ func isUserIDUnique(ctx context.Context, userID string) (bool, error) {
 			return false, fmt.Errorf("error getting rows. %w", err)
 		}
 	}
-	// TODO: write this error
-	return false, fmt.Errorf("")
+
+	return false, fmt.Errorf("something weird happened, no result and no error. userID: '%s'", userID)
 }
 
 func isUserIDValid(userID string) bool {
