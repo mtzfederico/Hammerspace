@@ -72,7 +72,7 @@ func handleGetDirectory(c *gin.Context) {
 
 // When a directory and thus everything inside is deleted
 func handleRemoveDirectory(c *gin.Context) {
-	// TODO: Implement this
+	// TODO: Implement this. Figure out the logic when the directory is NOT empty
 	// Auth
 
 	// Query DB
@@ -145,14 +145,14 @@ func handleGetSharedWith(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleGetSharedWith] Failed to decode JSON")
 		return
 	}
 
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
+		log.WithField("error", err).Error("[handleGetSharedWith] Failed to verify token")
 		return
 	}
 
@@ -161,12 +161,33 @@ func handleGetSharedWith(c *gin.Context) {
 		return
 	}
 
-	// TODO: Check that the user can actually get this info
+	// TODO: Test this with shared files including ones that the user doesn't have access to
+
+	// Check that the user can actually get this info. I.E., the user has access to the file.
+	_, err = getObjectKey(c, request.FileID, request.UserID, true)
+	if err != nil {
+		if errors.Is(err, errUserAccessNotAllowed) {
+			// User does not have access to the file
+			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
+			log.WithField("error", err).Debug("[handleGetSharedWith] User tried to get details without permission")
+			return
+		}
+
+		if errors.Is(err, errFileNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "File not found"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
+			return
+		}
+
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		log.WithField("error", err).Error("[handleGetSharedWith] getObjectKey error")
+		return
+	}
 
 	users, err := getUsersWithFileAccess(c, request.FileID, 0, nil)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleGetSharedWith] Failed to get new fileID")
 		return
 	}
 
@@ -204,7 +225,7 @@ func handleCreateDirectory(c *gin.Context) {
 		return
 	}
 
-	// TODO: Check that the user can create a new directory in that location
+	// TODO: Check that the user is allowed to create a new directory in that location
 
 	dirID, err := getNewID()
 	if err != nil {
@@ -342,6 +363,9 @@ func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, 
 }
 
 func handleSync(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/sync" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw=="}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -381,17 +405,18 @@ func handleSync(c *gin.Context) {
 
 func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
-	rows, err := db.QueryContext(ctx, "SELECT id, parentDir, name, type, size, userID FROM files WHERE userID = ?", userID)
+	rows, err := db.QueryContext(ctx, "SELECT id, parentDir, name, type, size, userID, lastModified FROM files WHERE userID = ?", userID)
 	if err != nil {
 		return nil, err
 	}
 
 	defer rows.Close()
 
-	var folders []Folder
+	// Initialize an empty array so that the json returns an empty array instead of null.
+	var folders []Folder = []Folder{}
 	for rows.Next() {
 		var folder Folder
-		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID); err != nil {
+		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID, &folder.LastModified); err != nil {
 			return nil, err
 		}
 		folders = append(folders, folder)
