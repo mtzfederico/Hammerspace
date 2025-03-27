@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type SignupRequest struct {
 	Email    string `json:"email"`
@@ -100,20 +103,35 @@ type CreateDirectoryResponse struct {
 }
 
 type Folder struct {
-	ID           string    `json:"id"`
-	ParentDir    string    `json:"parentDir"`
-	Name         string    `json:"name"`
-	Type         string    `json:"type"`
-	URI          string    `json:"uri"`
-	FileSize     int       `json:"fileSize"`
-	UserID       string    `json:"userID"`
-	LastModified time.Time `json:"lastModified"`
+	ID        string `json:"id"`
+	ParentDir string `json:"parentDir"`
+	Name      string `json:"name"`
+	Type      string `json:"type"`
+	URI       string `json:"uri"`
+	FileSize  int    `json:"fileSize"`
+	UserID    string `json:"userID"`
+	// LastModified can be null/nil. Instead of time.Time use sql.NullTime, a version of time.Time by the sql driver that suppors null.
+	// https://github.com/go-sql-driver/mysql/blob/master/nulltime.go
+	//
+	// Use this code to check if it is null or not:
+	// if LastModified.Valid {
+	//	   // use LastModified.Time
+	//	} else {
+	//	   // NULL value
+	//	}
+	LastModified sql.NullTime `json:"lastModified"`
 }
 
 type Alert struct {
 	ID          string    `json:"id"`
 	Description string    `json:"description"`
-	FileID      string    `json:"name" binding:"omitempty"`
+	FileID      string    `json:"fileID" binding:"omitempty"`
 	FileOwner   string    `json:"fileOwner"  binding:"omitempty"`
 	CreatedDate time.Time `json:"createdDate"`
+}
+
+type RemoveAlertRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	AlertID   string `json:"alertID"`
 }
