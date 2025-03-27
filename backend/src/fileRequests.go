@@ -58,9 +58,24 @@ func handleFileUpload(c *gin.Context) {
 		}
 	*/
 
-	// TODO: check that parentDir is a valid folder and that the user can create a new directory in that location.
+	fmt.Printf("[handleFileUpload] WARNING: authToken not verified. userID %s authToken %s\n", userID, authToken)
 
-	fmt.Printf("userID %s authToken %s\n", userID, authToken)
+	// Check that parentDir is a valid folder and that the user can create a new directory in that location.
+	permission, err := getFolderPermission(c, parentDir, userID)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			c.JSON(200, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
+			return
+		}
+
+		log.WithField("Error", err).Error("[handleFileUpload] Error getting parentDir permission")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		return
+	}
+	if permission != "write" {
+		c.JSON(403, gin.H{"success": false, "error": "No write permission on Parent Directory"})
+		return
+	}
 
 	fileID, err := getNewID()
 	if err != nil {
@@ -70,7 +85,8 @@ func handleFileUpload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		log.WithField("Error", err).Error("[handleFileUpload] Error getting uploaded file")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		return
 	}
 
 	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Debug("[handleFileUpload] Received file")
@@ -82,7 +98,7 @@ func handleFileUpload(c *gin.Context) {
 	err = c.SaveUploadedFile(file, filePath)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err, "filename": file.Filename, "size": file.Size, "header": file.Header, "filePath": filePath}).Fatal("[handleFileUpload] Error saving uploaded file")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
 	}
 
 	// add file to db with fileName as the name, contentType as type, and processed = false
@@ -90,7 +106,7 @@ func handleFileUpload(c *gin.Context) {
 	err = saveFileToDB(c, fileID.String(), parentDir, file.Filename, userID, contentType, int(file.Size))
 	if err != nil {
 		log.WithFields(log.Fields{"error": err, "filename": file.Filename, "size": file.Size, "header": file.Header, "filePath": filePath}).Fatal("[handleFileUpload] Error saving uploaded file")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
 	}
 
 	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
@@ -134,7 +150,7 @@ func handleGetFile(c *gin.Context) {
 		return
 	}
 
-	// TODO: check that file exists, and the user has access to it, and get the s3 objKey
+	// check that file exists, and the user has access to it, and get the s3 objKey
 	objKey, err := getObjectKey(c, request.FileID, request.UserID, true)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
@@ -229,7 +245,7 @@ func handleShareFile(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
-		log.WithField("error", err).Error("[handleRemoveFile] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleShareFile] Failed to decode JSON")
 		return
 	}
 
@@ -237,7 +253,7 @@ func handleShareFile(c *gin.Context) {
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		log.WithField("error", err).Error("[handleShareFile] Failed to verify token")
 		return
 	}
 
@@ -248,19 +264,36 @@ func handleShareFile(c *gin.Context) {
 
 	// TODO: Check that the file is not already shared
 
-	id, err := getNewID()
+	// check that file exists and that the user is allowed to share it
+	_, err = getObjectKey(c, request.FileID, request.UserID, false)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		if errors.Is(err, errUserAccessNotAllowed) {
+			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
+			return
+		}
+
+		if errors.Is(err, errFileNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "File not found"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
+			return
+		}
+
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleShareFile] Failed to check permission")
 		return
 	}
 
-	// TODO Check that file exists. This might be able to be done in the insert to sharedFiles due to the relation
+	id, err := getNewID()
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleShareFile] Failed to get new fileID")
+		return
+	}
 
 	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.FileID, request.WithUserID, request.UserID, request.ReadOnly)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to add share to DB")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4)"})
+		log.WithField("error", err).Error("[handleShareFile] Failed to add share to DB")
 		return
 	}
 
@@ -273,7 +306,11 @@ func handleShareFile(c *gin.Context) {
 
 // Checks that the file actually exists and returns the objKey used in s3.
 // allowedShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
-// When it is false, the sharedFiles DB will not be checked and if the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
+// When it is false, the sharedFiles DB will not be checked.
+//
+// Errors Returned:
+// If the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
+// If the file doesn't exist it returns errFileNotFound.
 func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.

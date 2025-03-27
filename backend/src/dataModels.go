@@ -93,7 +93,7 @@ type GetDirectoryResponseItems struct {
 // Used to form a list with users that have access to a file and the permission that they have
 type UserFilePermission struct {
 	UserID string `json:"userID"`
-	// The file access permission. "read" or "write"
+	// The file access permission. "read" or "write", or "" for not allowed
 	Permission string `json:"permission"`
 }
 

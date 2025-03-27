@@ -310,6 +310,53 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 	return parentDir, nil
 }
 
+// Returns the permission that the userID has for the specified fileID/folderID.
+// returns a string with the permission: "write", "read", or "" for no permission.
+// If the folder doesn't exist, it returns the error errDirNotFound.
+func getFolderPermission(ctx context.Context, fileID, userID string) (string, error) {
+	if fileID == "" {
+		return "", errDirNotFound
+	}
+
+	if fileID == "root" {
+		return "write", nil
+	}
+
+	// Check that folder exists. Query files db, type should be "folder"
+	rows, err := db.QueryContext(ctx, "select userID from files where fileID=? AND type='folder';", fileID)
+	if err != nil {
+		return "", err
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		var ownerUserID string
+		err := rows.Scan(&ownerUserID)
+		if err != nil {
+			return "", err
+		}
+
+		if ownerUserID == userID {
+			return "write", nil
+		} else {
+			log.Trace("[getFolderPermission] File not owned by user, checking sharedFiles.")
+			permission, err := hasSharedFilePermission(ctx, fileID, userID)
+			if err != nil {
+				return "", fmt.Errorf("error from hasSharedFilePermission. %w", err)
+			}
+			return permission, nil
+		}
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return "", err
+	}
+
+	return "", errDirNotFound
+}
+
 // Returns a list of userIDs that have access to the fileID specified and the permission type. The fileID can also be a folder
 func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, userPermissions []UserFilePermission) ([]UserFilePermission, error) {
 	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
