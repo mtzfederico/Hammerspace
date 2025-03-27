@@ -80,6 +80,7 @@ func main() {
 		Addr:                 serverConfig.DBAddress,
 		DBName:               serverConfig.DBName,
 		AllowNativePasswords: true,
+		ParseTime:            true,
 	}
 
 	dbDSN := cfg.FormatDSN()
@@ -129,6 +130,7 @@ func main() {
 
 	router.POST("sync", handleSync)
 	router.POST("getAlerts", handleGetAlerts)
+	router.POST("removeAlert", handleRemoveAlert)
 
 	router.Run(serverConfig.ListenOn)
 }
