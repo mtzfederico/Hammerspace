@@ -275,7 +275,9 @@ func handleShareFile(c *gin.Context) {
 // allowedShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
 // When it is false, the sharedFiles DB will not be checked and if the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
 func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
-	rows, err := db.QueryContext(ctx, "select userID, objKey from files where id=?", fileID)
+	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
+	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
+	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=?", fileID)
 	if err != nil {
 		return "", err
 	}
