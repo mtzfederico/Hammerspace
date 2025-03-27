@@ -105,5 +105,5 @@ CREATE TABLE IF NOT EXISTS activeAlerts (
   createdDate   DATETIME      NOT NULL,
   lastModified  DATETIME      DEFAULT NULL,
   CONSTRAINT activeAlerts_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
-  CONSTRAINT activeAlerts_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE,
+  CONSTRAINT activeAlerts_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE
 );
