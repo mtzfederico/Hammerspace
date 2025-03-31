@@ -3,8 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'reac
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
+import { API_URL } from '@env';
 
-const apiUrl = String(process.env.API_URL);
+const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+
+//const apiUrl = "http://216.37.99.155:9090"
 
 export default function Login() {
   const [userID, setUserID] = useState('');
@@ -14,6 +17,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
+      console.log("hello world " + apiUrl)
       const response = await fetch(`${apiUrl}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
