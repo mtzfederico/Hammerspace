@@ -92,10 +92,6 @@ CREATE TABLE IF NOT EXISTS sharedFiles (
   CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE
 );
 
-<<<<<<< HEAD
--- table for user's friends 
--- 
-=======
 -- A table with all the alerts/notifications that are active
 -- fileID and fileOwner are optinal and only used if the alert involves a file and or another user
 -- processed is used to know if it has been sent. Once the user dismisses it, we could delete it.
@@ -113,11 +109,16 @@ CREATE TABLE IF NOT EXISTS activeAlerts (
 );
 >>>>>>> 41a32498f62bb9398d1b113eaea0992f22daf52d
 
+-- This is the user_friends table to track friendships
 CREATE TABLE IF NOT EXISTS user_friends (
-  user_id VARCHAR(50) NOT NULL,
-  user_request_accepted BOOL DEFAULT NULL,
-  user_request_sent  DATETIME NOT NULL,
-  user_friend_id VARCHAR(50) PRIMARY KEY, 
-  
-)
+  friendshipID     VARCHAR(36)  PRIMARY KEY,
+  userID1          VARCHAR(50)  NOT NULL,
+  userID2          VARCHAR(50)  NOT NULL,
+  request_status           VARCHAR(20)  NOT NULL DEFAULT 'Pending',
+  createdDate      DATETIME     NOT NULL,
+  CONSTRAINT user_friends_userID1_fk FOREIGN KEY (userID1) REFERENCES users(userID) ON DELETE CASCADE,
+  CONSTRAINT user_friends_userID2_fk FOREIGN KEY (userID2) REFERENCES users(userID) ON DELETE CASCADE,
+  CONSTRAINT chk_user_friends_diff_users CHECK (userID1 != userID2)
+);
+
 
