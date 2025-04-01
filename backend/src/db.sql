@@ -106,7 +106,6 @@ CREATE TABLE IF NOT EXISTS activeAlerts (
   CONSTRAINT activeAlerts_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
   CONSTRAINT activeAlerts_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE
 );
->>>>>>> 41a32498f62bb9398d1b113eaea0992f22daf52d
 
 -- This is the user_friends table to track friendships
 CREATE TABLE IF NOT EXISTS user_friends (
