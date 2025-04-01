@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system';
 
-const apiURL= process.env.API_URL
+const apiURL= process.env.EXPO_PUBLIC_API_URL
 
 
 export const initDB = async () => {

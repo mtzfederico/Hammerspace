@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'reac
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 
-const apiUrl = String(process.env.API_URL);
+const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 export default function Login() {
   const [email, setEmail] = useState('');

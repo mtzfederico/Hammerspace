@@ -2,7 +2,7 @@ import { insertFolder } from '../../client/services/database';
 import * as SecureStore from 'expo-secure-store';
 // 192.168.107.78
    
-const apiUrl = String(process.env.API_URL);
+const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 console.log((`"${apiUrl}/createFolder"`))
 

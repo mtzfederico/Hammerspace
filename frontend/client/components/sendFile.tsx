@@ -2,7 +2,7 @@ import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
 import * as SecureStore from 'expo-secure-store';
 
-const apiUrl = String(process.env.API_URL);
+const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 
 const storedToken =  String(SecureStore.getItem('authToken'));
