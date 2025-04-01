@@ -45,8 +45,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 );
 
 -- Test User. Password is "testPassword123"
--- INSERT INTO users (userID, email, password, roleID, createdDate) VALUES ("testUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now());
--- INSERT INTO users (userID, email, password, roleID, createdDate) VALUES ("anotherTestUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now());
+-- INSERT INTO users (userID, email, password, roleID, createdDate) VALUES ("testUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now()), ("anotherTestUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now());
 
 -- Test public key for "AGE-SECRET-KEY-13ZV95MTF4J8K75DR5J884E9G2FRSZNJKMRHK9TV4TF7V6TTUGETQ9MZTQ7"
 -- INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
@@ -62,13 +61,12 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
 -- objKey is the S3 object key. it is null on folders
 CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
-  objKey        VARCHAR(36)   NOT NULL,
+  objKey        VARCHAR(36)   NOT NULL   DEFAULT "",
   parentDir     VARCHAR(50)   NOT NULL,
   name          VARCHAR(50)   NOT NULL,
   type          VARCHAR(50)   NOT NULL,
   size          INT           NOT NULL,
   userID        VARCHAR(50)   NOT NULL,
-  objKey        VARCHAR(50),
   processed     BOOL          NOT NULL  DEFAULT false,
   createdDate   DATETIME      NOT NULL,
   lastModified  DATETIME      DEFAULT NULL,
@@ -89,7 +87,8 @@ CREATE TABLE IF NOT EXISTS sharedFiles (
   lastModified  DATETIME      DEFAULT NULL,
   CONSTRAINT sharedFiles_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE,
   CONSTRAINT sharedFiles_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
-  CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE
+  CONSTRAINT sharedFiles_fileOwner_fk FOREIGN KEY (fileOwner) REFERENCES users(userID) ON DELETE CASCADE,
+  UNIQUE KEY unique_ids (fileID, userID, fileOwner)
 );
 
 -- A table with all the alerts/notifications that are active

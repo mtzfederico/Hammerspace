@@ -319,7 +319,7 @@ func getFolderPermission(ctx context.Context, fileID, userID string) (string, er
 	}
 
 	if fileID == "root" {
-		return "write", nil
+		return WritePermission, nil
 	}
 
 	// Check that folder exists. Query files db, type should be "folder"
@@ -338,7 +338,7 @@ func getFolderPermission(ctx context.Context, fileID, userID string) (string, er
 		}
 
 		if ownerUserID == userID {
-			return "write", nil
+			return WritePermission, nil
 		} else {
 			log.Trace("[getFolderPermission] File not owned by user, checking sharedFiles.")
 			permission, err := hasSharedFilePermission(ctx, fileID, userID)
@@ -390,9 +390,9 @@ func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, 
 		}
 
 		if isReadOnly {
-			userPermissions = append(userPermissions, UserFilePermission{userID, "read"})
+			userPermissions = append(userPermissions, UserFilePermission{userID, ReadOnlyPermission})
 		} else {
-			userPermissions = append(userPermissions, UserFilePermission{userID, "write"})
+			userPermissions = append(userPermissions, UserFilePermission{userID, WritePermission})
 		}
 	}
 
