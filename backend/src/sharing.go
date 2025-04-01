@@ -132,6 +132,7 @@ func handleShareFile(c *gin.Context) {
 						return
 					}
 					c.JSON(200, gin.H{"success": true})
+					return
 				} else {
 					// do nothing
 					c.JSON(400, gin.H{"success": false, "error": "File already has write permission"})
@@ -150,6 +151,7 @@ func handleShareFile(c *gin.Context) {
 						return
 					}
 					c.JSON(200, gin.H{"success": true})
+					return
 				} else {
 					// do nothing
 					c.JSON(400, gin.H{"success": false, "error": "File already has read-only permission"})
@@ -163,10 +165,6 @@ func handleShareFile(c *gin.Context) {
 				return
 			}
 		}
-
-		// This point inside the if should never be reached
-		log.Error("[handleShareFile] End of if reached")
-		return
 	}
 
 	// File is not shared at all
