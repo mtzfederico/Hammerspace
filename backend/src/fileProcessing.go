@@ -2,11 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/h2non/filetype"
+)
+
+var (
+	errUnknownFileType error = errors.New("unknown file type")
 )
 
 func processFile(ctx context.Context, filePath, fileID string) error {
@@ -24,8 +30,8 @@ func processFile(ctx context.Context, filePath, fileID string) error {
 	if kind == filetype.Unknown {
 		// TODO: decide how to handle unknown files
 		// Set the mime to application/octet-stream??
-		log.Fatal("This should be handled")
-		return fmt.Errorf("Unknown file type")
+		log.Info("[processFile] errUnknownFileType")
+		return errUnknownFileType
 	}
 
 	fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
