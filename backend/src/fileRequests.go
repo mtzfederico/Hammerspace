@@ -241,11 +241,11 @@ func handleRemoveFile(c *gin.Context) {
 //
 // Errors Returned:
 // If the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
-// If the file doesn't exist it returns errFileNotFound.
+// If the file doesn't exist (or if the id is for a folder) it returns errFileNotFound.
 func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
-	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=?", fileID)
+	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=? AND type!='folder'", fileID)
 	if err != nil {
 		return "", err
 	}
