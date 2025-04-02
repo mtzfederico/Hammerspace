@@ -219,7 +219,8 @@ func checkFilePermission(ctx context.Context, fileID, withUserID string) (string
 		return "", "", fmt.Errorf("error from checkIfParentDirIsShared. %w", err)
 	}
 
-	return id, permission, nil
+	// TODO: Test this. "" was id
+	return "", permission, nil
 }
 
 // Checks if the file is shared with the specified userID
@@ -245,7 +246,8 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 }
 
 // Recursively checks if a directory and any of its parent directories are shared with the specified userID.
-// Should not be called directly. Use hasSharedFilePermission() or checkFilePermission() instead
+// Should not be called directly. Use hasSharedFilePermission() or checkFilePermission() instead.
+//
 // fileID is the id of an item in the files table, it starts with a file and gets called recursively with a dirID.
 // callNumber should be set to zero, it gets increased when the function calls itself.
 // It returns the permission: "read", "write", or "" for no permission.
