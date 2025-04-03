@@ -61,7 +61,7 @@ func handleFileUpload(c *gin.Context) {
 	fmt.Printf("[handleFileUpload] WARNING: authToken not verified. userID %s authToken %s\n", userID, authToken)
 
 	// Check that parentDir is a valid folder and that the user can create a new directory in that location.
-	permission, err := getFolderPermission(c, parentDir, userID)
+	permission, err := getFolderPermission(c, parentDir, userID, true)
 	if err != nil {
 		if errors.Is(err, errDirNotFound) {
 			c.JSON(200, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
@@ -236,13 +236,13 @@ func handleRemoveFile(c *gin.Context) {
 // ---------------------------------------------------------------------------
 
 // Checks that the file actually exists and returns the objKey used in s3.
-// allowedShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
+// allowShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
 // When it is false, the sharedFiles DB will not be checked.
 //
 // Errors Returned:
 // If the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
 // If the file doesn't exist (or if the id is for a folder) it returns errFileNotFound.
-func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
+func getObjectKey(ctx context.Context, fileID string, userID string, allowShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
 	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=? AND type!='folder'", fileID)
@@ -263,7 +263,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowedShar
 
 		if userID != fileOwnerUserID {
 			// If the user doesn't own the file, check if they have access to it
-			if !allowedShared {
+			if !allowShared {
 				return "", errUserAccessNotAllowed
 			}
 			// check sharedFiles table
