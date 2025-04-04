@@ -25,6 +25,8 @@ func handleFileUpload(c *gin.Context) {
 			curl --header "Content-Type: application/json" --data '{"userID":"testUser","password":"testPassword123"}' "http://localhost:9090/login"
 		Upload file:
 			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testFile.txt" localhost:9090/uploadFile
+
+			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testImage-0.png" localhost:9090/uploadFile
 	*/
 
 	if c.Request.Body == nil {
@@ -111,13 +113,14 @@ func handleFileUpload(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
-
 	// Start processing the file here
-	err = processFile(context.Background(), filePath, fileID.String())
+	expectedMIMEType := file.Header.Get("Content-Type")
+	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType)
 	if err != nil {
 		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
 	}
+
+	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
 }
 
 // Handles a request to get a file fom S3
@@ -169,7 +172,10 @@ func handleGetFile(c *gin.Context) {
 
 	// https://www.iana.org/assignments/media-types/application/vnd.age
 	// asumming that all files returned are encrypted with age
-	c.DataFromReader(http.StatusOK, int64(*file.ContentLength), "application/vnd.age", file.Body, nil)
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+	extraHeaders := map[string]string{"Cache-Control": "private"}
+	c.DataFromReader(http.StatusOK, int64(*file.ContentLength), "application/vnd.age", file.Body, extraHeaders)
 }
 
 func handleRemoveFile(c *gin.Context) {

@@ -17,13 +17,15 @@ INSERT INTO roles (roleID, canModifyOtherUser, createdDate) VALUES
 ("admin", true, now());
 
 
+-- profilePicture is the S3 objKey for the user's profile picture
 CREATE TABLE IF NOT EXISTS users (
-  userID        VARCHAR(50)     PRIMARY KEY,
-  email         VARCHAR(50)     NOT NULL,
-  password      BINARY(60)      NOT NULL,
-  roleID        VARCHAR(50)     NOT NULL,
-  createdDate   DATETIME        NOT NULL,
-  lastModified  DATETIME        DEFAULT NULL,
+  userID            VARCHAR(50)     PRIMARY KEY,
+  email             VARCHAR(50)     NOT NULL,
+  password          BINARY(60)      NOT NULL,
+  roleID            VARCHAR(50)     NOT NULL,
+  profilePictureID  VARCHAR(50)     DEFAULT NULL,
+  createdDate       DATETIME        NOT NULL,
+  lastModified      DATETIME        DEFAULT NULL,
   CONSTRAINT users_roleID_fk FOREIGN KEY (roleID) REFERENCES roles(roleID) ON DELETE RESTRICT
 );
 
