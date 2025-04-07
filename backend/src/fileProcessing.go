@@ -89,7 +89,6 @@ func processProfilePicture(ctx context.Context, filePath, profilePictureID, user
 	}
 
 	if kind == filetype.Unknown {
-		log.Info("[processProfilePicture] errUnknownFileType")
 		return errUnknownFileType
 	}
 
@@ -134,12 +133,6 @@ func processProfilePicture(ctx context.Context, filePath, profilePictureID, user
 	res, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, file, fileSize, fileID)
 	if err != nil {
 		return fmt.Errorf("failed to upload the file to S3: %w. Res: %v", err, res)
-	}
-
-	// delete the tmp file
-	err = os.Remove(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to remove the file from tmp storage: %w", err)
 	}
 
 	// update user to add profilePictureID

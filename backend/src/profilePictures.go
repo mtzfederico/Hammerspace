@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -135,6 +136,7 @@ func handleUpdateProfilePicture(c *gin.Context) {
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
 		log.WithFields(log.Fields{"error": err, "filename": file.Filename, "size": file.Size, "header": file.Header, "filePath": filePath}).Error("[handleUpdateProfilePicture] Error saving uploaded file")
+		deleteLocalFile(filePath)
 		return
 	}
 
@@ -150,6 +152,7 @@ func handleUpdateProfilePicture(c *gin.Context) {
 
 	err = processProfilePicture(c, filePath, profilePictureID.String(), userID)
 	if err != nil {
+		go deleteLocalFile(filePath)
 		if errors.Is(err, errUnknownFileType) {
 			c.JSON(400, gin.H{"success": false, "error": "Invalid file type uploaded"})
 			return
@@ -180,6 +183,8 @@ func handleUpdateProfilePicture(c *gin.Context) {
 			log.WithFields(log.Fields{"err": err, "OLDProfilePictureID": OLDProfilePictureID, "res": res}).Error("[handleUpdateProfilePicture] Error deleting old profile picture")
 		}
 	}
+
+	deleteLocalFile(filePath)
 }
 
 // gets a user's profilePictureID from the DB.
@@ -208,4 +213,15 @@ func getProfilePictureIDFromDB(ctx context.Context, userID string) (string, erro
 
 	// User not found
 	return "", nil
+}
+
+func deleteLocalFile(filePath string) {
+	// delete the tmp file
+	err := os.Remove(filePath)
+	if err != nil {
+		log.WithFields(log.Fields{"err": err, "filePath": filePath}).Error("[deleteLocalFile] failed to remove the file from tmp storage")
+		return
+	}
+
+	log.WithFields(log.Fields{"filePath": filePath}).Trace("[deleteLocalFile] deleted tmp file")
 }
