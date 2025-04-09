@@ -13,6 +13,11 @@ var (
 	errDirNotFound error = errors.New("dirNotFound")
 )
 
+const (
+	// The user's root/home directory's ID
+	RootDirectoryID = "root"
+)
+
 func handleGetDirectory(c *gin.Context) {
 	/*
 		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "root"}'
@@ -99,7 +104,7 @@ func handleRemoveDirectory(c *gin.Context) {
 		return
 	}
 
-	if request.DirID == "root" {
+	if request.DirID == RootDirectoryID {
 		c.JSON(400, gin.H{"success": false, "error": "You cannot delete your home directory"})
 		return
 	}
@@ -207,7 +212,7 @@ func handleShareDirectory(c *gin.Context) {
 		return
 	}
 
-	if request.DirID == "root" {
+	if request.DirID == RootDirectoryID {
 		c.JSON(400, gin.H{"success": false, "error": "You cannot share your home directory"})
 		return
 	}
@@ -476,7 +481,7 @@ func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryRes
 // It returns the parentDir for the fileID/dirID.
 // If the file/folder is not found, it returns errDirNotFound
 func getParentDirID(ctx context.Context, dirID string) (string, error) {
-	if dirID == "root" {
+	if dirID == RootDirectoryID {
 		return "", nil
 	}
 
@@ -519,7 +524,7 @@ func getFolderPermission(ctx context.Context, fileID, userID string, allowShared
 		return "", errDirNotFound
 	}
 
-	if fileID == "root" {
+	if fileID == RootDirectoryID {
 		return WritePermission, nil
 	}
 
@@ -606,7 +611,7 @@ func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, 
 		return userPermissions, fmt.Errorf("getParentDirID Error. callNumber: %d. %w", callNumber, err)
 	}
 
-	if parentDir == "root" || parentDir == "" {
+	if parentDir == RootDirectoryID || parentDir == "" {
 		return userPermissions, nil
 	}
 

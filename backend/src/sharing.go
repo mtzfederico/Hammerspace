@@ -252,7 +252,7 @@ func hasSharedFilePermission(ctx context.Context, fileID, withUserID string) (st
 // callNumber should be set to zero, it gets increased when the function calls itself.
 // It returns the permission: "read", "write", or "" for no permission.
 func checkIfParentDirIsShared(ctx context.Context, fileID, withUserID string, callNumber int) (string, error) {
-	if fileID == "" || fileID == "root" {
+	if fileID == "" || fileID == RootDirectoryID {
 		// Stop recursion
 		// return "", errors.New("root directory reached")
 		return "", nil
