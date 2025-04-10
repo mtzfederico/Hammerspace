@@ -13,6 +13,11 @@ var (
 	errDirNotFound error = errors.New("dirNotFound")
 )
 
+const (
+	// The user's root/home directory's ID
+	RootDirectoryID = "root"
+)
+
 func handleGetDirectory(c *gin.Context) {
 	/*
 		curl -X POST "localhost:9090/getDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "root"}'
@@ -72,16 +77,115 @@ func handleGetDirectory(c *gin.Context) {
 
 // When a directory and thus everything inside is deleted
 func handleRemoveDirectory(c *gin.Context) {
-	// TODO: Implement this. Figure out the logic when the directory is NOT empty
-	// Auth
+	// TODO: Test this. Figure out the logic when the directory is NOT empty
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
 
-	// Query DB
+	var request GetDirectoryRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveDirectory] Failed to decode JSON")
+		return
+	}
 
-	// Return json
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveDirectory] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	if request.DirID == RootDirectoryID {
+		c.JSON(400, gin.H{"success": false, "error": "You cannot delete your home directory"})
+		return
+	}
+
+	// check that user owns the directory
+	perm, err := getFolderPermission(c, request.DirID, request.UserID, false)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
+			return
+		}
+
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("Error", err).Error("[handleRemoveDirectory] Error getting dir permission")
+		return
+	}
+
+	if perm != WritePermission {
+		c.JSON(403, gin.H{"success": false, "error": "You don't have permission to delete this folder"})
+		return
+	}
+
+	// Get the items in the DB and delete them.
+	rows, err := db.QueryContext(c, "select id, objKey from files where userID=? AND parentDir=?", request.UserID, request.DirID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveDirectory] Failed to get items in directory")
+		return
+	}
+
+	defer rows.Close()
+
+	var ids []string = []string{}
+
+	for rows.Next() {
+		var id, objKey string
+		err := rows.Scan(&id, &objKey)
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+			idsLen := len(ids)
+			log.WithFields(log.Fields{"error": err, "dirID": request.DirID, "idsCount": idsLen}).Error("[handleRemoveDirectory] Failed to scan item")
+			if idsLen > 0 {
+				fmt.Printf("IDs Deleted: %v\n", ids)
+			}
+			return
+		}
+
+		// delete the file from S3
+		_, err = deleteFile(c, s3Client, serverConfig.S3BucketName, objKey)
+		if err != nil {
+			// handle the error
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+			log.WithFields(log.Fields{"error": err, "objKey": objKey}).Error("[handleRemoveDirectory] Failed to delete file from S3")
+			return
+		}
+
+		// remove from DB
+		err = removeFileFromDB(c, id, request.UserID)
+		if err != nil {
+			// handle the error
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4), Please try again later"})
+			log.WithFields(log.Fields{"error": err, "fileID": id, "objKey": objKey, "userID": request.UserID}).Error("[handleRemoveFile] Failed to delete file from DB")
+			return
+		}
+
+		// log.WithFields(log.Fields{"userID": userID, "fileOwnerUserID": fileOwnerUserID, "fileID": fileID}).Trace("[isAuthTokenValid]")
+
+		// append id deleted
+		ids = append(ids, id)
+	}
+
+	// the loop might take too long on big directories, this should probably be done in the background
+
+	c.JSON(200, gin.H{"success": true})
 }
 
 // When a whole directory is shared
 func handleShareDirectory(c *gin.Context) {
+	/*
+		curl -X POST "localhost:9090/shareDir" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "0195f78c-2487-75e7-b611-127b303d1e9e", "withUserID": "anotherTestUser", "isReadOnly": true}'
+	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
 		return
@@ -91,7 +195,7 @@ func handleShareDirectory(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleShareDirectory] Failed to decode JSON")
 		return
 	}
 
@@ -99,7 +203,7 @@ func handleShareDirectory(c *gin.Context) {
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
+		log.WithField("error", err).Error("[handleShareDirectory] Failed to verify token")
 		return
 	}
 
@@ -108,27 +212,106 @@ func handleShareDirectory(c *gin.Context) {
 		return
 	}
 
-	// TODO: Check that the directory is not already shared
+	if request.DirID == RootDirectoryID {
+		c.JSON(400, gin.H{"success": false, "error": "You cannot share your home directory"})
+		return
+	}
+
+	// check that user can actually share the directory
+	perm, err := getFolderPermission(c, request.DirID, request.UserID, false)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
+			return
+		}
+
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("Error", err).Error("[handleShareDirectory] Error getting dir permission")
+		return
+	}
+
+	if perm != WritePermission {
+		c.JSON(403, gin.H{"success": false, "error": "You don't have permission to share this folder"})
+		return
+	}
+
+	// check that the directory is not already shared
+	// This doesn't check if it is inside of a parentDir that is already shared
+	sharedFilesID, perm, err := querySharedFilesTable(c, request.DirID, request.WithUserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleShareDirectory] querySharedFilesTable error")
+		return
+	}
+
+	// TODO: test this
+	if perm != "" {
+		switch perm {
+		case WritePermission:
+			// already has write permission
+			if request.ReadOnly {
+				// change the folder's permission to read only
+				err := changeFilePermission(c, sharedFilesID, request.DirID, ReadOnlyPermission)
+				if err != nil {
+					c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4a), Please try again later"})
+					log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+					return
+				}
+				c.JSON(200, gin.H{"success": true})
+				return
+			} else {
+				// do nothing, user already has write permission
+				c.JSON(400, gin.H{"success": false, "error": "User already has write permission for that directory"})
+				log.Trace("[handleShareDirectory] Dir already has write permission")
+				return
+			}
+		case ReadOnlyPermission:
+			// already has read permission
+			if !request.ReadOnly {
+				// change the folder's permission to write
+				err := changeFilePermission(c, sharedFilesID, request.DirID, WritePermission)
+				if err != nil {
+					c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4b), Please try again later"})
+					log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+					return
+				}
+				c.JSON(200, gin.H{"success": true})
+				return
+			} else {
+				// do nothing, user already has read permission
+				c.JSON(400, gin.H{"success": false, "error": "User already has read permission for that directory"})
+				log.Trace("[handleShareDirectory] Dir already has read permission")
+				return
+			}
+		default:
+			// unkown permission value
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4c), Please try again later"})
+			log.WithFields(log.Fields{"perm": perm}).Error("[handleShareDirectory] File has unkown permission")
+			return
+		}
+	}
+
+	// directory is not already shared
 
 	id, err := getNewID()
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to get new fileID")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+		log.WithField("error", err).Error("[handleShareDirectory] Failed to get new fileID")
 		return
 	}
 
 	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.DirID, request.WithUserID, request.UserID, request.ReadOnly)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleGetDirectory] Failed to add share to DB")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+		log.WithField("error", err).Error("[handleShareDirectory] Failed to add share to DB")
 		return
 	}
 
-	// The DB part is the same as with a file, but all of the file inside of the directory have to be reencrypted
+	// The DB part is the same as with a file, but all of the files inside of the directory have to be reencrypted
 
-	// TODO: get the client to encrypt the file with all recipients, upload it, and set processed to true on the db
+	// TODO: get the client to encrypt the files with all recipients, upload it, and set processed to true on the db
 
-	c.JSON(200, gin.H{"success": false})
+	c.JSON(200, gin.H{"success": true})
 }
 
 // Returns the user's that have access to a file/folder
@@ -208,7 +391,7 @@ func handleCreateDirectory(c *gin.Context) {
 	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
-		log.WithField("error", err).Error("[handleFolderUpload] Failed to decode JSON")
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to decode JSON")
 		return
 	}
 
@@ -216,7 +399,7 @@ func handleCreateDirectory(c *gin.Context) {
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-		log.WithField("error", err).Error("[handleGetFile] Failed to verify token")
+		log.WithField("error", err).Error("[handleCreateDirectory] Failed to verify token")
 		return
 	}
 
@@ -225,18 +408,35 @@ func handleCreateDirectory(c *gin.Context) {
 		return
 	}
 
-	// TODO: Check that the user is allowed to create a new directory in that location
+	// check that the user is allowed to create a new directory in that location
+	// TODO: Test this
+	perm, err := getFolderPermission(c, request.ParentDir, request.UserID, true)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
+			return
+		}
+
+		log.WithField("Error", err).Error("[handleCreateDirectory] Error getting parentDir permission")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		return
+	}
+
+	if perm != WritePermission {
+		c.JSON(403, gin.H{"success": false, "error": "No write permission on Parent Directory"})
+		return
+	}
 
 	dirID, err := getNewID()
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to get new fileID")
 		return
 	}
 
 	err = addDirectoryToDB(c, dirID.String(), request.ParentDir, request.DirName, request.UserID)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4)"})
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
@@ -278,9 +478,10 @@ func getItemsInDir(ctx context.Context, userID, dirID string) ([]GetDirectoryRes
 	return items, nil
 }
 
-// It reeturns the parentDir for the fileID/dirID
+// It returns the parentDir for the fileID/dirID.
+// If the file/folder is not found, it returns errDirNotFound
 func getParentDirID(ctx context.Context, dirID string) (string, error) {
-	if dirID == "root" {
+	if dirID == RootDirectoryID {
 		return "", nil
 	}
 
@@ -302,7 +503,7 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("rows.next error. %w", err)
 		} else {
-			log.WithField("dirID", dirID).Warn("[getParentDirID] No rows and no error")
+			log.WithField("dirID", dirID).Trace("[getParentDirID] File not found")
 			return "", errDirNotFound
 		}
 	}
@@ -312,18 +513,23 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 
 // Returns the permission that the userID has for the specified fileID/folderID.
 // returns a string with the permission: "write", "read", or "" for no permission.
+// Use the constants WritePermission and ReadOnlyPermission when checking the permission.
+//
+// allowShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
+// When it is false, the sharedFiles DB will not be checked.
+//
 // If the folder doesn't exist, it returns the error errDirNotFound.
-func getFolderPermission(ctx context.Context, fileID, userID string) (string, error) {
+func getFolderPermission(ctx context.Context, fileID, userID string, allowShared bool) (string, error) {
 	if fileID == "" {
 		return "", errDirNotFound
 	}
 
-	if fileID == "root" {
+	if fileID == RootDirectoryID {
 		return WritePermission, nil
 	}
 
 	// Check that folder exists. Query files db, type should be "folder"
-	rows, err := db.QueryContext(ctx, "select userID from files where fileID=? AND type='folder';", fileID)
+	rows, err := db.QueryContext(ctx, "select userID from files where id=? AND type='folder';", fileID)
 	if err != nil {
 		return "", err
 	}
@@ -340,6 +546,10 @@ func getFolderPermission(ctx context.Context, fileID, userID string) (string, er
 		if ownerUserID == userID {
 			return WritePermission, nil
 		} else {
+			// If the user doesn't own the file, check if they have access to it
+			if !allowShared {
+				return "", errUserAccessNotAllowed
+			}
 			log.Trace("[getFolderPermission] File not owned by user, checking sharedFiles.")
 			permission, err := hasSharedFilePermission(ctx, fileID, userID)
 			if err != nil {
@@ -401,7 +611,7 @@ func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, 
 		return userPermissions, fmt.Errorf("getParentDirID Error. callNumber: %d. %w", callNumber, err)
 	}
 
-	if parentDir == "root" || parentDir == "" {
+	if parentDir == RootDirectoryID || parentDir == "" {
 		return userPermissions, nil
 	}
 

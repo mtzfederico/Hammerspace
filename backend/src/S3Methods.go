@@ -13,6 +13,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+var (
+	errFileIsEmpty error = errors.New("fileSize is 0")
+)
+
 // Creates an S3 client using the options in settings.yaml
 func getS3Client() (*s3.Client, error) {
 	if serverConfig.S3AccessKeyID == "" {
@@ -103,6 +107,9 @@ func uploadFile(ctx context.Context, client *s3.Client, bucketName string, file 
 	}
 
 	fileSize := info.Size()
+	if fileSize == 0 {
+		return nil, errFileIsEmpty
+	}
 
 	putObjectOutput, err := uploadBytes(ctx, client, bucketName, file, fileSize, objKey)
 

@@ -132,5 +132,8 @@ func main() {
 	router.POST("getAlerts", handleGetAlerts)
 	router.POST("removeAlert", handleRemoveAlert)
 
+	router.POST("getProfilePicture", handleGetProfilePicture)
+	router.POST("updateProfilePicture", handleUpdateProfilePicture)
+
 	router.Run(serverConfig.ListenOn)
 }

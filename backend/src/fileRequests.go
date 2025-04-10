@@ -25,6 +25,8 @@ func handleFileUpload(c *gin.Context) {
 			curl --header "Content-Type: application/json" --data '{"userID":"testUser","password":"testPassword123"}' "http://localhost:9090/login"
 		Upload file:
 			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testFile.txt" localhost:9090/uploadFile
+
+			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testImage-0.png" localhost:9090/uploadFile
 	*/
 
 	if c.Request.Body == nil {
@@ -61,7 +63,7 @@ func handleFileUpload(c *gin.Context) {
 	fmt.Printf("[handleFileUpload] WARNING: authToken not verified. userID %s authToken %s\n", userID, authToken)
 
 	// Check that parentDir is a valid folder and that the user can create a new directory in that location.
-	permission, err := getFolderPermission(c, parentDir, userID)
+	permission, err := getFolderPermission(c, parentDir, userID, true)
 	if err != nil {
 		if errors.Is(err, errDirNotFound) {
 			c.JSON(200, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
@@ -111,13 +113,14 @@ func handleFileUpload(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
-
 	// Start processing the file here
-	err = processFile(context.Background(), filePath, fileID.String())
+	expectedMIMEType := file.Header.Get("Content-Type")
+	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType)
 	if err != nil {
 		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
 	}
+
+	c.JSON(200, gin.H{"success": true, "fileName": file.Filename, "bytesUploaded": file.Size, "fileID": fileID})
 }
 
 // Handles a request to get a file fom S3
@@ -169,7 +172,10 @@ func handleGetFile(c *gin.Context) {
 
 	// https://www.iana.org/assignments/media-types/application/vnd.age
 	// asumming that all files returned are encrypted with age
-	c.DataFromReader(http.StatusOK, int64(*file.ContentLength), "application/vnd.age", file.Body, nil)
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+	extraHeaders := map[string]string{"Cache-Control": "private"}
+	c.DataFromReader(http.StatusOK, int64(*file.ContentLength), "application/vnd.age", file.Body, extraHeaders)
 }
 
 func handleRemoveFile(c *gin.Context) {
@@ -236,16 +242,16 @@ func handleRemoveFile(c *gin.Context) {
 // ---------------------------------------------------------------------------
 
 // Checks that the file actually exists and returns the objKey used in s3.
-// allowedShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
+// allowShared is used to allow checking if the file is shared with the user, it is used for things things that require the user to own the file.
 // When it is false, the sharedFiles DB will not be checked.
 //
 // Errors Returned:
 // If the file exists but the user doesn't have access, the error errUserAccessNotAllowed is returned.
-// If the file doesn't exist it returns errFileNotFound.
-func getObjectKey(ctx context.Context, fileID string, userID string, allowedShared bool) (string, error) {
+// If the file doesn't exist (or if the id is for a folder) it returns errFileNotFound.
+func getObjectKey(ctx context.Context, fileID string, userID string, allowShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
-	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=?", fileID)
+	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=? AND type!='folder'", fileID)
 	if err != nil {
 		return "", err
 	}
@@ -263,7 +269,7 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowedShar
 
 		if userID != fileOwnerUserID {
 			// If the user doesn't own the file, check if they have access to it
-			if !allowedShared {
+			if !allowShared {
 				return "", errUserAccessNotAllowed
 			}
 			// check sharedFiles table

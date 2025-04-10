@@ -65,6 +65,12 @@ type GetFileRequest struct {
 	FileID string `json:"fileID"`
 }
 
+type GetProfilePictureRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	ForUserID string `json:"forUserID"`
+}
+
 type ShareFileRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`

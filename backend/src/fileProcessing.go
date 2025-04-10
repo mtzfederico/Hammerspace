@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 
 	log "github.com/sirupsen/logrus"
 
@@ -13,9 +14,15 @@ import (
 
 var (
 	errUnknownFileType error = errors.New("unknown file type")
+	// Error for a file that is not an image
+	errFileIsNotAnImg error = errors.New("the file is not an image")
+	// Error for unsuported image file type
+	errUnsuportedImgType error = errors.New("the image file format is not supported")
+	// A list of the suported image types for a profile picture
+	supportedImageTypes = []string{"jpeg", "jp2", "png", "gif"}
 )
 
-func processFile(ctx context.Context, filePath, fileID string) error {
+func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string) error {
 	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open the file: %w", err)
@@ -35,6 +42,12 @@ func processFile(ctx context.Context, filePath, fileID string) error {
 	}
 
 	fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
+
+	if kind.MIME.Value != expectedMIMEType {
+		log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Error("[processFile] Mismatched MIME Types")
+		// addAlert(ctx, )
+		// return errUnexpectedFileType
+	}
 
 	// TODO: process the mime type
 
@@ -63,5 +76,70 @@ func processFile(ctx context.Context, filePath, fileID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to remove the file from tmp storage: %w", err)
 	}
+	return nil
+}
+
+func processProfilePicture(ctx context.Context, filePath, profilePictureID, userID string) error {
+
+	// Inspect the file
+	// TODO: Make sure this works
+	kind, err := filetype.MatchFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to get the fileType: %w", err)
+	}
+
+	if kind == filetype.Unknown {
+		return errUnknownFileType
+	}
+
+	// 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
+
+	if kind.MIME.Type != "image" {
+		// file is not an image
+		// return ValueError{"", errFileIsNotAnImg}
+		return errFileIsNotAnImg
+	}
+
+	if !slices.Contains(supportedImageTypes, kind.MIME.Subtype) {
+		// file is an unsuported image format
+		return errUnsuportedImgType
+	}
+
+	fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
+
+	// TODO: remove exif data
+
+	// the fileID is the objKey that is going to be used in S3.
+	// It is <the ID from the db>.<mime subtype>.
+	fileID := fmt.Sprintf("%s.%s", profilePictureID, kind.MIME.Subtype)
+
+	// open the file to upload it
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	fileSize := info.Size()
+	if fileSize == 0 {
+		return errFileIsEmpty
+	}
+
+	res, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, file, fileSize, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to upload the file to S3: %w. Res: %v", err, res)
+	}
+
+	// update user to add profilePictureID
+	_, err = db.ExecContext(ctx, "UPDATE users SET profilePictureID=? WHERE userID=?", fileID, userID)
+	if err != nil {
+		return fmt.Errorf("error updating users table. %w", err)
+	}
+
 	return nil
 }
