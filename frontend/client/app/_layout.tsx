@@ -65,6 +65,10 @@ export default function RootLayout() {
             name="register" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="profile" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
       </Stack>
     </ThemeProvider>
   );

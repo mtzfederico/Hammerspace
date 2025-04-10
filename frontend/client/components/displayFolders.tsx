@@ -4,6 +4,8 @@ import FolderView from "./FolderView";
 
 const imageHeight =60
 const imageWidth = 60
+const defaultFileIcon = require('../assets/images/file.webp');
+
 
 
 const DisplayFolders = ({ data , onFolderPress}) => {
@@ -37,18 +39,18 @@ const DisplayFolders = ({ data , onFolderPress}) => {
         </View>
       );
     
-    } else if(item.type == 'File') {
+    } else if (item.type === 'File') {
+      const fileExtensionsWithImages = ['.jpg', '.png', '.pdf'];
+      const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext));
       return (
         <View style={styles.imageContainer}>
-          <Image source={{uri: item.uri}} style={styles.image} />
+          <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
           <Text style={textStyle}>{item.name}</Text>
         </View>
       );
     }
-    else{ 
-    return null
-    }
-  }
+    return null;
+  };
   
   
   return (

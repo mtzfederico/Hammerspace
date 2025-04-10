@@ -1,34 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import * as SQLite from 'expo-sqlite';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, useColorScheme } from 'react-native';
-import DisplayFolders from './displayFolders'; // Import DisplayFolders component
-import { getFoldersByParentID, getFilesByParentID, syncWithBackend} from '../../client/services/database';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput } from 'react-native';
+import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
+import DisplayFolders from './displayFolders';
+import { getFoldersByParentID, getFilesByParentID, syncWithBackend } from '../../client/services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
-import CreateFolder from './addFolder';
-import sendFolder from './sendFolder';
+import { useRouter } from 'expo-router';
 
-const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
-  const [folders, setFolders] = useState<any>([]);
-  const [files, setFiles] = useState<any>([]);
+const FolderNavigation = ({ initialParentID, addFolder, addFile }) => {
+  const router = useRouter();
+  const [folders, setFolders] = useState([]);
+  const [files, setFiles] = useState([]);
   const [currentParentDirID, setCurrentParentDirID] = useState(initialParentID);
-  const [previousID, setPreviousID] = useState<string | null>(null); // To track the previous directory
+  const [previousID, setPreviousID] = useState(null);
   const [currentDirName, setCurrentDirName] = useState('Home');
-  const [prevDirName, setPrevDirName] = useState<string>("");
-  const storedUserID =  String(SecureStore.getItem('userID'));
-  const storedToken =  String(SecureStore.getItem('authToken'));
+  const storedUserID = String(SecureStore.getItem('userID'));
+  const storedToken = String(SecureStore.getItem('authToken'));
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
-
-  console.log("userID is " + storedUserID)
-  
-  const refreshData = () => {
-    getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
-    console.log("fetched folders is " +folders)
-    getFilesByParentID(currentParentDirID, storedUserID, setFiles);
-  };
 
   useEffect(() => {
     const syncAndRefresh = async () => {
@@ -39,76 +30,49 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
   }, []);
 
   useEffect(() => {
-    // Fetch folders and files for the current directory
-    refreshData()
-  },[currentParentDirID]); // Re-run the effect when folders or files change
+    refreshData();
+  }, [currentParentDirID, addFolder, addFile]);
 
+  const refreshData = () => {
+    getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
+    getFilesByParentID(currentParentDirID, storedUserID, setFiles);
+  };
 
-  useEffect(() => {
-    if (addFolder) {
-      refreshData();
-    }
-  }, [addFolder]);
-
-  useEffect(() => {
-    if (addFile) {
-      refreshData();
-    }
-  }, [addFile]);
-
- 
-
-   console.log("folders is here " + folders )
-
-  const handleFolderPress = async (dirID: string, folderName: string) => {
-   
-    console.log('Navigating to folder:', dirID, 'Folder Name:', folderName);
-
-    // You can now use folderName here to update the current directory name or perform other actions
-    setPreviousID(currentParentDirID); // Save the current directory as the previous one
-    setPrevDirName(currentDirName)
-    setCurrentParentDirID(dirID); // Move to the selected folder
-  
-    // Optionally, update the current directory name based on the selected folder
+  const handleFolderPress = (dirID, folderName) => {
+    setPreviousID(currentParentDirID);
+    setCurrentParentDirID(dirID);
     setCurrentDirName(folderName);
   };
 
   const handleBackPress = () => {
-    console.log('Navigating back from', currentParentDirID);
-  console.log('Previous directory ID:', previousID);
-
-  // Only navigate back if previousID is not equal to currentParentDirID
-  if (previousID && previousID !== currentParentDirID) {
-    setCurrentParentDirID(previousID); // Navigate back to the previous folder
-    setPreviousID(null); // Reset previousID after navigating back
-    setCurrentDirName(prevDirName);
-    setPrevDirName("null")
-  } else {
-    console.log("Already at the root folder or no previous folder");
-    setCurrentParentDirID("root")
-    setCurrentDirName("Home");
-  }
+    if (previousID && previousID !== currentParentDirID) {
+      setCurrentParentDirID(previousID);
+      setPreviousID(null);
+      setCurrentDirName('Home');
+    } else {
+      setCurrentParentDirID('root');
+      setCurrentDirName('Home');
+    }
   };
 
-
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Text style={textStyle}>{'< Back'}</Text>
         </TouchableOpacity>
-        <Text style={textStyle}>Current Directory: {currentDirName}</Text>
+        <Text style={[styles.sectionTitle, textStyle]}>Current Directory: {currentDirName}</Text>
+        <TouchableOpacity style={styles.profileButton} onPress={() => {router.push('/profile')}}>
+          <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
+        </TouchableOpacity>
       </View>
-
+      <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
+      <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
       <DisplayFolders data={[...folders, ...files]} onFolderPress={handleFolderPress} />
-
-
-    
-      <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile}/>
+      <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -119,14 +83,31 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginTop: 40,
     marginBottom: 10,
   },
   backButton: {
-    marginRight: 10,
     padding: 10,
     backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  profileButton: {
+    padding: 5,
+  },
+  searchBar: {
+    height: 40,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   lightBackground: {
     backgroundColor: 'white',

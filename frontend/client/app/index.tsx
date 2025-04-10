@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { dropDatabase, createTables } from '@/services/database';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
-import { API_URL } from '@env';
+
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //const apiUrl = "http://216.37.99.155:9090"
 
 export default function Login() {
+ 
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

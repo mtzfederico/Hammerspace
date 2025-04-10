@@ -17,6 +17,14 @@ const db = await SQLite.openDatabaseAsync('hammerspace.db');
 
 
 try { 
+  db.runAsync(
+    `CREATE TABLE IF NOT EXISTS users  (
+  userID           VARCHAR(36)   PRIMARY KEY,
+  pfpID     VARCHAR(50)   NOT NULL
+);`
+  );
+
+  
    db.runAsync(
       `CREATE TABLE IF NOT EXISTS folders  (
     id            VARCHAR(36)   PRIMARY KEY,
@@ -79,6 +87,35 @@ try {
     console.log(result)
   }
   
+  export const addUser = async (userID: string, pfpID: string) => {
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try { 
+      console.log('Adding user:', { userID, pfpID });
+      await db.runAsync(
+        'INSERT INTO users (userID, pfpID) VALUES (?, ?)',
+        userID,
+        pfpID
+      );
+      console.log('User added successfully');
+    } catch (error) { 
+      console.error('Error adding user:', error);
+    }
+  }
+
+  export const getPfpIDByUserID = async (userID: string) => {
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      const result = await db.runAsync('SELECT pfpID FROM users WHERE userID = ?', userID);
+      if (Array.isArray(result) && result.length > 0) {
+        return result
+        ; // Return the pfpID of the user
+      } else {
+        console.error('User not found');
+      }
+    } catch (error) {
+      console.error('Error fetching pfpID:', error);
+    }
+  };
 
 export const insertFolder =  async (name: string, dirID: string, parentID: string, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
