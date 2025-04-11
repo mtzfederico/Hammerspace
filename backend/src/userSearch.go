@@ -2,14 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
-
-	"github.com/hammerspace/db"
 )
 
+/*
 // This is the main function to test the user search function
-func main() {
+func testUserSearch() {
 	db.InitDB()
 	defer db.DB.Close()
 
@@ -26,6 +23,7 @@ func main() {
 	fmt.Printf("\nUser Found:\n- userID: %s\n- Email: %s\n- Role: %s\n- Created: %s\n",
 		user.UserID, user.Email, user.RoleID, user.Created)
 }
+*/
 
 // This function looks for the userID through queries
 func userSearch(conn *sql.DB, userID string) (*User, error) {
