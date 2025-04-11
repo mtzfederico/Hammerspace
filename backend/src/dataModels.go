@@ -141,3 +141,10 @@ type RemoveAlertRequest struct {
 	AuthToken string `json:"authToken"`
 	AlertID   string `json:"alertID"`
 }
+
+type User struct {
+	UserID  string `json:"userID"`
+	Email   string `json:"email"`
+	RoleID  string `json:"roleID"`
+	Created string `json:"created"`
+}

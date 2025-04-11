@@ -136,4 +136,5 @@ func main() {
 	router.POST("updateProfilePicture", handleUpdateProfilePicture)
 
 	router.Run(serverConfig.ListenOn)
+
 }
