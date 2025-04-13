@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import {addUser} from '../../client/services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -50,6 +51,7 @@ export default function Login() {
         // Registration successful, store the token securely
         await SecureStore.setItem('authToken', String(data.authToken));
         await SecureStore.setItem('userID', String(data.userID));
+        addUser(data.userID, "default")
         // Navigate to the home screen or tab navigator
         router.push('/tabs');
       } else {
