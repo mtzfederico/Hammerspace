@@ -13,12 +13,17 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 
 const Profile = () => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
+  const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+
+  const storedToken =  String(SecureStore.getItem('authToken'));
+  const storedUserID =  String(SecureStore.getItem('userID'));
 
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,9 +45,10 @@ const Profile = () => {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images', 'videos'],
+      allowsEditing: true,
+      aspect: [4, 3],
       quality: 1,
-      base64: true,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -64,11 +70,14 @@ const Profile = () => {
       type: 'image/jpeg',
     } as any);
 
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/upload-profile-picture', {
+      const response = await fetch(`${apiUrl}/updateProfilePicture`, {
         method: 'POST',
         body: formData,
       });
