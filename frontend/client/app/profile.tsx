@@ -45,24 +45,36 @@ const Profile = () => {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: ['images'],
+      exif: false,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.5,
+      selectionLimit: 1,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
+      const mimeType = result.assets[0].mimeType;
+      const fileSize = result.assets[0].fileSize;
+      console.log("image fileSize: " + fileSize + " bytes. MimeType: " + mimeType);
+      /*
+      if (fileSize > 2000000) {
+        // the image is bigger than 2 megabytes
+        // TODO: Improve this
+        alert("the image is too big")
+      } */
       setProfilePicture(imageUri);
     }
   };
+
 
   const handleUpload = async () => {
     if (!profilePicture) {
       setError('Please select a picture to upload');
       return;
     }
-
+    
     const formData = new FormData();
     formData.append('file', {
       uri: profilePicture,
