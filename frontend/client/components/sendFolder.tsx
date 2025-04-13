@@ -26,7 +26,7 @@ const sendFolder = async (dirName, parentID) => {
   
     try {
         console.log('before error hopefully')
-      const response = await fetch(`${apiUrl}/createFolder`, {
+      const response = await fetch(`${apiUrl}/createDir`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ const sendFolder = async (dirName, parentID) => {
         return dirID
         
       } else {
-        alert("yo mama messed up the directorys")
+        alert("Error creating folder. (" + response.status + ")")
         console.error('Error creating directory:', response.status, response.statusText);
         console.log(response.json())
       }

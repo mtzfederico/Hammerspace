@@ -10,11 +10,8 @@ console.log('Database opened at: ', db);
 }
 
 
-
-
 export const createTables = async() => {
 const db = await SQLite.openDatabaseAsync('hammerspace.db');
-
 
 try { 
    db.runAsync(
@@ -28,8 +25,6 @@ try {
     userID        VARCHAR(50)   NOT NULL
 );`
     );
-
-    
       try {
         // Retrieve the table names from sqlite_master
         const result = await db.getAllAsync('SELECT name FROM sqlite_master WHERE type="table";');
@@ -107,13 +102,13 @@ export const insertFile = async (name: string, uri: string, dirID: string, paren
   };
 
 
-export const getFoldersByParentID =  async (parentID: string, userID: string,  callback: (folders: any[]) => void) => {
+export const getFoldersByParentID = async (parentID: string, userID: string,  callback: (folders: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
-  try{ 
-  const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="Directory"' ,parentID, userID);
+  try { 
+  const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="Directory"' ,parentID, userID);
   const folders = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
   callback(folders);
-  }catch (error) {
+  } catch (error) {
     console.error('Error inserting file:', error);
   }
       
@@ -122,11 +117,11 @@ export const getFoldersByParentID =  async (parentID: string, userID: string,  c
 
 export const getFilesByParentID = async (parentID: string, userID: string, callback: (files: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db'); 
-  try{ 
+  try { 
     const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND userID=? AND type="File"' ,parentID, userID);
     const files = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
     callback(files);
-    }catch (error) {
+    } catch (error) {
       console.error('Error inserting file:', error);
     }
         

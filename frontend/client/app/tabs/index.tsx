@@ -35,10 +35,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Call createTables to initialize the database on app startup
-  //initDB()
- //dropDatabase()
-  //createTables()
- // seeFiles()
+    initDB()
+    // dropDatabase()
+    createTables()
+    // seeFiles()
   
    getFoldersByParentID(currentID, storedUserID, setFolders)
    getFilesByParentID(currentID, storedUserID, setFiles)

@@ -49,6 +49,7 @@ export default function Login() {
       <TextInput
         style={styles.input}
         placeholder="username"
+        autoCapitalize="none"
         placeholderTextColor="#ccc"
         value={userID}
         onChangeText={setUserID}
@@ -56,6 +57,7 @@ export default function Login() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        autoCapitalize="none"
         placeholderTextColor="#ccc"
         secureTextEntry
         value={password}

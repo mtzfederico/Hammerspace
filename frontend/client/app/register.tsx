@@ -33,7 +33,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/signup`, {
+      const response = await fetch(`${apiUrl}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,6 +72,7 @@ export default function Login() {
       <TextInput
           style={styles.input}
           placeholder="Email"
+          autoCapitalize="none"
            placeholderTextColor="#ccc"
           value={email}
           onChangeText={setEmail}
@@ -80,6 +81,7 @@ export default function Login() {
       <TextInput
         style={styles.input}
         placeholder="username"
+        autoCapitalize="none"
         placeholderTextColor="#ccc"
         value={userID}
         onChangeText={setUserID}

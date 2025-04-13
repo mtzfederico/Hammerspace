@@ -75,7 +75,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
 
   const handleBackPress = () => {
     console.log('Navigating back from', currentParentDirID);
-  console.log('Previous directory ID:', previousID);
+    console.log('Previous directory ID:', previousID);
 
   // Only navigate back if previousID is not equal to currentParentDirID
   if (previousID && previousID !== currentParentDirID) {
@@ -94,9 +94,11 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile}) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        // TODO: Hide the back button on the home directory
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Text style={textStyle}>{'< Back'}</Text>
         </TouchableOpacity>
+        
         <Text style={textStyle}>Current Directory: {currentDirName}</Text>
       </View>
 
