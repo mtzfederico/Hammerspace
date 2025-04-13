@@ -47,7 +47,7 @@ export default function Login() {
       });
 
       const data = await response.json();
-      if (response.ok) {
+      if (data.success) {
         // Registration successful, store the token securely
         await SecureStore.setItem('authToken', String(data.authToken));
         await SecureStore.setItem('userID', String(data.userID));

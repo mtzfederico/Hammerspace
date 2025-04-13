@@ -36,8 +36,8 @@ const sendFolder = async (dirName, parentID) => {
       });
       console.log("after error")
   
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+      if (data.success) {
         console.log('Directory created successfully:', data);
          var dirID= String(data.dirID)
         //insertFolder(dirName, dirID, parentID)
@@ -45,7 +45,7 @@ const sendFolder = async (dirName, parentID) => {
         
       } else {
         alert("Error creating folder. (" + response.status + ")")
-        console.error('Error creating directory:', response.status, response.statusText);
+        console.error('Error creating directory:', response.status, data.error);
         console.log(response.json())
       }
     } catch (error) {

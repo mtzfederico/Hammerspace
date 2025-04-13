@@ -82,12 +82,12 @@ const Profile = () => {
         body: formData,
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Error uploading profile picture. Please try again.');
+        throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
       }
 
-      const data = await response.json();
-      if (data.message === 'Profile picture uploaded successfully') {
+      if (data.success) {
         Alert.alert('Success', 'Profile picture updated successfully!');
       }
     } catch (err: any) {

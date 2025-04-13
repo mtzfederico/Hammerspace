@@ -28,7 +28,7 @@ export default function Login() {
 
       const data = await response.json();
       console.log("data: " + JSON.stringify(data))
-      if (response.ok) {
+      if (data.success) {
         console.log("Lmaomsoklf s, do " + data.authToken)
         await SecureStore.setItem('authToken', String(data.authToken));
         await SecureStore.setItem('userID', String(data.userID));
