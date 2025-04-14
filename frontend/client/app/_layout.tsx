@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
+import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
@@ -16,6 +17,7 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const router = useRouter();
 
   // Ensure splash screen is hidden once fonts and assets are loaded
   useEffect(() => {
@@ -41,7 +43,6 @@ export default function RootLayout() {
  
 
   // Show home or tab screen if logged in
-
 
 
   return (
