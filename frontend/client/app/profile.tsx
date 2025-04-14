@@ -145,6 +145,10 @@ const Profile = () => {
             disabled={!profilePicture}
           />
         )}
+
+        <View style={styles.imagePickerWrapper}>
+          <Button title="See friends" onPress={() => { router.push("/friends")}} />
+        </View>
       </View>
     </View>
   );

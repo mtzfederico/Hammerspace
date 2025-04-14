@@ -70,6 +70,10 @@ export default function RootLayout() {
             name="profile" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="friends" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
       </Stack>
     </ThemeProvider>
   );
