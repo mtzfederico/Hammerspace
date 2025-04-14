@@ -26,6 +26,7 @@ const Profile = () => {
   const storedUserID =  String(SecureStore.getItem('userID'));
 
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,16 +56,16 @@ const Profile = () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const imageUri = result.assets[0].uri;
-      const mimeType = result.assets[0].mimeType;
-      const fileSize = result.assets[0].fileSize;
+      const mimeType = result.assets[0].mimeType || "unkown";
+      const fileSize = result.assets[0].fileSize || -1;
       console.log("image fileSize: " + fileSize + " bytes. MimeType: " + mimeType);
-      /*
+      // Check if the image is bigger than 2 megabytes. This limit is enforced in the backend
       if (fileSize > 2000000) {
-        // the image is bigger than 2 megabytes
         // TODO: Improve this
         alert("the image is too big")
-      } */
+      }
       setProfilePicture(imageUri);
+      setProfilePictureMimeType(mimeType);
     }
   };
 
@@ -78,8 +79,8 @@ const Profile = () => {
     const formData = new FormData();
     formData.append('file', {
       uri: profilePicture,
-      name: 'profile-picture.jpg',
-      type: 'image/jpeg',
+      name: 'profile-picture',
+      type: profilePictureMimeType,
     } as any);
 
     formData.append("userID", storedUserID);
