@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const apiURL= process.env.EXPO_PUBLIC_API_URL
 
@@ -11,27 +12,41 @@ console.log('Database opened at: ', db);
 
 
 export const createTables = async() => {
-const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      // https://react-native-async-storage.github.io/async-storage/docs/usage/
+      const value = await AsyncStorage.getItem('isDBCreated');
+      if (value !== null) {
+        // value previously stored
+        // Maybe check if it needs to be updated.
+        return
+      }
+      console.log("DB not created...")
+    } catch (e) {
+      // error reading value
+      console.log('Error checking if DB is already created:', e);
+    }
 
+
+const db = await SQLite.openDatabaseAsync('hammerspace.db');
 try { 
   db.runAsync(
     `CREATE TABLE IF NOT EXISTS users  (
-  userID           VARCHAR(36)   PRIMARY KEY,
-  pfpID     VARCHAR(50)   NOT NULL
-);`
+      userID    VARCHAR(36)   PRIMARY KEY,
+      pfpID     VARCHAR(50)   NOT NULL
+    );`
   );
 
   
    db.runAsync(
       `CREATE TABLE IF NOT EXISTS folders  (
-    id            VARCHAR(36)   PRIMARY KEY,
-    parentDir     VARCHAR(50)   NOT NULL,
-    name          VARCHAR(50)   NOT NULL,
-    type          VARCHAR(50)   NOT NULL,
-    uri          VARCHAR(500)   NOT NULL,
-    fileSize          INT        NOT NULL,
-    userID        VARCHAR(50)   NOT NULL
-);`
+        id            VARCHAR(36)   PRIMARY KEY,
+        parentDir     VARCHAR(50)   NOT NULL,
+        name          VARCHAR(50)   NOT NULL,
+        type          VARCHAR(50)   NOT NULL,
+        uri          VARCHAR(500)   NOT NULL,
+        fileSize          INT        NOT NULL,
+        userID        VARCHAR(50)   NOT NULL
+      );`
     );
       try {
         // Retrieve the table names from sqlite_master
@@ -40,6 +55,15 @@ try {
         // Log the result properly
         if (Array.isArray(result)) {
           console.log('Tables in database:', result);
+
+          try {
+            await AsyncStorage.setItem('isDBCreated', "true");
+            console.log("created DB successfully")
+          } catch (e) {
+            // saving error
+            console.log('Error saving isDBCreated:', result);
+          }
+
         } else {
           console.log('Unexpected result format:', result);
         }
@@ -49,7 +73,8 @@ try {
     } catch (error) {
       console.error('Error creating tables:', error);
     }
-  
+
+
   };
 
  export const dropDatabase = async () => {
