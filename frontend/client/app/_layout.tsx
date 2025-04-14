@@ -8,6 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
 
@@ -21,47 +22,45 @@ export default function RootLayout() {
 
   // Ensure splash screen is hidden once fonts and assets are loaded
   useEffect(() => {
-    if (loaded && isLoggedIn !== null) {
+    if (loaded !== null) {
       SplashScreen.hideAsync();
     }
-  }, [loaded, isLoggedIn]);
+  }, [loaded]);
 
-  // Check login status on mount
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      const authToken = await SecureStore.getItem('authToken');
-      setIsLoggedIn(!!authToken); // If token exists, user is logged in
-    };
 
-    checkLoginStatus();
-  }, []);
-
-  if (!loaded || isLoggedIn === null) {
+  if (!loaded  === null) {
     // Wait for fonts and login check before rendering anything
     return null;
   }
  
 
+  
+
   // Show home or tab screen if logged in
+  
 
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style="auto" />
-      <Stack>
-    
-          {/* Show login screen if the user is not logged in"*/}
+      <Stack >
+
           <Stack.Screen
             name="index" // This will auto-reference `app/login.tsx`
             options={{ headerShown: false }}
           />
-      
-          {/* Show the home or tab screen if the user is logged in */}
-          <Stack.Screen
+            {/* Show the home or tab screen if the user is logged in */}
+            <Stack.Screen
             name="tabs" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
+         
           />
-  
+
+         <Stack.Screen
+            name="login" // This will auto-reference `app/login.tsx`
+            options={{ headerShown: false }}
+          />
+
         <Stack.Screen
             name="register" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
