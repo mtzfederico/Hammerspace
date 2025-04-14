@@ -12,9 +12,14 @@ import {
   useColorScheme,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 
+const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+
 const Profile = () => {
+  const userID =  String(SecureStore.getItem('userID'));
+  const authToken =  String(SecureStore.getItem('authToken'));
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
@@ -63,12 +68,15 @@ const Profile = () => {
       name: 'profile-picture.jpg',
       type: 'image/jpeg',
     } as any);
+    formData.append("userID", userID);
+    formData.append("authToken", authToken);
+    
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/upload-profile-picture', {
+      const response = await fetch(`${apiUrl}/updateProfilePicture`, {
         method: 'POST',
         body: formData,
       });
@@ -78,8 +86,8 @@ const Profile = () => {
       }
 
       const data = await response.json();
-      if (data.message === 'Profile picture uploaded successfully') {
-        Alert.alert('Success', 'Profile picture updated successfully!');
+      if (data.success) {
+        Alert.alert('Success', 'Profile picture updated successfully');
       }
     } catch (err: any) {
       setError(err.message || 'Error uploading profile picture. Please try again.');

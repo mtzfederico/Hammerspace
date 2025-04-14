@@ -43,6 +43,7 @@ func getS3Client() (*s3.Client, error) {
 
 	// Start a new client with the config
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(serverConfig.S3Endpoint)
 	})
 
