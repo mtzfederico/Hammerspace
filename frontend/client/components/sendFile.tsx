@@ -5,14 +5,12 @@ import * as SecureStore from 'expo-secure-store';
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 
-const storedToken =  String(SecureStore.getItem('authToken'));
-const storedUserID =  String(SecureStore.getItem('userID'));
-
+const storedToken = String(SecureStore.getItem('authToken'));
+const storedUserID = String(SecureStore.getItem('userID'));
 
 // Function to open the document picker and handle the selected file
-async function pickDocument(parentDir ,addFile) {
-
-  
+async function pickDocument(parentDir: string, addFile) {  
+  // TODO: set a type for addFile. AND maybe a comment somewhere explaining what it is
   console.log("first thing is parentDIR " + parentDir)
   try {
     const result = await DocumentPicker.getDocumentAsync({
@@ -35,8 +33,8 @@ async function pickDocument(parentDir ,addFile) {
     formData.append('file', {
       uri: result.assets[0].uri,
       name: fileName,
-      type: result.assets[0].mimeType,
-      size: result.assets[0].size,
+      type: result.assets[0].mimeType || "application/octet-stream", // this is the official default mime type for unkown files
+      size: result.assets[0].size || 0,
       parentDir: parentDir,
     });
     formData.append("userID", storedUserID);

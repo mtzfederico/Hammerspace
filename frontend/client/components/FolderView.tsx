@@ -38,7 +38,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }) => {
     getFilesByParentID(currentParentDirID, storedUserID, setFiles);
   };
 
-  const handleFolderPress = (dirID, folderName) => {
+  const handleFolderPress = (dirID: string, folderName: string) => {
     setPreviousID(currentParentDirID);
     setCurrentParentDirID(dirID);
     setCurrentDirName(folderName);
@@ -58,10 +58,12 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }) => {
   return (
     <View style={[styles.container]}>
       <View style={styles.header}>
-        // TODO: Hide the back button on the home directory
+        hide the back button on the home directory
+        {previousID ? ( 
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Text style={textStyle}>{'< Back'}</Text>
         </TouchableOpacity>
+        ): null }
         <Text style={[styles.sectionTitle, textStyle]}>Current Directory: {currentDirName}</Text>
         <TouchableOpacity style={styles.profileButton} onPress={() => {router.push('/profile')}}>
           <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />

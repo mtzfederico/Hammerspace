@@ -19,7 +19,7 @@ const CreateFolder =  ({ isVisible, setIsVisible, addFolder, parentID}: CreateFo
 const [inputValue, setInputValue] = useState('');
 
 
-const handleInput = (text) => {
+const handleInput = (text: string) => {
     setInputValue(text);
 };
 
@@ -72,16 +72,9 @@ const handleInput = (text) => {
  };
  */
 
- const colorScheme = useColorScheme();
-
-  const isDarkMode = colorScheme === 'dark';
-
-  const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
-
- 
-
- 
-
+const colorScheme = useColorScheme();
+const isDarkMode = colorScheme === 'dark';
+const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
 
 return (
     <View style={backgroundStyle} >

@@ -9,9 +9,6 @@ import { SafeAreaView } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from 'expo-router';
 
-
-
-
 export default function HomeScreen() {
   const storedValue =  SecureStore.getItem('authToken');
   const storedUserID =  String(SecureStore.getItem('userID'));
@@ -45,17 +42,12 @@ export default function HomeScreen() {
  
   }, []); // Empty dependency array ensures it runs only once on startup
   
-
-
   const [folders, setFolders] = useState<any>([]);
   const [files, setFiles] = useState<any>([]);
   const [currentID, setCurrentID] = useState('root'); // Start with root as the current directory
 
-
-  
-
-  const addFolder = (name, type, dirID, parentID) => {
-    console.log("in addFOlder " + name + " " + type + " " + dirID + " " + currentID)
+  const addFolder = (name: string, type: string, dirID: string, parentID: string) => {
+    console.log("in addFolder " + name + " " + type + " " + dirID + " " + currentID)
     insertFolder(name, dirID, parentID, storedUserID)
     setCurrentID(dirID); // Set the current folder to the new folder's dirID
     
@@ -63,14 +55,12 @@ export default function HomeScreen() {
 
   };
   
-  
-  const addFile = (name: string, uri: string, dirID: string, parentID , size:  number) => {
+  const addFile = (name: string, uri: string, dirID: string, parentID: string, size:  number) => {
     console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " +size)
     insertFile(name, uri, dirID, parentID, size, storedUserID); 
     setCurrentID(dirID); // Set the current folder to the new folder's dirID
     testDBname()
   };
-
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -78,7 +68,6 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 };
-  
 
 const styles = StyleSheet.create({
   container: {

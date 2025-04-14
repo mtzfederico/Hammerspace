@@ -3,18 +3,8 @@ import React, { useState} from 'react';
 import { pickDocument } from './sendFile';
 import CreateFolder  from './addFolder';
 
-
-
-
-
-
-
-
-
 const AddButton = ({addFolder, addFile, parentID}) => {
     console.log("Addbutton parentID " + parentID)
- 
-   
 
     const [visible, setVisible] = useState(false); 
     const [isTextVisible, setIsTextVisible] = useState(false);

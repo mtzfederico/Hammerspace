@@ -1,21 +1,15 @@
 import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions} from "react-native";
 import FolderView from "./FolderView";
 
-
-const imageHeight =60
+const imageHeight = 60
 const imageWidth = 60
 const defaultFileIcon = require('../assets/images/file.webp');
 
-
-
 const DisplayFolders = ({ data , onFolderPress}) => {
-
   console.log("display is happening ")
   
   const colorScheme = useColorScheme();
-
   const isDarkMode = colorScheme === 'dark';
-
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
@@ -25,11 +19,8 @@ const DisplayFolders = ({ data , onFolderPress}) => {
   // Dynamically calculate number of columns based on screen width
   const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
 
-
   const renderItem = ({ item }) => {
-
     if(item.type == 'Directory') {
-
       return (
         <View style={styles.imageContainer}>
           <TouchableOpacity  onPress={() => {onFolderPress(item.id, item.name)}}>
@@ -51,7 +42,6 @@ const DisplayFolders = ({ data , onFolderPress}) => {
     }
     return null;
   };
-  
   
   return (
     <View style={backgroundStyle}>

@@ -15,10 +15,6 @@ import * as SecureStore from 'expo-secure-store';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
  
-
-
-
-
   return (
     <SQLiteProvider databaseName='hammerspace.db' onInit={initDB}>
     <Tabs

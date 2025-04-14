@@ -5,7 +5,6 @@ import { dropDatabase, createTables } from '@/services/database';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
 
-
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //const apiUrl = "http://216.37.99.155:9090"
@@ -38,7 +37,7 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      setError('An error occurred during login');
+      setError('An error occurred during login: ' + err);
     }
   };
 
