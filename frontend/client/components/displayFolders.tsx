@@ -5,7 +5,19 @@ const imageHeight = 60
 const imageWidth = 60
 const defaultFileIcon = require('../assets/images/file.webp');
 
-const DisplayFolders = ({ data , onFolderPress}) => {
+type FolderFileItem = {
+  id: string;
+  name: string;
+  type: 'Directory' | 'File';
+  uri?: string;
+};
+
+type DisplayFoldersProps = {
+  data: FolderFileItem[];
+  onFolderPress: (id: string, name: string) => void;
+};
+
+const DisplayFolders = ({ data , onFolderPress}: DisplayFoldersProps) => {
   console.log("display is happening ")
   
   const colorScheme = useColorScheme();
@@ -19,7 +31,7 @@ const DisplayFolders = ({ data , onFolderPress}) => {
   // Dynamically calculate number of columns based on screen width
   const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
 
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item }: {item :FolderFileItem}) => {
     if(item.type == 'Directory') {
       return (
         <View style={styles.imageContainer}>

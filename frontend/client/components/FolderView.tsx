@@ -7,11 +7,11 @@ import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 
-const FolderNavigation = ({ initialParentID, addFolder, addFile }) => {
+const FolderNavigation = ({ initialParentID, addFolder, addFile }: {  initialParentID: string;addFolder: () => void;addFile: () => void;}) => {
   const router = useRouter();
-  const [folders, setFolders] = useState([]);
-  const [files, setFiles] = useState([]);
-  const [currentParentDirID, setCurrentParentDirID] = useState(initialParentID);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [files, setFiles] = useState<any[]>([]);
+  const [currentParentDirID, setCurrentParentDirID] = useState<any>(initialParentID);
   const [previousID, setPreviousID] = useState(null);
   const [currentDirName, setCurrentDirName] = useState('Home');
   const storedUserID = String(SecureStore.getItem('userID'));
