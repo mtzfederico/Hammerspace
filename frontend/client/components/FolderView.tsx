@@ -76,7 +76,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         </TouchableOpacity>
         ): null }
         <Text style={[styles.sectionTitle, textStyle]}>Current Directory: {currentDirName}</Text>
-        <TouchableOpacity style={styles.profileButton} onPress={() => {router.replace('/profile')}}>
+        <TouchableOpacity style={styles.profileButton} onPress={() => {router.push('/profile')}}>
           <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
         </TouchableOpacity>
       </View>

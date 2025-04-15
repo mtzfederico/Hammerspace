@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -38,6 +38,14 @@ export default function friends() {
     {userID: "testUser"},
     {userID: "anotherTestUser"},
 ]
+
+useEffect(() => {
+    const getFriendsList = async () => {
+      // setError("")
+    };
+
+    getFriendsList();
+  }, []);
 
 type ItemProps = {userID: string};
 
@@ -107,8 +115,6 @@ const handleAddFriend = async () => {
       <View style={styles.container}>
         
 
-        {error && <Text style={styles.error}>{error}</Text>}
-
         {loading ? (
           <ActivityIndicator style={{ marginTop: 10 }} />
         ) : (
@@ -124,11 +130,12 @@ const handleAddFriend = async () => {
 
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-          <TouchableOpacity onPress={() => router.push('/tabs')} style={styles.backButton}>
-            <Text >{'< Back'}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
-          <View style={styles.addButton}><Button title="+" onPress={handleAddFriend}/></View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text >{'< Back'}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+        <View style={styles.addButton}><Button title="+" onPress={handleAddFriend}/></View>
+        {error && <Text style={styles.error}>{error}</Text>}
         <View style={styles.table}>
           <FlatList
             data={data}
