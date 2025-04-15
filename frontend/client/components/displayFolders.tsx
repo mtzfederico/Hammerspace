@@ -1,5 +1,4 @@
 import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions} from "react-native";
-import FolderView from "./FolderView";
 
 const imageHeight = 60
 const imageWidth = 60

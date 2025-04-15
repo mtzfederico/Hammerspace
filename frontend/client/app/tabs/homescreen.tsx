@@ -4,7 +4,7 @@ import { View} from 'react-native';
 import initDB, { seeFiles, getFoldersByParentID, getFilesByParentID, insertFolder ,insertFile,  createTables, testDBname, dropDatabase} from '../../services/database'
 import  AddButton  from  '../../components/addButton'
 import DisplayFolders from '@/components/displayFolders';
-import FolderNavigation from '@/components/FolderView';
+import FolderNavigation from '@/components/FolderNavigation';
 import { SafeAreaView } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from 'expo-router';

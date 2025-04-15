@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getFoldersByParentID, getFilesByParentID, syncWithBackend } from '../../client/services/database';
+import { getFoldersByParentID, getFilesByParentID, syncWithBackend } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
