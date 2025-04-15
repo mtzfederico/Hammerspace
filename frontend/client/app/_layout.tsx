@@ -19,6 +19,7 @@ export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Kavoon: require('../assets/fonts/Kavoon-Regular.ttf'),
   });
   const router = useRouter();
 
@@ -69,6 +70,10 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="profile" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="friends" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
       </Stack>
