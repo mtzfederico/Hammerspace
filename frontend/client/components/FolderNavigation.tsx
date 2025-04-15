@@ -66,6 +66,16 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     }
   };
 
+  const handleFilePress = (fileID: string, fileName: string, type: string) => {
+    console.log("file pressed. fileID: " + fileID + " fileName: " + fileName + " type: " + type);
+    switch (type) {
+      case "application/pdf":
+        router.push("/PDFView")
+      default:
+        console.log("file type not handled: " + type)
+    }
+  };
+
   return (
     <View style={[styles.container]}>
       <View style={styles.header}>
@@ -82,7 +92,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
-      <DisplayFolders data={[...folders, ...files]} onFolderPress={handleFolderPress} />
+      <DisplayFolders data={[...folders, ...files]} onFolderPress={handleFolderPress} onFilePress={handleFilePress} />
       <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
     </View>
   );

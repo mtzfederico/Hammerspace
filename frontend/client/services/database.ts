@@ -93,13 +93,20 @@ try {
         } else {
           console.log('Unexpected result format:', result);
         }
+
+        try {
+          await AsyncStorage.removeItem('isDBCreated');
+          console.log("created DB successfully")
+        } catch (e) {
+          // saving error
+          console.log('Error saving isDBCreated:', result);
+        }
+
       } catch (error) {
         console.error('Error checking tables:', error);
       }
     };
     
-    
-  
   export const testDBname = async () => {
     console.log('names will be here hopefully')
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -140,7 +147,7 @@ try {
 export const insertFolder =  async (name: string, dirID: string, parentID: string, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   db.runAsync(
-      'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"Directory",0,"null",userID
+      'INSERT INTO folders (id, parentDir, name, type, fileSize, uri, userID) VALUES (?, ?, ?, ?, ?, ?, ?)', dirID, parentID, name, "folder", 0, "null", userID
     );
   }
 
@@ -167,7 +174,7 @@ export const insertFile = async (name: string, uri: string, dirID: string, paren
 export const getFoldersByParentID = async (parentID: string, userID: string,  callback: (folders: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   try { 
-  const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="Directory"' ,parentID, userID);
+  const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="folder"' ,parentID, userID);
   const folders = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
   callback(folders);
   } catch (error) {
@@ -180,7 +187,7 @@ export const getFoldersByParentID = async (parentID: string, userID: string,  ca
 export const getFilesByParentID = async (parentID: string, userID: string, callback: (files: any[]) => void) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db'); 
   try { 
-    const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND userID=? AND type="File"' ,parentID, userID);
+    const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND userID=? AND type!="folder"' ,parentID, userID);
     const files = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
     callback(files);
     } catch (error) {
@@ -206,6 +213,8 @@ export const getFilesByParentID = async (parentID: string, userID: string, callb
         }
     
         const data = await response.json();
+
+        console.log("syncWithBackend response: " + JSON.stringify(data));
     
         if (Array.isArray(data.folders)) {
           // Clear local folders for the given user
@@ -214,10 +223,11 @@ export const getFilesByParentID = async (parentID: string, userID: string, callb
           // Insert synced folders
           for (const folder of data.folders) {
             console.log( folder.parentDir )
-        
+
+            // TODO: type is hardcoded to directory. backend uses folder 
             await db.runAsync(
               'INSERT OR REPLACE INTO folders (id, parentDir, name, type, fileSize, uri, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
-              folder.id, folder.parentDir, folder.name, "Directory", 0, "null", folder.userID
+              folder.id, folder.parentDir, folder.name, folder.type, 0, "null", folder.userID
             );
             
           }
