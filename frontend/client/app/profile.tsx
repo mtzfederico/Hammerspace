@@ -117,9 +117,14 @@ const Profile = () => {
     }
   };
 
+  const requestImage = () => {
+
+    
+  }
+
   return (
     <View style={[styles.screen, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.push('/tabs/homescreen')} style={styles.backButton}>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
       </TouchableOpacity>
 
