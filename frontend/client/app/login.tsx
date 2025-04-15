@@ -9,6 +9,7 @@ const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //const apiUrl = "http://216.37.99.155:9090"
 
+//login screen
 export default function Login() {
  
   const [userID, setUserID] = useState('');
@@ -31,7 +32,7 @@ export default function Login() {
         console.log("Lmaomsoklf s, do " + data.authToken)
         await SecureStore.setItem('authToken', String(data.authToken));
         await SecureStore.setItem('userID', String(data.userID));
-        router.replace('/tabs');
+        router.replace('/tabs/homescreen');
       } else {
         setError(data.error || 'Failed to log in');
       }

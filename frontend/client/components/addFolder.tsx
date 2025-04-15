@@ -47,6 +47,7 @@ const handleInput = (text: string) => {
       return;
     }
     console.log("Create FOlder lolmal " + parentID)
+    // Call the sendFolder function to make request to the backend
     const dirID = await sendFolder(input, parentID); // Ensure you're passing parentID here
     if(dirID == null) {
       console.error("Failed to create folder");

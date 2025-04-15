@@ -3,7 +3,32 @@ import React, { useState} from 'react';
 import { pickDocument } from './sendFile';
 import CreateFolder  from './addFolder';
 
-const AddButton = ({addFolder, addFile, parentID}) => {
+type addFolderType = ( 
+  fileName: string,
+  type: string,
+  dirID: string,
+  parentID: string,
+ ) => void
+
+type AddFileType = (
+  name: string,
+  uri: string,
+  dirID: string,
+  parentID: string,
+  size: number
+) => void;
+
+type AddButtonProps = {
+  addFolder: addFolderType;
+  addFile: AddFileType;
+  parentID: string;
+};
+
+//Buttons at the buttom left of the Screen
+// Add Folder functions that were defined in homescreen.tsx get passed to this component
+// and then passed to the addFolder function in addFolder.tsx
+// The addFile function and the parentID is passed to the sendFile.tsx component
+const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
     console.log("Addbutton parentID " + parentID)
 
     const [visible, setVisible] = useState(false); 

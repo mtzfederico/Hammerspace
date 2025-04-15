@@ -6,7 +6,8 @@ import {addUser} from '../../client/services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export default function Login() {
+//Register Screen
+export default function Register() {
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
@@ -53,7 +54,7 @@ export default function Login() {
         await SecureStore.setItem('userID', String(data.userID));
         addUser(data.userID, "default")
         // Navigate to the home screen or tab navigator
-        router.push('/tabs');
+        router.push('/tabs/homescreen');
       } else {
         // Handle error based on the server response
         setError(data.error || 'Registration failed');

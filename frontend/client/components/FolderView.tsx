@@ -7,7 +7,18 @@ import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 
-const FolderNavigation = ({ initialParentID, addFolder, addFile }: {  initialParentID: string;addFolder: () => void;addFile: () => void;}) => {
+type FolderNavigationProps = {
+  initialParentID: string;
+  addFolder: (name: string, type: string, dirID: string, parentID: string) => void;
+  addFile: (name: string, uri: string, dirID: string, parentID: string, size: number) => void;
+};
+//Component that handles the folder navigation and file display
+// It uses the DisplayFolders component to show the folders and files
+// It also uses the AddButton component to add new folders and files
+// It uses the getFoldersByParentID and getFilesByParentID functions to fetch the folders and files from the database
+// It uses the syncWithBackend function to sync the data with the backend
+// Is recursively called when a folder is pressed
+const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
   const router = useRouter();
   const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);

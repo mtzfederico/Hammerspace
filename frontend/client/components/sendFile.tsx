@@ -7,9 +7,17 @@ const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 const storedToken = String(SecureStore.getItem('authToken'));
 const storedUserID = String(SecureStore.getItem('userID'));
+type AddFileType = (
+  name: string,
+  uri: string,
+  dirID: string,
+  parentID: string,
+  size: number
+) => void;
 
 // Function to open the document picker and handle the selected file
-async function pickDocument(parentDir: string, addFile) {  
+// Then send a request to the server to upload the file
+async function pickDocument(parentDir: string, addFile: AddFileType) {  
   // TODO: set a type for addFile. AND maybe a comment somewhere explaining what it is
   console.log("first thing is parentDIR " + parentDir)
   try {
@@ -36,7 +44,7 @@ async function pickDocument(parentDir: string, addFile) {
       type: result.assets[0].mimeType || "application/octet-stream", // this is the official default mime type for unkown files
       size: result.assets[0].size || 0,
       parentDir: parentDir,
-    });
+    } as any);
     formData.append("userID", storedUserID);
     formData.append("authToken", storedToken);
     

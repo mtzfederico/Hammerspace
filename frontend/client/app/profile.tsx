@@ -119,7 +119,7 @@ const Profile = () => {
 
   return (
     <View style={[styles.screen, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.push('/tabs')} style={styles.backButton}>
+      <TouchableOpacity onPress={() => router.push('/tabs/homescreen')} style={styles.backButton}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
       </TouchableOpacity>
 
