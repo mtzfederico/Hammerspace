@@ -9,6 +9,7 @@ import {
   FlatList,
   Platform,
   Alert,
+  StatusBar,
   TouchableOpacity,
   useColorScheme,
 } from 'react-native';
@@ -53,8 +54,8 @@ type ItemProps = {userID: string};
 )*/
 
 const UserProfile = ({userID}: ItemProps) => (
-  <View style={styles.item}>
-    <Image source={{ uri: "../app/assets/profile-circle.png" }} style={styles.image}/>
+  <View style={styles.UserProfile}>
+    <Image source={{ uri: "../assets/images/default-profile-picture.jpeg" }} style={styles.profilePicture}/>
     <Text style={styles.title}>{userID}</Text>
   </View>
 );
@@ -104,19 +105,15 @@ const handleAddFriend = async () => {
       </TouchableOpacity>
 
       <View style={styles.container}>
-        <Text style={[styles.header, textStyle]}>Friends</Text>
+        
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         {loading ? (
           <ActivityIndicator style={{ marginTop: 10 }} />
         ) : (
-          <Button
-            title="Add Friend"
-            onPress={handleAddFriend}
-          />
+          // some views
         )}
-
             
               <FlatList data={data} renderItem={({item}) => <UserProfile userID={item.userID} />} keyExtractor={item => item.userID} />
           
@@ -127,70 +124,87 @@ const handleAddFriend = async () => {
 
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-      <TouchableOpacity onPress={() => router.push('/tabs')} style={styles.backButton}>
-        <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
-      </TouchableOpacity>
-        <FlatList
-          data={data}
-          renderItem={({item}) => <UserProfile userID={item.userID} />}
-          keyExtractor={item => item.userID}
-        />
+          <TouchableOpacity onPress={() => router.push('/tabs')} style={styles.backButton}>
+            <Text >{'< Back'}</Text>
+          </TouchableOpacity>
+          <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+          <View style={styles.addButton}><Button title="+" onPress={handleAddFriend}/></View>
+        <View style={styles.table}>
+          <FlatList
+            data={data}
+            renderItem={({item}) => <UserProfile userID={item.userID} />}
+            keyExtractor={item => item.userID}
+          />
+        </View>
       </SafeAreaView>
     </SafeAreaProvider>
   );
 };
 
 const styles = StyleSheet.create({
-    item: {
-        backgroundColor: '#f9c2ff',
-        padding: 20,
-        marginVertical: 8,
-        marginHorizontal: 16,
-        flexDirection: 'row',
+  UserProfile: {
+      padding: 20,
+      marginVertical: 8,
+      marginHorizontal: 16,
+      flexDirection: 'row',
+      borderColor: 'black',
+      borderWidth: 2,
+      borderRadius: 8,
     },
-        title: {
-        fontSize: 32,
+    title: {
+      fontSize: 32,
+      left: 10,
     },
     screen: {
-        flex: 1,
-        paddingTop: 40, // extra padding for top
+      flex: 1,
+      paddingTop: 40, // extra padding for top
     },
     backButton: {
-        position: 'absolute',
-        top: 50,
-        left: 20,
-        zIndex: 10,
-        padding: 8,
-        backgroundColor: '#ccc',
-        borderRadius: 5,
+      position: 'absolute',
+      top: 20,
+      left: 20,
+      zIndex: 10,
+      padding: 8,
+      backgroundColor: '#ccc',
+      borderRadius: 5,
+    },
+    addButton: {
+      position: 'absolute',
+      top: 10,
+      right: 20,
+      zIndex: 10,
+      padding: 8,
+    },
+    table: {
+      marginTop: StatusBar.currentHeight || 0,
     },
     backText: {
-        fontSize: 16,
+      fontSize: 16,
     },
     container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: 4,
-        // marginTop: StatusBar.currentHeight || 0,
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+      marginTop: 30,
     },
-    header: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 16,
+    pageTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginBottom: 25,
     },
     error: {
-        color: 'red',
-        marginBottom: 8,
+      color: 'red',
+      marginBottom: 8,
     },
     imagePickerWrapper: {
         marginVertical: 20, // creates spacing below the title
     },
-    image: {
-        width: 100,
-        height: 100,
-        marginVertical: 16,
-        borderRadius: 50,
+    profilePicture: {
+      width: 60,
+      height: 60,
+      left: 2,
+      borderRadius: 50,
     },
     lightBackground: {
         backgroundColor: 'white',

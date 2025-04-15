@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { dropDatabase, createTables } from '@/services/database';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -41,9 +42,12 @@ export default function Login() {
     }
   };
 
+  
   return (
-    
-    <View style={styles.container}>
+      
+      <ImageBackground source={require('../assets/images/login-background.png')} style={styles.backgroundImage} resizeMode='cover'>
+
+      <View style={styles.container}>
       <Text style={styles.title}>Hammerspace</Text>
       <Text style={styles.subtitle}>Welcome!</Text>
       <Text style={styles.description}>Create a free account or login to get started.</Text>
@@ -75,21 +79,33 @@ export default function Login() {
         <Text style={styles.registerLink}>Don't have an account? Register</Text>
       </TouchableOpacity>
     </View>
+      </ImageBackground>
+
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#b2b2ed',
+    
     padding: 20,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
+    color: 'rgba(204, 204, 204, 1)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.250980406999588)',
+    textShadowRadius: 4,
+    textShadowOffset: {"width":0,"height":4},
+    fontFamily: 'Kavoon',
+    fontSize: 36,
+    fontStyle: 'normal',
+    fontWeight: '400',
+    letterSpacing: -0.36,
   },
   subtitle: {
     fontSize: 20,

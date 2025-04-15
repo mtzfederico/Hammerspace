@@ -17,6 +17,7 @@ export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Kavoon: require('../assets/fonts/Kavoon-Regular.ttf'),
   });
   const router = useRouter();
 
