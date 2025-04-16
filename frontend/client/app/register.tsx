@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'reac
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {addUser} from '../../client/services/database';
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -68,6 +69,7 @@ export default function Register() {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View style={styles.container}>
       <Text style={styles.title}>Hammerspace</Text>
       <Text style={styles.subtitle}>Welcome!</Text>
@@ -109,6 +111,7 @@ export default function Register() {
       </TouchableOpacity>
 
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 
