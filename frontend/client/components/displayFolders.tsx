@@ -5,21 +5,21 @@ const imageWidth = 60
 const defaultFileIcon = require('../assets/images/file.webp');
 const defaultFolderIcon = require('../assets/images/folder.webp');
 
-type FolderFileItem = {
+export type FileItem = {
   id: string;
   name: string;
-  // type: 'folder' | 'File';
   type: string;
   uri?: string;
 };
 
 type DisplayFoldersProps = {
-  data: FolderFileItem[];
+  data: FileItem[];
   onFolderPress: (id: string, name: string) => void;
-  onFilePress: (id: string, name: string, type: string) => void;
+  onFilePress: (item: FileItem) => void;
+  onItemLongPress: (item: FileItem) => void;
 };
 
-const DisplayFolders = ({ data, onFolderPress, onFilePress}: DisplayFoldersProps) => {
+const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: DisplayFoldersProps) => {
   console.log("display is happening ")
   
   const colorScheme = useColorScheme();
@@ -33,26 +33,24 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress}: DisplayFoldersProps
   // Dynamically calculate number of columns based on screen width
   const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
 
-  const renderItem = ({ item }: {item :FolderFileItem}) => {
+  const renderItem = ({ item }: {item: FileItem}) => {
     if(item.type == 'folder') {
       return (
         <View style={styles.imageContainer}>
-          <Pressable onPress={() => {onFolderPress(item.id, item.name)}}>
+          <Pressable onPress={() => {onFolderPress(item.id, item.name)}} onLongPress={() => {onItemLongPress(item)}}>
             <Image source={defaultFolderIcon}style={styles.image} />
             <Text style={textStyle}>{item.name}</Text>
           </Pressable>
         </View>
       );
-    
-    // } else if (item.type === 'File') {
     } else {
       const fileExtensionsWithImages = ['.jpg', '.jpeg', '.png', '.pdf'];
       const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext));
       return (
         <View style={styles.imageContainer}>
-          <Pressable onPress={() => {onFilePress(item.id, item.name, item.type)}}>
-          <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
-          <Text style={textStyle}>{item.name}</Text>
+          <Pressable onPress={() => {onFilePress(item)}} onLongPress={() => {onItemLongPress(item)}}>
+            <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
+            <Text style={textStyle}>{item.name}</Text>
           </Pressable>
         </View>
       );
@@ -68,6 +66,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress}: DisplayFoldersProps
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
         numColumns={numColumns}
       />
       </SafeAreaView>
@@ -93,6 +92,11 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 18,
     color: '#333',
+  },
+  emptyMsg: {
+    fontSize: 28,
+    textAlign: 'center',
+    marginTop: 10,
   },
   image: {
     width: imageWidth,

@@ -2,25 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getFoldersByParentID, getFilesByParentID, syncWithBackend } from '../services/database';
+import { getItemsInParentDB, syncWithBackend } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
+import { FileItem } from '@/components/displayFolders';
 
 type FolderNavigationProps = {
   initialParentID: string;
   addFolder: (name: string, type: string, dirID: string, parentID: string) => void;
-  addFile: (name: string, uri: string, dirID: string, parentID: string, size: number) => void;
+  addFile: (name: string, uri: string, dirID: string, type: string, parentID: string, size: number) => void;
 };
-//Component that handles the folder navigation and file display
+
+// Component that handles the folder navigation and file display
 // It uses the DisplayFolders component to show the folders and files
 // It also uses the AddButton component to add new folders and files
-// It uses the getFoldersByParentID and getFilesByParentID functions to fetch the folders and files from the database
+// It uses the getItemsInParentID function to fetch the folders and files from the database
 // It uses the syncWithBackend function to sync the data with the backend
 // Is recursively called when a folder is pressed
 const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
   const router = useRouter();
-  const [folders, setFolders] = useState<any[]>([]);
+  // const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [currentParentDirID, setCurrentParentDirID] = useState<any>(initialParentID);
   const [previousID, setPreviousID] = useState(null);
@@ -45,8 +47,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   }, [currentParentDirID, addFolder, addFile]);
 
   const refreshData = () => {
-    getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
-    getFilesByParentID(currentParentDirID, storedUserID, setFiles);
+    // getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
+    getItemsInParentDB(currentParentDirID, storedUserID, setFiles);
   };
 
   const handleFolderPress = (dirID: string, folderName: string) => {
@@ -66,14 +68,21 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     }
   };
 
-  const handleFilePress = (fileID: string, fileName: string, type: string) => {
-    console.log("file pressed. fileID: " + fileID + " fileName: " + fileName + " type: " + type);
-    switch (type) {
+  const handleFilePress = (item: FileItem) => {
+    console.log("file pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
+    switch (item.type) {
       case "application/pdf":
-        router.push("/PDFView")
+        var uri = item.uri || "";
+        const encodedURI = encodeURI(uri);
+        router.push(`/PDFView?uri=${encodedURI}`)
+        return
       default:
-        console.log("file type not handled: " + type)
+        console.log("[handleFilePress] file type not handled: " + item.type)
     }
+  };
+
+  const handleItemLongPress = (item: FileItem) => {
+    console.log("item long pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
   };
 
   return (
@@ -92,7 +101,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
-      <DisplayFolders data={[...folders, ...files]} onFolderPress={handleFolderPress} onFilePress={handleFilePress} />
+      <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
       <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
     </View>
   );

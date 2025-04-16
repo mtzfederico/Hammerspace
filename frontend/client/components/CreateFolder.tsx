@@ -3,8 +3,6 @@ import { StyleSheet, View,useColorScheme , StatusBar} from "react-native";
 import Dialog from "react-native-dialog";
 import sendFolder from "./sendFolder";
 
-
-
 interface CreateFolderProps {
   isVisible: boolean;
   setIsVisible: (visible: boolean) => void;
@@ -42,7 +40,7 @@ const CreateFolder =  ({ isVisible, setIsVisible, addFolder, parentID}: CreateFo
           return;
         }
 
-        console.log("Create FOlder lolmal " + parentID)
+        console.log("Create Folder in parentID " + parentID)
         // Call the sendFolder function to make request to the backend
         const dirID = await sendFolder(input, parentID); // Ensure you're passing parentID here
         if (dirID == null) {

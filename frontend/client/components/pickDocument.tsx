@@ -1,18 +1,12 @@
 import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
 import * as SecureStore from 'expo-secure-store';
+import { AddFileType } from '@/components/addButton';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 const storedToken = String(SecureStore.getItem('authToken'));
 const storedUserID = String(SecureStore.getItem('userID'));
-type AddFileType = (
-  name: string,
-  uri: string,
-  dirID: string,
-  parentID: string,
-  size: number
-) => void;
 
 // Function to open the document picker and handle the selected file
 // Then send a request to the server to upload the file
@@ -28,18 +22,19 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
 
     if (result.canceled) {
       // User cancelled the picker
-      console.log("pickDOcument cancelled")
+      console.log("pickDocument cancelled")
       return;
     }
 
     var fileName = String(`${result.assets[0].name}`)
     var fileURI = String(`${result.assets[0].uri}`)
+    var mimeType = result.assets[0].mimeType || "application/octet-stream" // this is the official default mime type for unkown files
   
     const formData = new FormData();
     formData.append('file', {
       uri: result.assets[0].uri,
       name: fileName,
-      type: result.assets[0].mimeType || "application/octet-stream", // this is the official default mime type for unkown files
+      type: mimeType,
       size: result.assets[0].size || 0,
     } as any);
     formData.append("userID", storedUserID);
@@ -77,7 +72,8 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
       console.log("parentDIR " + parentDir)
        var dirID= String(data.fileID)
        const size = JSON.parse(data.bytesUploaded)
-       addFile(fileName, fileURI, dirID, parentDir, size)
+       // addFile adds it to the local DB. The actual code called is in homescreen
+       addFile(fileName, fileURI, dirID, mimeType, parentDir, size)
     } else {
       console.error('File upload failed. Status: ' + response.status + '. Error msg: ' + data.error);
       // setError(err.message || 'Error uploading file. Please try again.');

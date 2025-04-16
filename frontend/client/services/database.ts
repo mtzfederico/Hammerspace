@@ -158,43 +158,28 @@ export const insertFolder =  async (name: string, dirID: string, parentID: strin
     console.log("result of call is here " +result)
   }
 
-export const insertFile = async (name: string, uri: string, dirID: string, parentID: string , size: number , userID: string) => {
+export const insertFile = async (name: string, uri: string, dirID: string, type: string, parentID: string, size: number, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   try {
     console.log('Inserting file:', { name, uri, dirID, parentID, size });
   
   db.runAsync(
-    'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)',dirID, parentID,name,"File",size,uri, userID );
+    'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)', dirID, parentID, name, type, size, uri, userID );
   }catch (error) {
     console.error('Error inserting file' + error)
   }
   };
 
-
-export const getFoldersByParentID = async (parentID: string, userID: string,  callback: (folders: any[]) => void) => {
-  const db = await SQLite.openDatabaseAsync('hammerspace.db');
-  try { 
-  const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=? AND type="folder"' ,parentID, userID);
-  const folders = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
-  callback(folders);
-  } catch (error) {
-    console.error('Error inserting file:', error);
-  }
-      
-  };
-
-
-export const getFilesByParentID = async (parentID: string, userID: string, callback: (files: any[]) => void) => {
-  const db = await SQLite.openDatabaseAsync('hammerspace.db'); 
-  try { 
-    const result = await db.getAllAsync( 'SELECT * FROM folders WHERE parentDir = ? AND userID=? AND type!="folder"' ,parentID, userID);
-    const files = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
-    callback(files);
+  export const getItemsInParentDB = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try { 
+      const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=?', parentID, userID);
+      const items = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
+      callback(items);
     } catch (error) {
-      console.error('Error inserting file:', error);
+      console.error('[getItemsInParentDB] Error getting items:', error);
     }
-        
-    };
+  };
 
     export const syncWithBackend = async (userID: string, authToken: string) => {
       const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -207,13 +192,12 @@ export const getFilesByParentID = async (parentID: string, userID: string, callb
           body: JSON.stringify({ userID, authToken }),
         });
     
-        if (!response.ok) {
-          console.error('Failed to sync with backend:', response.statusText);
+        const data = await response.json();
+        if (data.success) {
+          console.error('[syncWithBackend] Failed to sync with backend:', response.statusText);
           return;
         }
     
-        const data = await response.json();
-
         console.log("syncWithBackend response: " + JSON.stringify(data));
     
         if (Array.isArray(data.folders)) {
@@ -231,12 +215,12 @@ export const getFilesByParentID = async (parentID: string, userID: string, callb
             );
             
           }
-          console.log('Sync complete');
+          console.log('[syncWithBackend] Sync completed with no errors');
         } else {
-          console.error('No folders received from backend');
+          console.error('[syncWithBackend] No folders received from backend');
         }
       } catch (error) {
-        console.error('Error syncing with backend:', error);
+        console.error('[syncWithBackend] Error syncing with backend:', error);
       }
     };
     
