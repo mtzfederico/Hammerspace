@@ -18,8 +18,9 @@ import Constants from 'expo-constants';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export function PDFView() {
+export default function PDFView() {
   const { URI: encodedURI } = useLocalSearchParams<{ URI: string }>();
+  console.log("Encoded URI" + encodedURI)
   const userID =  String(SecureStore.getItem('userID'));
   const authToken =  String(SecureStore.getItem('authToken'));
   const colorScheme = useColorScheme();
@@ -54,7 +55,8 @@ export function PDFView() {
       
     }, []);
 
-
+    console.log("Final WebView file path:", filePath);
+    
   return (
     <View style={[styles.screen, backgroundStyle]}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
