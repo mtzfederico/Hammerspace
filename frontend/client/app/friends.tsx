@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,14 @@ export default function friends() {
     {userID: "testUser"},
     {userID: "anotherTestUser"},
 ]
+
+useEffect(() => {
+    const getFriendsList = async () => {
+      // setError("")
+    };
+
+    getFriendsList();
+  }, []);
 
 type ItemProps = {userID: string};
 
@@ -108,8 +116,6 @@ const handleAddFriend = async () => {
       <View style={styles.container}>
         
 
-        {error && <Text style={styles.error}>{error}</Text>}
-
         {loading ? (
           <ActivityIndicator style={{ marginTop: 10 }} />
         ) : (
@@ -125,15 +131,21 @@ const handleAddFriend = async () => {
 
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Text >{'< Back'}</Text>
-          </TouchableOpacity>
-          <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
-          <View style={styles.addButton}><Button title="+" onPress={handleAddFriend}/></View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text >{'< Back'}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+        <TouchableOpacity style={styles.addButton} onPress={() => {
+              console.log("add friend pressed")
+            }}>
+            <Image source={require('../assets/images/plus.png')} style={styles.plusImage}/>
+        </TouchableOpacity>
+        {error && <Text style={styles.error}>{error}</Text>}
         <View style={styles.table}>
           <FlatList
             data={data}
             renderItem={({item}) => <UserProfile userID={item.userID} />}
+            ListEmptyComponent={<Text>You have no friends</Text>}
             keyExtractor={item => item.userID}
           />
         </View>
@@ -143,6 +155,19 @@ const handleAddFriend = async () => {
 };
 
 const styles = StyleSheet.create({
+  plusImage: {
+    tintColor: 'black',
+    height: 40,
+    width: 40,
+  },
+  addButton: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  // this is the item in the list. the profilePicture and title are inside this
   UserProfile: {
       padding: 20,
       marginVertical: 8,
@@ -152,9 +177,18 @@ const styles = StyleSheet.create({
       borderWidth: 2,
       borderRadius: 8,
     },
+    profilePicture: {
+      width: 60,
+      height: 60,
+      left: 2,
+      borderRadius: 50,
+      zIndex: 10,
+      backgroundColor: "red",
+    },
     title: {
       fontSize: 32,
       left: 10,
+      top: 8,
     },
     screen: {
       flex: 1,
@@ -168,13 +202,6 @@ const styles = StyleSheet.create({
       padding: 8,
       backgroundColor: '#ccc',
       borderRadius: 5,
-    },
-    addButton: {
-      position: 'absolute',
-      top: 10,
-      right: 20,
-      zIndex: 10,
-      padding: 8,
     },
     table: {
       marginTop: StatusBar.currentHeight || 0,
@@ -200,12 +227,6 @@ const styles = StyleSheet.create({
     },
     imagePickerWrapper: {
         marginVertical: 20, // creates spacing below the title
-    },
-    profilePicture: {
-      width: 60,
-      height: 60,
-      left: 2,
-      borderRadius: 50,
     },
     lightBackground: {
         backgroundColor: 'white',

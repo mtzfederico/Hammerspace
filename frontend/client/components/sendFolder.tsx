@@ -38,7 +38,7 @@ const sendFolder = async (dirName: string, parentID: string) => {
   
       const data = await response.json();
       if (data.success) {
-        console.log('Directory created successfully:', data);
+        console.log('Folder created successfully:', data);
          var dirID= String(data.dirID)
         //insertFolder(dirName, dirID, parentID)
         return dirID

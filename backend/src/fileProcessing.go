@@ -34,22 +34,23 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 	if err != nil {
 		return fmt.Errorf("failed to get the fileType: %w", err)
 	}
-	if kind == filetype.Unknown {
+	if kind != filetype.Unknown {
+		fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
+
+		if kind.MIME.Value != expectedMIMEType {
+			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Error("[processFile] Mismatched MIME Types")
+			// addAlert(ctx, )
+			// return errUnexpectedFileType
+		}
+
+		// TODO: process the mime type
+
+	} else {
 		// TODO: decide how to handle unknown files
 		// Set the mime to application/octet-stream??
 		log.Info("[processFile] errUnknownFileType")
-		return errUnknownFileType
+		// return errUnknownFileType
 	}
-
-	fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
-
-	if kind.MIME.Value != expectedMIMEType {
-		log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Error("[processFile] Mismatched MIME Types")
-		// addAlert(ctx, )
-		// return errUnexpectedFileType
-	}
-
-	// TODO: process the mime type
 
 	objKey, err := getNewID()
 	if err != nil {
@@ -80,7 +81,6 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 }
 
 func processProfilePicture(ctx context.Context, filePath, profilePictureID, userID string) error {
-
 	// Inspect the file
 	// TODO: Make sure this works
 	kind, err := filetype.MatchFile(filePath)

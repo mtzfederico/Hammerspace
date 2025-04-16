@@ -1,7 +1,7 @@
 import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
 import React, { useState} from 'react';
-import { pickDocument } from './sendFile';
-import CreateFolder  from './addFolder';
+import { pickDocument } from './pickDocument';
+import CreateFolder  from './CreateFolder';
 
 type addFolderType = ( 
   fileName: string,
@@ -10,10 +10,11 @@ type addFolderType = (
   parentID: string,
  ) => void
 
-type AddFileType = (
+export type AddFileType = (
   name: string,
   uri: string,
   dirID: string,
+  type: string,
   parentID: string,
   size: number
 ) => void;
@@ -88,7 +89,6 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
   }
 
   const handleDocumentPick = async () => {
-    
     await pickDocument(parentID, addFile);
   };
 
@@ -97,9 +97,6 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
     console.log("Vising is bere " + visible)
     
   };
-  
-  
-
     
   const colorScheme = useColorScheme();
 
@@ -147,10 +144,7 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
         style={styles.image}
       />
     </TouchableOpacity>
-    
     </View>
-
-    
   );
 };
 
@@ -168,9 +162,6 @@ const styles = StyleSheet.create({
      justifyContent: 'center',
      alignItems: 'center',
     overflow: 'hidden'
-     
-    
-
   },
   image: {
     tintColor: 'white',

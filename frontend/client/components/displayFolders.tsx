@@ -1,23 +1,25 @@
-import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions} from "react-native";
-import FolderView from "./FolderView";
+import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions, Pressable} from "react-native";
 
 const imageHeight = 60
 const imageWidth = 60
 const defaultFileIcon = require('../assets/images/file.webp');
+const defaultFolderIcon = require('../assets/images/folder.webp');
 
-type FolderFileItem = {
+export type FileItem = {
   id: string;
   name: string;
-  type: 'Directory' | 'File';
+  type: string;
   uri?: string;
 };
 
 type DisplayFoldersProps = {
-  data: FolderFileItem[];
+  data: FileItem[];
   onFolderPress: (id: string, name: string) => void;
+  onFilePress: (item: FileItem) => void;
+  onItemLongPress: (item: FileItem) => void;
 };
 
-const DisplayFolders = ({ data , onFolderPress}: DisplayFoldersProps) => {
+const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: DisplayFoldersProps) => {
   console.log("display is happening ")
   
   const colorScheme = useColorScheme();
@@ -31,40 +33,40 @@ const DisplayFolders = ({ data , onFolderPress}: DisplayFoldersProps) => {
   // Dynamically calculate number of columns based on screen width
   const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
 
-  const renderItem = ({ item }: {item :FolderFileItem}) => {
-    if(item.type == 'Directory') {
+  const renderItem = ({ item }: {item: FileItem}) => {
+    if(item.type == 'folder') {
       return (
         <View style={styles.imageContainer}>
-          <TouchableOpacity  onPress={() => {onFolderPress(item.id, item.name)}}>
-          <Image source={require('../assets/images/folder.webp')}style={styles.image} />
+          <Pressable onPress={() => {onFolderPress(item.id, item.name)}} onLongPress={() => {onItemLongPress(item)}}>
+            <Image source={defaultFolderIcon}style={styles.image} />
             <Text style={textStyle}>{item.name}</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       );
-    
-    } else if (item.type === 'File') {
-      const fileExtensionsWithImages = ['.jpg', '.png', '.pdf'];
+    } else {
+      const fileExtensionsWithImages = ['.jpg', '.jpeg', '.png', '.pdf'];
       const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext));
       return (
         <View style={styles.imageContainer}>
-          <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
-          <Text style={textStyle}>{item.name}</Text>
+          <Pressable onPress={() => {onFilePress(item)}} onLongPress={() => {onItemLongPress(item)}}>
+            <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
+            <Text style={textStyle}>{item.name}</Text>
+          </Pressable>
         </View>
       );
     }
-    return null;
   };
   
   return (
     <View style={backgroundStyle}>
       <SafeAreaView style={{ flex: 1 }}>
       <FlatList
-        
         style={styles.list}
         contentContainerStyle={{ gap: 80 }}
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
         numColumns={numColumns}
       />
       </SafeAreaView>
@@ -91,22 +93,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
   },
+  emptyMsg: {
+    fontSize: 28,
+    textAlign: 'center',
+    marginTop: 10,
+  },
   image: {
     width: imageWidth,
-
     height: imageHeight,
-
     resizeMode: 'cover' 
   },
   darkBackground: {
     flex: 1,
-   backgroundColor: "black",
+    backgroundColor: "black",
     height: '100%',
     width: '100%',
     marginBottom: 10,
-    
-    
-    
   },
   lightBackground: {
     flex: 1,
@@ -115,24 +117,20 @@ const styles = StyleSheet.create({
     width: '100%',
     padding:10
   },
-
   lightText: {
     color: 'black',
     fontSize: 16,
     width: imageWidth
-   
   },
   darkText: {
     color: 'white',
     fontSize: 16,
     width : imageWidth
-   
-  }, imageContainer : {
+  },
+  imageContainer: {
     marginHorizontal: 30,
     flex: 1
   }
-  
-  
 });
 
 export default DisplayFolders;

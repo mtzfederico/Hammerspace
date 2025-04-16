@@ -1,10 +1,10 @@
 import React, { useState,useEffect } from 'react';
 import { Image, StyleSheet, Platform } from 'react-native';
 import { View} from 'react-native';
-import initDB, { seeFiles, getFoldersByParentID, getFilesByParentID, insertFolder ,insertFile,  createTables, testDBname, dropDatabase} from '../../services/database'
+import initDB, { seeFiles, insertFolder ,insertFile,  createTables, testDBname, dropDatabase, getItemsInParentDB} from '../../services/database'
 import  AddButton  from  '../../components/addButton'
 import DisplayFolders from '@/components/displayFolders';
-import FolderNavigation from '@/components/FolderView';
+import FolderNavigation from '@/components/FolderNavigation';
 import { SafeAreaView } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from 'expo-router';
@@ -37,8 +37,8 @@ export default function HomeScreen() {
     createTables()
     // seeFiles()
   
-   getFoldersByParentID(currentID, storedUserID, setFolders)
-   getFilesByParentID(currentID, storedUserID, setFiles)
+   // getFoldersByParentID(currentID, storedUserID, setFolders)
+   getItemsInParentDB(currentID, storedUserID, setFiles)
  
   }, []); // Empty dependency array ensures it runs only once on startup
   
@@ -55,9 +55,11 @@ export default function HomeScreen() {
 
   };
   
-  const addFile = (name: string, uri: string, dirID: string, parentID: string, size:  number) => {
-    console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " +size)
-    insertFile(name, uri, dirID, parentID, size, storedUserID); 
+  // called from sendFile after the file has been uploaded
+  const addFile = (name: string, uri: string, dirID: string, type: string, parentID: string, size: number) => {
+    // TODO: the uri is probably a tmp path. we might need to copy it to be able to reference it for later
+    console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " + size + " type is " + type)
+    insertFile(name, uri, dirID, type, parentID, size, storedUserID); 
     setCurrentID(dirID); // Set the current folder to the new folder's dirID
     testDBname()
   };

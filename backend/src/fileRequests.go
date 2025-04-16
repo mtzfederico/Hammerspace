@@ -38,35 +38,39 @@ func handleFileUpload(c *gin.Context) {
 	authToken := c.PostForm("authToken")
 	// parentDir is a UUID for an actual folder. If it is the root/home folder, then it is 'root'
 	parentDir := c.PostForm("parentDir")
-	// Commented to simplify testing, it works
-	/*
-		if userID == "" || authToken == "" {
-			c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
-			log.Error("[handleFileUpload] No userID or authToken in request")
-			return
-		}
 
-		// verify that the token is valid
-		valid, err := isAuthTokenValid(c, userID, authToken)
-		if err != nil {
-			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-			log.WithField("error", err).Error("[handleFileUpload] Failed to verify token")
-			return
-		}
+	if userID == "" || authToken == "" {
+		c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
+		log.Error("[handleFileUpload] No userID or authToken in request")
+		return
+	}
 
-		if !valid {
-			c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
-			return
-		}
-	*/
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, userID, authToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleFileUpload] Failed to verify token")
+		return
+	}
 
-	fmt.Printf("[handleFileUpload] WARNING: authToken not verified. userID %s authToken %s\n", userID, authToken)
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	if parentDir == "" {
+		c.JSON(400, gin.H{"success": false, "error": "parentDir Missing"})
+		log.Error("[handleFileUpload] No parentDir in request")
+		return
+	}
+
+	fmt.Printf("[handleFileUpload] WARNING: authToken not verified. userID: '%s' authToken: '%s'. parentDir: '%s'\n", userID, authToken, parentDir)
 
 	// Check that parentDir is a valid folder and that the user can create a new directory in that location.
 	permission, err := getFolderPermission(c, parentDir, userID, true)
 	if err != nil {
 		if errors.Is(err, errDirNotFound) {
-			c.JSON(200, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
+			c.JSON(400, gin.H{"success": false, "error": "Parent Directory doesn't exist"})
 			return
 		}
 
