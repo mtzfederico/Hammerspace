@@ -18,7 +18,8 @@ import Constants from 'expo-constants';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-const PDFView = () => {
+export function PDFView() {
+  const { URI: encodedURI } = useLocalSearchParams<{ URI: string }>();
   const userID =  String(SecureStore.getItem('userID'));
   const authToken =  String(SecureStore.getItem('authToken'));
   const colorScheme = useColorScheme();
@@ -35,7 +36,6 @@ const PDFView = () => {
   const [error, setError] = useState<string | null>(null);
 
   // https://docs.expo.dev/router/basics/navigation/#using-dynamic-route-variables-and-query-parameters-in-the-destination-page
-  const { encodedURI } = useLocalSearchParams();
 
 
   useEffect(() => {

@@ -92,7 +92,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       case "application/pdf":
         var uri = item.uri || "";
         const encodedURI = encodeURI(uri);
-        router.push(`/PDFView?uri=${encodedURI}`)
+        router.push(`/PDFView/${encodedURI}` as any)
         return
       default:
         console.log("[handleFilePress] file type not handled: " + item.type)
