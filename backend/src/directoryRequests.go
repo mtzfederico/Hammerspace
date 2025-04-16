@@ -521,6 +521,7 @@ func getParentDirID(ctx context.Context, dirID string) (string, error) {
 // If the folder doesn't exist, it returns the error errDirNotFound.
 func getFolderPermission(ctx context.Context, fileID, userID string, allowShared bool) (string, error) {
 	if fileID == "" {
+		log.Trace("[getFolderPermission] fileID is empty. returning errDirNotFound")
 		return "", errDirNotFound
 	}
 

@@ -1,20 +1,36 @@
 import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
 import React, { useState} from 'react';
-import { pickDocument } from './sendFile';
-import CreateFolder  from './addFolder';
+import { pickDocument } from './pickDocument';
+import CreateFolder  from './CreateFolder';
 
+type addFolderType = ( 
+  fileName: string,
+  type: string,
+  dirID: string,
+  parentID: string,
+ ) => void
 
+export type AddFileType = (
+  name: string,
+  uri: string,
+  dirID: string,
+  type: string,
+  parentID: string,
+  size: number
+) => void;
 
+type AddButtonProps = {
+  addFolder: addFolderType;
+  addFile: AddFileType;
+  parentID: string;
+};
 
-
-
-
-
-
-const AddButton = ({addFolder, addFile, parentID}) => {
+//Buttons at the buttom left of the Screen
+// Add Folder functions that were defined in homescreen.tsx get passed to this component
+// and then passed to the addFolder function in addFolder.tsx
+// The addFile function and the parentID is passed to the sendFile.tsx component
+const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
     console.log("Addbutton parentID " + parentID)
- 
-   
 
     const [visible, setVisible] = useState(false); 
     const [isTextVisible, setIsTextVisible] = useState(false);
@@ -73,7 +89,6 @@ const AddButton = ({addFolder, addFile, parentID}) => {
   }
 
   const handleDocumentPick = async () => {
-    
     await pickDocument(parentID, addFile);
   };
 
@@ -82,9 +97,6 @@ const AddButton = ({addFolder, addFile, parentID}) => {
     console.log("Vising is bere " + visible)
     
   };
-  
-  
-
     
   const colorScheme = useColorScheme();
 
@@ -132,10 +144,7 @@ const AddButton = ({addFolder, addFile, parentID}) => {
         style={styles.image}
       />
     </TouchableOpacity>
-    
     </View>
-
-    
   );
 };
 
@@ -153,9 +162,6 @@ const styles = StyleSheet.create({
      justifyContent: 'center',
      alignItems: 'center',
     overflow: 'hidden'
-     
-    
-
   },
   image: {
     tintColor: 'white',

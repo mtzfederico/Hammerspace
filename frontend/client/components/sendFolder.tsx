@@ -8,7 +8,7 @@ console.log((`"${apiUrl}/createFolder"`))
 
 
 
-const sendFolder = async (dirName, parentID) => {
+const sendFolder = async (dirName: string, parentID: string) => {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =   String(SecureStore.getItem('userID'));
 
@@ -26,7 +26,7 @@ const sendFolder = async (dirName, parentID) => {
   
     try {
         console.log('before error hopefully')
-      const response = await fetch(`${apiUrl}/createFolder`, {
+      const response = await fetch(`${apiUrl}/createDir`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,16 +36,16 @@ const sendFolder = async (dirName, parentID) => {
       });
       console.log("after error")
   
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Directory created successfully:', data);
+      const data = await response.json();
+      if (data.success) {
+        console.log('Folder created successfully:', data);
          var dirID= String(data.dirID)
         //insertFolder(dirName, dirID, parentID)
         return dirID
         
       } else {
-        alert("yo mama messed up the directorys")
-        console.error('Error creating directory:', response.status, response.statusText);
+        alert("Error creating folder. (" + response.status + ")")
+        console.error('Error creating directory:', response.status, data.error);
         console.log(response.json())
       }
     } catch (error) {

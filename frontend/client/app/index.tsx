@@ -1,158 +1,38 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { Stack } from 'expo-router';
-import { API_URL } from '@env';
+import Login from "./login";
+import HomeScreen from './tabs/homescreen';
 
-const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+// This is the entry point of the app
+// It checks if the user is logged in and shows the appropriate screen
+// If the user is logged in, it shows the home screen, If the user is not logged in, it shows the login screen
 
-//const apiUrl = "http://216.37.99.155:9090"
+export default function appIndex(){
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
-export default function Login() {
-  const [userID, setUserID] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const router = useRouter();
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const authToken = await SecureStore.getItem('authToken');
+      console.log('authToken:', authToken);
+      setIsLoggedIn(!!authToken);
+    };
 
-  const handleLogin = async () => {
-    try {
-      console.log("hello world " + apiUrl)
-      const response = await fetch(`${apiUrl}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userID, password }),
-      });
+    checkLoginStatus();
+  }, []);
 
-      const data = await response.json();
-      console.log("data: " + JSON.stringify(data))
-      if (response.ok) {
-        console.log("Lmaomsoklf s, do " + data.authToken)
-        await SecureStore.setItem('authToken', String(data.authToken));
-        await SecureStore.setItem('userID', String(data.userID));
-        router.push('/tabs');
-      } else {
-        setError(data.error || 'Failed to log in');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('An error occurred during login');
-    }
-  };
+  // Show home or tab screen if logged in
+  if (isLoggedIn === null) {
+    return null; // Wait for login check
+  }
 
-  return (
-    
-    <View style={styles.container}>
-      <Text style={styles.title}>Hammerspace</Text>
-      <Text style={styles.subtitle}>Welcome!</Text>
-      <Text style={styles.description}>Create a free account or login to get started.</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="username"
-        placeholderTextColor="#ccc"
-        value={userID}
-        onChangeText={setUserID}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Login</Text>
-      </TouchableOpacity>
+  if(isLoggedIn === true){
+    return (
+    <HomeScreen/>
+  )
+} else {
+    return (
+      <Login/>
+    )
+  }
 
-      <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
-
-      <TouchableOpacity onPress={() => router.push('/register')}>
-        <Text style={styles.registerLink}>Don't have an account? Register</Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#b2b2ed',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 20,
-    color: '#fff',
-  },
-  description: {
-    color: '#fff',
-    marginVertical: 20,
-    textAlign: 'center',
-  },
-  input: {
-    width: '100%',
-    maxWidth: 400,
-    height: 50,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  loginButton: {
-    width: '100%',
-    maxWidth: 400,
-    height: 50,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 18,
-  },
-  orText: {
-    color: '#fff',
-    marginVertical: 10,
-  },
-  socialButton: {
-    width: '100%',
-    maxWidth: 400,
-    height: 50,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  socialButtonText: {
-    color: '#000',
-    fontSize: 18,
-  },
-  footerText: {
-    color: '#fff',
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 12,
-  },
-  registerLink: {
-    color: '#fff',
-    marginTop: 20,
-    textAlign: 'center',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
-});

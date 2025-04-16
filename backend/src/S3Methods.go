@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	errFileIsEmpty error = errors.New("fileSize is 0")
+	errFileIsEmpty       error = errors.New("fileSize is 0")
+	errS3ClientUndefined error = errors.New("the s3 client is nil. make sure that the S3 bucket is defined in settings.yaml")
 )
 
 // Creates an S3 client using the options in settings.yaml
@@ -43,6 +44,7 @@ func getS3Client() (*s3.Client, error) {
 
 	// Start a new client with the config
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(serverConfig.S3Endpoint)
 	})
 
@@ -92,6 +94,10 @@ func getFile(ctx context.Context, client *s3.Client, bucketName, objKey string) 
 // Uploads the file at the filePath to the bucket and gives it the specified objKey
 // The objKey is the name/id given to the file in S3. It is needed to retrieve the file later
 func uploadFile(ctx context.Context, client *s3.Client, bucketName string, file *os.File, objKey string) (*s3.PutObjectOutput, error) {
+	if client == nil {
+		return nil, errS3ClientUndefined
+	}
+
 	// https://github.com/realchandan/pgbackup/blob/1353f1cd131ff338800b69ddb861901e76151691/main.go#L314
 	/*
 		file, err := os.Open(filePath)
@@ -123,6 +129,10 @@ func uploadFile(ctx context.Context, client *s3.Client, bucketName string, file 
 // Uploads the bytes to the bucket and gives it the specified objKey
 // The objKey is the name/id given to the file in S3. It is needed to retrieve the file later
 func uploadBytes(ctx context.Context, client *s3.Client, bucketName string, bytes io.Reader, size int64, objKey string) (*s3.PutObjectOutput, error) {
+	if client == nil {
+		return nil, errS3ClientUndefined
+	}
+
 	putObjectOutput, err := client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(bucketName),
 		Key:           aws.String(objKey),
@@ -139,6 +149,10 @@ func uploadBytes(ctx context.Context, client *s3.Client, bucketName string, byte
 
 // Deletes the file with the specified objKey from S3
 func deleteFile(ctx context.Context, client *s3.Client, bucketName, objKey string) (*s3.DeleteObjectOutput, error) {
+	if client == nil {
+		return nil, errS3ClientUndefined
+	}
+
 	putObjectOutput, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objKey),

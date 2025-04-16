@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import {addUser} from '../../client/services/database';
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export default function Login() {
+//Register Screen
+export default function Register() {
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
@@ -26,14 +29,15 @@ export default function Login() {
       return;
     }
 
-    if (password.length < minLength || password.length > maxLength) {
+    const passLen = password.length;
+    if (passLen < minLength || passLen > maxLength) {
       setError('Password must be between 8 and 30 characters.');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${API_URL}/signup`, {
+      const response = await fetch(`${apiUrl}/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -46,12 +50,13 @@ export default function Login() {
       });
 
       const data = await response.json();
-      if (response.ok) {
+      if (data.success) {
         // Registration successful, store the token securely
         await SecureStore.setItem('authToken', String(data.authToken));
         await SecureStore.setItem('userID', String(data.userID));
+        addUser(data.userID, "default")
         // Navigate to the home screen or tab navigator
-        router.push('/tabs');
+        router.push('/tabs/homescreen');
       } else {
         // Handle error based on the server response
         setError(data.error || 'Registration failed');
@@ -65,21 +70,24 @@ export default function Login() {
   };
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <View style={styles.container}>
       <Text style={styles.title}>Hammerspace</Text>
       <Text style={styles.subtitle}>Welcome!</Text>
       <Text style={styles.description}>Create a free account or login to get started.</Text>
+      {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
       <TextInput
-          style={styles.input}
-          placeholder="Email"
-           placeholderTextColor="#ccc"
-          value={email}
-          onChangeText={setEmail}
-        />
-
+        style={styles.input}
+        placeholder="Email"
+        autoCapitalize="none"
+        placeholderTextColor="#ccc"
+        value={email}
+        onChangeText={setEmail}
+      />
       <TextInput
         style={styles.input}
         placeholder="username"
+        autoCapitalize="none"
         placeholderTextColor="#ccc"
         value={userID}
         onChangeText={setUserID}
@@ -93,17 +101,17 @@ export default function Login() {
         onChangeText={setPassword}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
+      <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
         <Text style={styles.loginButtonText}>Register</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
 
-      <TouchableOpacity onPress={() => router.push('/')}>
+      <Pressable onPress={() => router.back()}>
         <Text style={styles.loginLink}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
+      </Pressable>
     </View>
+    </TouchableWithoutFeedback>
   );
 }
 
