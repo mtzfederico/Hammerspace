@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getItemsInParentDB, syncWithBackend } from '../services/database';
+import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import { FileItem } from '@/components/displayFolders';
+import { decryptFile } from './decryption';
 
 type FolderNavigationProps = {
   initialParentID: string;
@@ -35,6 +36,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 
   useEffect(() => {
@@ -86,13 +88,91 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     checkProfileImage();
   }, []);
 
-  const handleFilePress = (item: FileItem) => {
+  const getOrFetchFileUri = async (id: string,  uri: string)=> {
+    try {
+      // Step 1: Get URI from local DB
+      const localResult = await getFileUri(id);
+  
+      if (localResult && localResult.uri && localResult.uri !== "null") {
+        console.log("[getOrFetchFileUri] Found local URI:", localResult.uri);
+        return localResult.uri; // Return local URI immediately
+      }
+ 
+      
+      console.log("userID: " + storedUserID)
+      console.log("authToken: " + storedToken)
+      console.log("fileID: " + id)
+  
+      console.log(`[getOrFetchFileUri] No local URI found. Fetching from server...`);
+  
+      // Step 2: Fetch from backend
+      const fileResponse = await fetch(`${apiUrl}/getFile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userID: storedUserID,
+          authToken: storedToken,
+          fileID: id,
+        }),
+      });
+  
+      if (!fileResponse.ok) {
+        console.error('[getOrFetchFileUri] Failed to fetch file from backend:', fileResponse.statusText);
+        return null;
+      }
+  
+      const blob = await fileResponse.blob();
+      const fileExtension = blob.type.split('/')[1] || 'bin';  // Default to 'bin' if no file type is found
+      const localPath = `${FileSystem.documentDirectory}${id}.${fileExtension}`;
+  
+      // Step 3: Save the file to local storage
+      const base64Data = await blobToBase64(blob);
+      await FileSystem.writeAsStringAsync(localPath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      console.log('[getOrFetchFileUri] File saved locally at:', localPath);
+  
+      // Step 4: Update DB with new URI
+      await updateFileUri(id, localPath);  // Wait for the database update to complete
+  
+      return localPath;  // Return the new local URI
+    } catch (error) {
+      console.error('[getOrFetchFileUri] Error:', error);
+      return null;  // Return null in case of error
+    }
+  };
+  
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const base64data = (reader.result as string).split(',')[1];
+        resolve(base64data);
+      };
+      reader.readAsDataURL(blob);
+    });
+  };
+  
+   
+
+  const handleFilePress = async (item: FileItem) => {
     console.log("file pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
+
     switch (item.type) {
       case "application/pdf":
-        var uri = item.uri || "";
+        var uri = String(await getOrFetchFileUri(item.id, String(item.uri)));
+        console.log("file uri: " + uri);
+        //item.uri || "";
         const encodedURI = encodeURI(uri);
-        router.push(`/PDFView/${encodedURI}` as any)
+        console.log("encoded uri in folder navigation " + item.id)
+        router.push({
+          pathname: "/PDFView/[URI]",
+          params: { URI: encodedURI },
+        });
         return
       default:
         console.log("[handleFilePress] file type not handled: " + item.type)

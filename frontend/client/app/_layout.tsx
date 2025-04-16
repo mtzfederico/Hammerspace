@@ -74,7 +74,7 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="PDFView"
+            name="PDFView/[URI]" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
       </Stack>

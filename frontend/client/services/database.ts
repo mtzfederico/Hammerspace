@@ -170,6 +170,45 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   }
   };
 
+  export const getFileUri = async (id: string) => {
+    console.log('GetFileUri called with ID:', id);
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      // Use db.getFirstAsync to retrieve a single row, specifying the correct shape of the result
+      const row = await db.getFirstAsync<{ uri: any }>('SELECT uri FROM folders WHERE id = ?;', id);
+      
+      // Check if the row is found
+      if (!row) {
+        console.log(`No file found with ID: ${id}`);
+        return null;  // Return null if no row is found
+      }
+  
+      // Check if uri is null in the found row
+      if (row.uri === null) {
+        console.log(`File found but URI is null for ID: ${id}`);
+        return null;  // Return null if uri is null
+      }
+  
+      // Return the uri if found and it's not null
+      return row.uri;
+    } catch (error) {
+      console.error('Error getting file URI:', error);
+      return null;  // Return null in case of an error
+    }
+  };
+  
+
+  export const updateFileUri = async (id: string , uri: string) => {
+    console.log('UpdateFileUri called with ID:', id);
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      await db.runAsync('UPDATE folders SET uri=? WHERE id=?;', uri, id);
+      console.log('File URI updated successfully');
+    } catch (error) {
+      console.error('Error updating file URI:', error);
+    }
+
+  }
   export const getItemsInParentDB = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try { 
