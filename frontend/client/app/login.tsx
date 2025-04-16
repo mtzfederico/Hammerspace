@@ -6,6 +6,11 @@ import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+//allows user to be able to tab off keyboard:
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
+
+
+
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //const apiUrl = "http://216.37.99.155:9090"
@@ -45,7 +50,8 @@ export default function Login() {
 
   
   return (
-      
+    //wraps the screen so that the keyboard can be clicked off of:
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}> 
       <ImageBackground source={require('../assets/images/login-background.png')} style={styles.backgroundImage} resizeMode='cover'>
 
       <View style={styles.container}>
@@ -81,7 +87,7 @@ export default function Login() {
       </TouchableOpacity>
     </View>
       </ImageBackground>
-
+    </TouchableWithoutFeedback>
   );
 }
 
