@@ -10,7 +10,8 @@ import (
 	"github.com/hammerspace/db"
 )
 
-func main() {
+// This is the test function
+func testUserFriendRequest() {
 	if err := db.InitDB(); err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
@@ -61,6 +62,7 @@ func main() {
 	}
 }
 
+// This is the function to send friend request
 func sendFriendRequest(dbConn *sql.DB, userID, friendID string) error {
 	id := uuid.New().String()
 	_, err := dbConn.Exec(`
@@ -70,6 +72,7 @@ func sendFriendRequest(dbConn *sql.DB, userID, friendID string) error {
 	return err
 }
 
+// This is the function for user to view thier friends list
 func getFriendList(dbConn *sql.DB, userID string) ([]string, error) {
 	rows, err := dbConn.Query(`
 		SELECT friendID FROM user_friends 
@@ -93,6 +96,7 @@ func getFriendList(dbConn *sql.DB, userID string) ([]string, error) {
 	return friends, nil
 }
 
+// This is the function for pending request
 func getPendingRequests(dbConn *sql.DB, userID string) ([]string, error) {
 	rows, err := dbConn.Query(`
 		SELECT userID FROM user_friends 
@@ -113,6 +117,7 @@ func getPendingRequests(dbConn *sql.DB, userID string) ([]string, error) {
 	return requests, nil
 }
 
+// This is the function for user to accept friend request
 func acceptFriendRequest(dbConn *sql.DB, fromUserID, currentUserID string) error {
 	_, err := dbConn.Exec(`
 		UPDATE user_friends 
@@ -122,6 +127,7 @@ func acceptFriendRequest(dbConn *sql.DB, fromUserID, currentUserID string) error
 	return err
 }
 
+// This is the function for user to decline friend request
 func declineFriendRequest(dbConn *sql.DB, fromUserID, currentUserID string) error {
 	_, err := dbConn.Exec(`
 		DELETE FROM user_friends 
@@ -130,6 +136,7 @@ func declineFriendRequest(dbConn *sql.DB, fromUserID, currentUserID string) erro
 	return err
 }
 
+// This is the function that handles a suer's friend requests
 func handleFriendRequestAction(dbConn *sql.DB, currentUser string, accept bool) {
 	requests, err := getPendingRequests(dbConn, currentUser)
 	if err != nil {
