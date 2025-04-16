@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
 import { getFoldersByParentID, getFilesByParentID, syncWithBackend } from '../../client/services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
 
 type FolderNavigationProps = {
   initialParentID: string;
@@ -31,6 +32,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const isDarkMode = colorScheme === 'dark';
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+
 
   useEffect(() => {
     const syncAndRefresh = async () => {
@@ -66,6 +69,22 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     }
   };
 
+  useEffect(() => {
+    const checkProfileImage = async () => {
+      const userID = await SecureStore.getItemAsync('userID');
+      if (!userID) return;
+  
+      const imagePath = `${FileSystem.documentDirectory}${userID}_profile.jpg`;
+      const fileInfo = await FileSystem.getInfoAsync(imagePath);
+      if (fileInfo.exists) {
+        setProfileImageUri(imagePath);
+      }
+    };
+  
+    checkProfileImage();
+  }, []);
+
+
   return (
     <View style={[styles.container]}>
       <View style={styles.header}>
@@ -76,9 +95,19 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         </TouchableOpacity>
         ): null }
         <Text style={[styles.sectionTitle, textStyle]}>Current Directory: {currentDirName}</Text>
-        <TouchableOpacity style={styles.profileButton} onPress={() => {router.replace('/profile')}}>
-          <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
-        </TouchableOpacity>
+        <TouchableOpacity
+  style={styles.profileButton}
+  onPress={() => router.push(`/profile/${storedUserID}` as any)}
+>
+  {profileImageUri ? (
+    <Image
+      source={{ uri: profileImageUri }}
+      style={styles.profileImage}
+    />
+  ) : (
+    <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
+  )}
+</TouchableOpacity>
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
@@ -137,6 +166,12 @@ const styles = StyleSheet.create({
   lightText: {
     color: 'black',
   },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+  },
+  
 });
 
 export default FolderNavigation;

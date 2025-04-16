@@ -14,7 +14,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
@@ -27,6 +27,7 @@ export default function friends() {
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+  const router = useRouter()
 
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
@@ -124,7 +125,7 @@ const handleAddFriend = async () => {
 
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
-          <TouchableOpacity onPress={() => router.push('/tabs')} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Text >{'< Back'}</Text>
           </TouchableOpacity>
           <Text style={[styles.pageTitle, textStyle]}>Friends</Text>

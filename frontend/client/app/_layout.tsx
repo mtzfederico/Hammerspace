@@ -69,7 +69,7 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="profile" // This will auto-reference `app/tabs.tsx`
+            name="profile/[userID]" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
           <Stack.Screen
