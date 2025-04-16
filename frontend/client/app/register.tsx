@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {addUser} from '../../client/services/database';
@@ -28,7 +28,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < minLength || password.length > maxLength) {
+    const passLen = password.length;
+    if (passLen < minLength || passLen > maxLength) {
       setError('Password must be between 8 and 30 characters.');
       setLoading(false);
       return;
@@ -72,15 +73,15 @@ export default function Register() {
       <Text style={styles.title}>Hammerspace</Text>
       <Text style={styles.subtitle}>Welcome!</Text>
       <Text style={styles.description}>Create a free account or login to get started.</Text>
+      {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
       <TextInput
-          style={styles.input}
-          placeholder="Email"
-          autoCapitalize="none"
-           placeholderTextColor="#ccc"
-          value={email}
-          onChangeText={setEmail}
-        />
-
+        style={styles.input}
+        placeholder="Email"
+        autoCapitalize="none"
+        placeholderTextColor="#ccc"
+        value={email}
+        onChangeText={setEmail}
+      />
       <TextInput
         style={styles.input}
         placeholder="username"
@@ -98,16 +99,15 @@ export default function Register() {
         onChangeText={setPassword}
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
+      <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
         <Text style={styles.loginButtonText}>Register</Text>
-      </TouchableOpacity>
+      </Pressable>
 
       <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
 
-      <TouchableOpacity onPress={() => router.push('/')}>
+      <Pressable onPress={() => router.back()}>
         <Text style={styles.loginLink}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
+      </Pressable>
     </View>
   );
 }
