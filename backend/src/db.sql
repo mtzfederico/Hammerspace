@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS user_friends (
   friendshipID     VARCHAR(36)  PRIMARY KEY,
   userID1          VARCHAR(50)  NOT NULL,
   userID2          VARCHAR(50)  NOT NULL,
-  request_status           VARCHAR(20)  NOT NULL DEFAULT 'Pending',
+  request_status            ENUM('pending', 'accepted', 'declined') DEFAULT 'pending',
   createdDate      DATETIME     NOT NULL,
   CONSTRAINT user_friends_userID1_fk FOREIGN KEY (userID1) REFERENCES users(userID) ON DELETE CASCADE,
   CONSTRAINT user_friends_userID2_fk FOREIGN KEY (userID2) REFERENCES users(userID) ON DELETE CASCADE,
