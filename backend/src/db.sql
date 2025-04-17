@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS files (
   id            VARCHAR(36)   PRIMARY KEY,
   objKey        VARCHAR(36)   NOT NULL   DEFAULT "",
   parentDir     VARCHAR(50)   NOT NULL,
-  name          VARCHAR(50)   NOT NULL,
+  name          VARCHAR(265)  NOT NULL,
   type          VARCHAR(50)   NOT NULL,
   size          INT           NOT NULL,
   userID        VARCHAR(50)   NOT NULL,
