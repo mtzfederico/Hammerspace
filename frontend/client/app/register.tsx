@@ -3,11 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'reac
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {addUser} from '../../client/services/database';
+import  {generateKeys}  from '@/components/decryption';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //Register Screen
 export default function Register() {
+ 
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +18,7 @@ export default function Register() {
   const router = useRouter();  // Initialize the router for navigation
   const minLength = 8
   const maxLength = 30
-
+  let publicKey = "publicKey" // Placeholder for the public key, to be generated
   const handleRegister = async () => {
     setLoading(true);
     setError('');  // Clear any previous errors
@@ -35,6 +37,19 @@ export default function Register() {
     }
 
     try {
+      try {
+         publicKey = await generateKeys();
+        console.log('Public Key:', publicKey); // ✅ Check if this logs
+      } catch (err) {
+        console.error('generateKeys failed:', err);
+        setError('Key generation failed');
+        setLoading(false);
+        return;
+      }
+      
+
+      console.log(apiUrl)
+      console.log("before fetch")
       const response = await fetch(`${apiUrl}/signup`, {
         method: 'POST',
         headers: {
@@ -44,6 +59,7 @@ export default function Register() {
           email,
           userID,
           password,
+          publicKey
         }),
       });
 

@@ -67,7 +67,13 @@ export default function PDFView() {
             <ActivityIndicator style={{ marginTop: 10 }} />
         ) : (
             // TODO: when null maybe set the path to an error page
-            <WebView style={styles.container} source={{ uri: filePath || ""}}/>
+            <WebView style={styles.container}  originWhitelist={['*']}
+      source={{ uri: filePath || '' }}
+      allowFileAccess={true}  // Allow file access
+      allowUniversalAccessFromFileURLs={true}  // Allow access to local URLs
+      javaScriptEnabled={true}
+      startInLoadingState={true}
+      renderLoading={() => <ActivityIndicator size="large" color="#0000ff" />}/>
         )}
     </View>
   );

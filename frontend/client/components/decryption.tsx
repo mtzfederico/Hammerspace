@@ -2,6 +2,9 @@
 import * as FileSystem from 'expo-file-system';
 import { Buffer } from 'buffer';
 import * as age from 'age-encryption';
+import * as SecureStore from 'expo-secure-store';
+
+
 
 /**
  * Decrypts an encrypted file from a URL using an AGE private key.
@@ -10,6 +13,27 @@ import * as age from 'age-encryption';
  * @param originalFileName - The desired filename (e.g., 'image.png', 'doc.pdf').
  * @returns Local URI path of the decrypted file.
  */
+
+export async function generateKeys() {
+  console.log('[Key Generation] Generating keys...');
+  try {
+    // Generate private key (identity)
+    const privateKey = await age.generateIdentity(); // string
+
+    // Convert to public key (recipient)
+    const publicKey = await age.identityToRecipient(privateKey); // string
+
+    // Store private key securely
+    await SecureStore.setItemAsync('privateKey', privateKey);
+
+    // Return the public key to be sent to the backend
+    return publicKey;
+  } catch (error) {
+    console.error('[Key Generation] Failed to generate or store keys:', error);
+    throw new Error('Key generation failed');
+  }
+}
+
 export async function decryptFile(encryptedFileUrl: string,privateKey: string ,originalFileName:string): Promise<string> {
   try {
     // Fetch encrypted file
@@ -20,6 +44,8 @@ export async function decryptFile(encryptedFileUrl: string,privateKey: string ,o
 
     // Initialize Decrypter and add identity
     const decrypter = new age.Decrypter();
+    console.log('[Decrypt] Using privateKey:', privateKey);
+
     await decrypter.addIdentity(privateKey);
 
     // Decrypt the file

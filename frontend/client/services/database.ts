@@ -43,7 +43,7 @@ try {
         parentDir     VARCHAR(50)   NOT NULL,
         name          VARCHAR(50)   NOT NULL,
         type          VARCHAR(50)   NOT NULL,
-        uri          VARCHAR(500)   NOT NULL,
+        uri          VARCHAR(500)   ,
         fileSize          INT        NOT NULL,
         userID        VARCHAR(50)   NOT NULL
       );`
@@ -249,8 +249,8 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
 
             // TODO: type is hardcoded to directory. backend uses folder 
             await db.runAsync(
-              'INSERT OR REPLACE INTO folders (id, parentDir, name, type, fileSize, uri, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
-              folder.id, folder.parentDir, folder.name, folder.type, 0, "null", folder.userID
+              'INSERT OR REPLACE INTO folders (id, parentDir, name, type, uri, fileSize, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              folder.id, folder.parentDir, folder.name, folder.type, "" ,folder.fileSize, folder.userID
             );
             
           }
@@ -263,5 +263,16 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
       }
     };
     
+  
+  export const getAllFilesURi = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try { 
+      const result = await db.getAllAsync('SELECT id,uri FROM folders WHERE parentDir=? AND userID=?', parentID, userID);
+      const items = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
+      callback(items);
+    } catch (error) {
+      console.error('[getItemsInParentDB] Error getting items:', error);
+    }
+  };
 
 export default initDB

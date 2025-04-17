@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri } from '../services/database';
+import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri, getAllFilesURi } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
@@ -37,13 +37,31 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-
+  const privateKey = String(SecureStore.getItem('privateKey'));
+  const [loadingFiles, setLoadingFiles] = useState(true);
 
   useEffect(() => {
     const syncAndRefresh = async () => {
+      setLoadingFiles(true); // Start loading
+  
       await syncWithBackend(storedUserID, storedToken);
-      refreshData();
+      
+  
+      await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
+        for (const file of files) {
+          if (!file.uri || file.uri === 'null') {
+            const encryptedUri = await getOrFetchFileUri(file.id, '');
+            const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+            await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+            await updateFileUri(file.id, decryptedPath);
+          }
+        }
+  
+        await refreshData(); // Fetch again after all decryption + URI set
+        setLoadingFiles(false); // Done loading
+      });
     };
+  
     syncAndRefresh();
   }, []);
 
@@ -137,7 +155,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   
       // Step 4: Update DB with new URI
       await updateFileUri(id, localPath);  // Wait for the database update to complete
-  
+      console.log('[getOrFetchFileUri] Database updated with new URI:', localPath);
       return localPath;  // Return the new local URI
     } catch (error) {
       console.error('[getOrFetchFileUri] Error:', error);
@@ -158,26 +176,36 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
   
    
-
-  const handleFilePress = async (item: FileItem) => {
-    console.log("file pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
-
-    switch (item.type) {
-      case "application/pdf":
-        var uri = String(await getOrFetchFileUri(item.id, String(item.uri)));
-        console.log("file uri: " + uri);
-        //item.uri || "";
-        const encodedURI = encodeURI(uri);
-        console.log("encoded uri in folder navigation " + item.id)
-        router.push({
-          pathname: "/PDFView/[URI]",
-          params: { URI: encodedURI },
-        });
-        return
-      default:
-        console.log("[handleFilePress] file type not handled: " + item.type)
-    }
-  };
+    const handleFilePress = async (item: FileItem) => {
+      console.log("file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
+    
+      if (item.type === "application/pdf") {
+        const encryptedUri = await getOrFetchFileUri(item.id, String(item.uri));
+        if (!encryptedUri) {
+          console.error("[handleFilePress] Failed to get encrypted URI");
+          return;
+        }
+    
+        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.pdf`;
+        console.log("privateKey: " + privateKey)
+        try {
+          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.pdf`);
+          console.log("[handleFilePress] Decryption successful, decryptedPath:", decryptedPath);
+    
+          const encodedURI = encodeURI(decryptedPath);
+          router.push({
+            pathname: "/PDFView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress] Decryption failed:", err);
+        }
+    
+        return;
+      }
+    
+      console.warn("[handleFilePress] Unsupported file type:", item.type);
+    };
 
   const handleItemLongPress = (item: FileItem) => {
     console.log("item long pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
