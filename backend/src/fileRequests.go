@@ -167,9 +167,15 @@ func handleGetFile(c *gin.Context) {
 		return
 	}
 
+	if objKey == "" {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("fileID", request.FileID).Error("[handleGetFile] Object key is empty")
+		return
+	}
+
 	file, err := getFile(c, s3Client, serverConfig.S3BucketName, objKey)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get file")
 		return
 	}
