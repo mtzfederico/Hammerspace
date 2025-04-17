@@ -162,6 +162,12 @@ func handleGetFile(c *gin.Context) {
 	// check that file exists, and the user has access to it, and get the s3 objKey
 	objKey, err := getObjectKey(c, request.FileID, request.UserID, true)
 	if err != nil {
+		if errors.Is(err, errFileNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "File not found"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetFile] No file with that fileID found")
+			return
+		}
+
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get object key")
 		return
