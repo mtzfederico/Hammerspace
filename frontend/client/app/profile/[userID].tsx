@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -184,8 +185,32 @@ export default function UserProfileScreen() {
 	}
   };
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          { userID: storedUserID, authToken: storedToken } ),
+      });
+      const data = await response.json();
+      if (data.success) { 
+        await SecureStore.deleteItemAsync('authToken');
+        await SecureStore.deleteItemAsync('userID');
+        router.replace('/login');
+      }
+      else {
+        Alert.alert('Error', 'Failed to log out');
+      }
+    } catch (error) {
+      console.error('Error deleting SecureStore items:', error);
+    }
+  }
 
   return (
+    <SafeAreaView style={{ flex: 1 }}>
     <View style={[styles.container, backgroundStyle]}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
@@ -212,9 +237,25 @@ export default function UserProfileScreen() {
             onPress={handleUpload}
             disabled={!selectedImage || loading}
           />
+        <View style={styles.friendsText}>
+        <Text
+          style={[styles.header, textStyle]}
+          onPress={() => router.push('/friends')}
+        >
+          Your Friends
+        </Text>
+      </View>
+      <Text
+          style={[styles.logoutText]}
+          onPress={() => {handleLogout()}}
+        >
+          Logout
+        </Text>
         </>
+        
       )}
     </View>
+    </SafeAreaView>
   );
 }
 
@@ -258,5 +299,20 @@ const styles = StyleSheet.create({
   },
   darkText: {
     color: 'white',
+  },
+  friendsText: {
+    position: 'absolute',
+    bottom: 400, // Adjust as needed to position it close to the bottom
+    fontSize: 22,
+    fontWeight: 'bold',
+    alignSelf: 'center', // Center horizontally
+  },
+  logoutText: {
+    position: 'absolute',
+    bottom: 80, // Adjust as needed to position it close to the bottom
+    fontSize: 22,
+    fontWeight: 'bold',
+    alignSelf: 'center', // Center horizontally
+    color: 'red',
   },
 });
