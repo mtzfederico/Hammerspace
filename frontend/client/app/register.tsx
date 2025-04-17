@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, ImageBackground, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {addUser} from '../../client/services/database';
@@ -87,56 +87,60 @@ export default function Register() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <View style={styles.container}>
-      <Text style={styles.title}>Hammerspace</Text>
-      <Text style={styles.subtitle}>Welcome!</Text>
-      <Text style={styles.description}>Create a free account or login to get started.</Text>
-      {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        autoCapitalize="none"
-        placeholderTextColor="#ccc"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="username"
-        autoCapitalize="none"
-        placeholderTextColor="#ccc"
-        value={userID}
-        onChangeText={setUserID}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
-        <Text style={styles.loginButtonText}>Register</Text>
-      </Pressable>
+      <ImageBackground source={require('../assets/images/login-background.png')} style={styles.backgroundImage} resizeMode='cover'>
+        <View style={styles.container}>
+          <Text style={styles.title}>Hammerspace</Text>
+          <Text style={styles.subtitle}>Welcome!</Text>
+          <Text style={styles.description}>Create a free account or login to get started.</Text>
+          {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            autoCapitalize="none"
+            placeholderTextColor="#ccc"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="username"
+            autoCapitalize="none"
+            placeholderTextColor="#ccc"
+            value={userID}
+            onChangeText={setUserID}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          {error && <Text style={styles.error}>{error}</Text>}
+          <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
+            <Text style={styles.loginButtonText}>Register</Text>
+          </Pressable>
 
-      <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
+          <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
 
-      <Pressable onPress={() => router.back()}>
-        <Text style={styles.loginLink}>Already have an account? Login</Text>
-      </Pressable>
-    </View>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.loginLink}>Already have an account? Login</Text>
+          </Pressable>
+        </View>
+      </ImageBackground>
     </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#b2b2ed',
     padding: 20,
   },
   title: {
