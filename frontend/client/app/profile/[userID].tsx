@@ -246,13 +246,22 @@ export default function UserProfileScreen() {
         </Text>
       </View>
       <Text
-          style={[styles.logoutText]}
-          onPress={() => {handleLogout()}}
-        >
-          Logout
-        </Text>
+  style={[styles.logoutText]}
+  onPress={() => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log Out', style: 'destructive', onPress: handleLogout },
+      ]
+    );
+  }}
+>
+  Logout
+</Text>
+
         </>
-        
       )}
     </View>
     </SafeAreaView>
