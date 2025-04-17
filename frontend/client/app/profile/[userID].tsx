@@ -19,6 +19,8 @@ import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
+import { dropDatabase } from '@/services/database';
+
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
 export default function UserProfileScreen() {
@@ -31,8 +33,8 @@ export default function UserProfileScreen() {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
   const [error, setError] = useState<string | null>(null);
-  const [profilePicture, setProfilePicture] = useState<string | null>(null);
-  const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
+  // const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  // const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
@@ -64,6 +66,7 @@ export default function UserProfileScreen() {
       await fetchProfilePicture(userID, token, forUserID);
     }
   };
+
   const fetchProfilePicture = async (userID: string, authToken: string, forUserID:string) => {
     setLoading(true);
     try {
@@ -80,7 +83,9 @@ export default function UserProfileScreen() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch image');
+        console.log(`[fetchProfilePicture] Status ${response.status}`)
+        const data = await response.json();
+        throw new Error(data.error || response.status + " " + response.statusText);
       }
 
       const blob = await response.blob();
@@ -98,8 +103,8 @@ export default function UserProfileScreen() {
       };
       reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Image fetch failed:', error);
-      Alert.alert('Error', 'Could not load profile picture.');
+      console.error('Image fetch failed: ', error);
+      Alert.alert('Could not load profile picture', '' + error || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -141,51 +146,51 @@ export default function UserProfileScreen() {
   };
 
   const handleUpload = async () => {
-    if (!profilePicture) {
-  	setError('Please select a picture to upload');
-  	return;
-	}
+    setLoading(true);
+    setError(null);
+    console.log("Uploading profile picture");
+    if (!selectedImage) {
+      setError('Please select a picture to upload');
+      setLoading(false);
+      return;
+	  }
 
-   
+    const formData = new FormData();
+    formData.append('file', {
+      uri: selectedImage,
+      name: 'profile-picture',
+      type: mimeType,
+    } as any);
+      
 
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
 
-    
-	const formData = new FormData();
-	formData.append('file', {
-  	uri: profilePicture,
-  	name: 'profile-picture',
-  	type: profilePictureMimeType,
-	} as any);
-    
+    try {
+      const response = await fetch(`${apiUrl}/updateProfilePicture`, {
+        method: 'POST',
+        body: formData,
+      });
 
-	formData.append("userID", storedUserID);
-	formData.append("authToken", storedToken);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
+      }
 
-	setLoading(true);
-	setError(null);
-
-	try {
-  	const response = await fetch(`${apiUrl}/updateProfilePicture`, {
-    	method: 'POST',
-    	body: formData,
-  	});
-
-  	const data = await response.json();
-  	if (!response.ok) {
-    	throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
-  	}
-
-  	if (data.success) {
-    	Alert.alert('Success', 'Profile picture updated successfully');
-  	}
-	} catch (err: any) {
-  	setError(err.message || 'Error uploading profile picture. Please try again.');
-	} finally {
-  	setLoading(false);
-	}
+      if (data.success) {
+        Alert.alert('Success', 'Profile picture updated successfully');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error uploading profile picture. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
+    // dropDatabase();
+    // return
+    setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/logout`, {
         method: 'POST',
@@ -196,17 +201,22 @@ export default function UserProfileScreen() {
           { userID: storedUserID, authToken: storedToken } ),
       });
       const data = await response.json();
-      if (data.success) { 
+      // TODO: test this
+      if (data.success || data.error === "Invalid Credentials") { 
+        // the item's should still be deleted if the backend returns certain errors like "Invalid Credentials"
+        // TODO: delete the files that are stored locally. truncate the db
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('userID');
         router.replace('/login');
       }
       else {
-        Alert.alert('Error', 'Failed to log out');
+        console.log(`Failed to log out '${data.error}'`)
+        Alert.alert('Failed to log out', data.error || `${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error deleting SecureStore items:', error);
     }
+    setLoading(false);
   }
 
   return (
