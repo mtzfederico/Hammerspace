@@ -54,6 +54,7 @@ func handleGetProfilePicture(c *gin.Context) {
 	if profilePictureID == "" {
 		c.JSON(400, gin.H{"success": false, "error": "No profile picture found"})
 		log.Trace("[handleGetProfilePicture] No profile picture found")
+		return
 	}
 
 	// Get the MIME Subtype from the ID. It is added to the end after a dot
