@@ -16,6 +16,8 @@ var (
 	errUserAccessNotAllowed error = errors.New("user doesn't have access to item")
 	// File not found in the files DB error
 	errFileNotFound error = errors.New("file not found")
+	// Error returned when trying to get the objKey of a file that is still being processed
+	errFileProcessing error = errors.New("file is still processing")
 )
 
 // Handles the requests to uplooad files to the server
@@ -168,6 +170,12 @@ func handleGetFile(c *gin.Context) {
 			return
 		}
 
+		if errors.Is(err, errFileProcessing) {
+			c.JSON(400, gin.H{"success": false, "error": "File is being processed, try again later"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Trace("[handleGetFile] File is still being processed")
+			return
+		}
+
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get object key")
 		return
@@ -267,7 +275,7 @@ func handleRemoveFile(c *gin.Context) {
 func getObjectKey(ctx context.Context, fileID string, userID string, allowShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
-	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=? AND type!='folder'", fileID)
+	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, ''), processed from files where id=? AND type!='folder'", fileID)
 	if err != nil {
 		return "", err
 	}
@@ -276,7 +284,8 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowShared
 
 	if rows.Next() {
 		var fileOwnerUserID, objKey string
-		err := rows.Scan(&fileOwnerUserID, &objKey)
+		var processed bool
+		err := rows.Scan(&fileOwnerUserID, &objKey, &processed)
 		if err != nil {
 			return "", err
 		}
@@ -298,6 +307,10 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowShared
 			}
 		}
 		// The user has access to this item
+
+		if !processed {
+			return "", errFileProcessing
+		}
 		return objKey, nil
 	}
 

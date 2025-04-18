@@ -20,6 +20,8 @@ var (
 	errUnsuportedImgType error = errors.New("the image file format is not supported")
 	// A list of the suported image types for a profile picture
 	supportedImageTypes = []string{"jpeg", "jp2", "png", "gif"}
+	// A list of the file types that the filetype library can't recognize that are ok to be assumed to be safe.
+	excemptedFileTypes = []string{"text/plain", "application/xml", "text/xml"}
 )
 
 func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string) error {
@@ -46,10 +48,12 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 		// TODO: process the mime type
 
 	} else {
-		// TODO: decide how to handle unknown files
-		// Set the mime to application/octet-stream??
-		log.Info("[processFile] errUnknownFileType")
-		// return errUnknownFileType
+		log.WithFields(log.Fields{"fileID": fileID, "expectedMIMEType": expectedMIMEType}).Info("[processFile] File Type not recognized")
+		if !slices.Contains(excemptedFileTypes, expectedMIMEType) {
+			// return errUnknownFileType
+			// TODO: decide how to handle unknown files
+			// Set the mime to application/octet-stream??
+		}
 	}
 
 	objKey, err := getNewID()
