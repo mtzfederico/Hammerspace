@@ -19,7 +19,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 
-import { dropDatabase } from '@/services/database';
+import { deleteEverythingLocally } from '@/services/database';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
@@ -201,10 +201,10 @@ export default function UserProfileScreen() {
           { userID: storedUserID, authToken: storedToken } ),
       });
       const data = await response.json();
-      // TODO: test this
       if (data.success || data.error === "Invalid Credentials") { 
         // the item's should still be deleted if the backend returns certain errors like "Invalid Credentials"
-        // TODO: delete the files that are stored locally. truncate the db
+        // delete the files that are stored locally and truncate the db
+        await deleteEverythingLocally()
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('userID');
         router.replace('/login');

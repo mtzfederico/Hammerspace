@@ -4,8 +4,6 @@ import { Buffer } from 'buffer';
 import * as age from 'age-encryption';
 import * as SecureStore from 'expo-secure-store';
 
-
-
 /**
  * Decrypts an encrypted file from a URL using an AGE private key.
  * @param encryptedFileUrl - The URL of the encrypted `.age` file.
@@ -34,7 +32,8 @@ export async function generateKeys() {
   }
 }
 
-export async function decryptFile(encryptedFileUrl: string,privateKey: string ,originalFileName:string): Promise<string> {
+export async function decryptFile(encryptedFileUrl: string, privateKey: string, originalFileName: string): Promise<string> {
+  console.log(`[decryptFile] originalFileName: ${originalFileName}`)
   try {
     // Fetch encrypted file
     const response = await fetch(encryptedFileUrl);
@@ -62,6 +61,7 @@ export async function decryptFile(encryptedFileUrl: string,privateKey: string ,o
     return outputPath;
   } catch (err) {
     console.error('[Decryption.tsx] Error decrypting file:', err);
-    throw new Error('File decryption failed');
+    // throw new Error('File decryption failed');
+    throw err;
   }
 }

@@ -68,13 +68,15 @@ export default function PDFView() {
         ) : (
             // TODO: when null maybe set the path to an error page
             <WebView style={styles.container}  originWhitelist={['*']}
-      source={{ uri: filePath || '' }}
-      allowFileAccess={true}  // Allow file access
-      allowUniversalAccessFromFileURLs={true}  // Allow access to local URLs
-      javaScriptEnabled={true}
-      startInLoadingState={true}
-      renderLoading={() => <ActivityIndicator size="large" color="#0000ff" />}/>
-        )}
+              source={{ uri: filePath || '' }}
+              allowFileAccess={true}  // Allow file access
+              // TODO: this should be checked. Malicious JS could access other files
+              allowUniversalAccessFromFileURLs={true}  // Allow access to local URLs in JS.
+              javaScriptEnabled={true}
+              startInLoadingState={true}
+              renderLoading={() => <ActivityIndicator size="large" color="#0000ff" />}
+            />
+          )}
     </View>
   );
 };
