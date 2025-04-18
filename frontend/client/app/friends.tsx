@@ -19,6 +19,11 @@ import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
+type Friends = {
+  userID: string;
+};
+
+
 export default function friends() {
   const userID =  String(SecureStore.getItem('userID'));
   const authToken =  String(SecureStore.getItem('authToken'));
@@ -34,6 +39,7 @@ export default function friends() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [friends, setFriends] = useState<Friends[]>([]);
 
   const data = [
     {userID: "testUser"},
@@ -84,20 +90,20 @@ const handleAddFriend = async () => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              userID,
-              authToken,
+              userID: storedUserID,
+              authToken: storedToken,
             }),
           });
     
           const data = await response.json();
-          if (data.success) {
+          if (data.success && Array.isArray(data.friends)) {
+            setFriends(data.friends);
+          } else {
+            setError(data.error || 'Failed to load friends.');
+          }
             // addUser(data.userID, "default")
             // Navigate to the home screen or tab navigator
             // router.push('/tabs');
-          } else {
-            // Handle error based on the server response
-            setError(data.error || 'error getting friends list');
-          }
         } catch (err) {
           console.error(err);
           setError('Error: ' + err);

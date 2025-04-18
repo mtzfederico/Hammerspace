@@ -149,3 +149,9 @@ type User struct {
 	RoleID  string `json:"roleID"`
 	Created string `json:"created"`
 }
+
+type AddFriendRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	ForUserID string `json:"forUserID"`
+}
