@@ -135,6 +135,9 @@ func main() {
 	router.POST("getProfilePicture", handleGetProfilePicture)
 	router.POST("updateProfilePicture", handleUpdateProfilePicture)
 
+	router.POST("getFriends", handleGetFriends)
+	router.POST("addFriends", handleAddFriends)
+
 	router.Run(serverConfig.ListenOn)
 
 }
