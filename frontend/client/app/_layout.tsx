@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import 'react-native-get-random-values';
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete

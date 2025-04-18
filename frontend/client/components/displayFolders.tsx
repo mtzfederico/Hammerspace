@@ -1,4 +1,7 @@
 import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions, Pressable} from "react-native";
+import React, { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { syncWithBackend } from "@/services/database";
 
 const imageHeight = 60
 const imageWidth = 60
@@ -24,7 +27,10 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
   
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
+  const storedToken =  String(SecureStore.getItem('authToken'));
+  const storedUserID =  String(SecureStore.getItem('userID'));
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   // Get the screen width to calculate numColumns dynamically
@@ -32,6 +38,13 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
 
   // Dynamically calculate number of columns based on screen width
   const numColumns = Math.floor(screenWidth / (imageWidth + 20)); // Add 20 for margin/padding between items
+
+  const handlePullToRefresh = () => {
+    setIsRefreshing(true);
+    console.log("Pull to refresh")
+    syncWithBackend(storedUserID, storedToken);
+    setIsRefreshing(false);
+  };
 
   const renderItem = ({ item }: {item: FileItem}) => {
     if(item.type == 'folder') {
@@ -68,6 +81,8 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
         renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
         numColumns={numColumns}
+        refreshing={isRefreshing}
+        onRefresh={handlePullToRefresh}
       />
       </SafeAreaView>
     </View>

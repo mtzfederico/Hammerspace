@@ -9,6 +9,7 @@ type SignupRequest struct {
 	Email    string `json:"email"`
 	UserID   string `json:"userID"`
 	Password string `json:"password"`
+	PublicKey string `json:"publicKey"`
 }
 
 type LoginRequest struct {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri } from '../services/database';
+import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri, getAllFilesURi, deleteFileLocally } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
@@ -37,13 +37,28 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-
+  const privateKey = String(SecureStore.getItem('privateKey'));
+  const [loadingFiles, setLoadingFiles] = useState(true);
 
   useEffect(() => {
     const syncAndRefresh = async () => {
+      setLoadingFiles(true); // Start loading
       await syncWithBackend(storedUserID, storedToken);
-      refreshData();
+      await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
+        for (const file of files) {
+          if (!file.uri || file.uri === 'null') {
+            const encryptedUri = await getOrFetchFileUri(file.id, '');
+            const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+            await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+            await updateFileUri(file.id, decryptedPath);
+          }
+        }
+  
+        await refreshData(); // Fetch again after all decryption + URI set
+        setLoadingFiles(false); // Done loading
+      });
     };
+  
     syncAndRefresh();
   }, []);
 
@@ -88,7 +103,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     checkProfileImage();
   }, []);
 
-  const getOrFetchFileUri = async (id: string,  uri: string)=> {
+  const getOrFetchFileUri = async (id: string, uri: string)=> {
     try {
       // Step 1: Get URI from local DB
       const localResult = await getFileUri(id);
@@ -97,12 +112,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         console.log("[getOrFetchFileUri] Found local URI:", localResult.uri);
         return localResult.uri; // Return local URI immediately
       }
- 
-      
-      console.log("userID: " + storedUserID)
-      console.log("authToken: " + storedToken)
-      console.log("fileID: " + id)
-  
+
+      console.log(`userID: ${storedUserID} authToken: ${storedToken} fileID: ${id}`);
       console.log(`[getOrFetchFileUri] No local URI found. Fetching from server...`);
   
       // Step 2: Fetch from backend
@@ -119,13 +130,21 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       });
   
       if (!fileResponse.ok) {
-        console.error('[getOrFetchFileUri] Failed to fetch file from backend:', fileResponse.statusText);
-        return null;
+        const data = await fileResponse.json();
+        console.error('[getOrFetchFileUri] Failed to fetch file from backend:', `'${data.error}'` || `${fileResponse.status} ${fileResponse.statusText}`);
+        if (data.error === "File not found") {
+          console.log("[getOrFetchFileUri] Deleting file locally")
+          await deleteFileLocally(id);
+          return null;
+        }
+        throw Error(data.error || `${fileResponse.status} ${fileResponse.statusText}`);
       }
   
       const blob = await fileResponse.blob();
-      const fileExtension = blob.type.split('/')[1] || 'bin';  // Default to 'bin' if no file type is found
-      const localPath = `${FileSystem.documentDirectory}${id}.${fileExtension}`;
+      // TODO: the file extension is unecesary and this might cause issues, we could store it with the id and no file extension
+      // const fileExtension = blob.type.split('/')[1] || 'bin';  // Default to 'bin' if no file type is found
+      // const localPath = `${FileSystem.documentDirectory}${id}.${fileExtension}`;
+      const localPath = `${FileSystem.documentDirectory}${id}`;
   
       // Step 3: Save the file to local storage
       const base64Data = await blobToBase64(blob);
@@ -137,11 +156,11 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   
       // Step 4: Update DB with new URI
       await updateFileUri(id, localPath);  // Wait for the database update to complete
-  
+      console.log('[getOrFetchFileUri] Database updated with new URI:', localPath);
       return localPath;  // Return the new local URI
     } catch (error) {
       console.error('[getOrFetchFileUri] Error:', error);
-      return null;  // Return null in case of error
+      return error;
     }
   };
   
@@ -157,26 +176,36 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     });
   };
   
-   
-
   const handleFilePress = async (item: FileItem) => {
-    console.log("file pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
-
-    switch (item.type) {
-      case "application/pdf":
-        var uri = String(await getOrFetchFileUri(item.id, String(item.uri)));
-        console.log("file uri: " + uri);
-        //item.uri || "";
-        const encodedURI = encodeURI(uri);
-        console.log("encoded uri in folder navigation " + item.id)
-        router.push({
-          pathname: "/PDFView/[URI]",
-          params: { URI: encodedURI },
-        });
-        return
-      default:
-        console.log("[handleFilePress] file type not handled: " + item.type)
-    }
+      console.log("file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
+    
+      if (item.type === "application/pdf") {
+        const encryptedUri = await getOrFetchFileUri(item.id, String(item.uri));
+        if (!encryptedUri) {
+          console.error("[handleFilePress] Failed to get encrypted URI");
+          return;
+        }
+    
+        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.pdf`;
+        console.log("privateKey: " + privateKey)
+        try {
+          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.pdf`);
+          console.log("[handleFilePress] Decryption successful, decryptedPath:", decryptedPath);
+    
+          const encodedURI = encodeURI(decryptedPath);
+          router.push({
+            pathname: "/PDFView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress] Decryption failed:", err);
+        }
+    
+        return;
+      }
+      // TODO: show something when the fle type is not supported
+      console.warn("[handleFilePress] Unsupported file type:", item.type);
+      await getOrFetchFileUri(item.id, "");
   };
 
   const handleItemLongPress = (item: FileItem) => {
@@ -197,15 +226,15 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           style={styles.profileButton}
           onPress={() => router.push(`/profile/${storedUserID}` as any)}
         >
-  {profileImageUri ? (
-    <Image
-      source={{ uri: profileImageUri }}
-      style={styles.profileImage}
-    />
-  ) : (
-    <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
-  )}
-</TouchableOpacity>
+          {profileImageUri ? (
+            <Image
+              source={{ uri: profileImageUri }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
+          )}
+        </TouchableOpacity>
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
@@ -269,7 +298,6 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 15,
   },
-  
 });
 
 export default FolderNavigation;

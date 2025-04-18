@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import Login from "./login";
 import HomeScreen from './tabs/homescreen';
 
+
 // This is the entry point of the app
 // It checks if the user is logged in and shows the appropriate screen
 // If the user is logged in, it shows the home screen, If the user is not logged in, it shows the login screen
@@ -34,5 +35,8 @@ export default function appIndex(){
       <Login/>
     )
   }
-
+    
+ /* return (
+    <Login/>
+  ) */
 }

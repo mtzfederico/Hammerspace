@@ -1,4 +1,4 @@
-import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme} from 'react-native';
+import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme, Alert} from 'react-native';
 import React, { useState} from 'react';
 import { pickDocument } from './pickDocument';
 import CreateFolder  from './CreateFolder';
@@ -25,24 +25,23 @@ type AddButtonProps = {
   parentID: string;
 };
 
-//Buttons at the buttom left of the Screen
+// Buttons at the buttom left of the Screen
 // Add Folder functions that were defined in homescreen.tsx get passed to this component
 // and then passed to the addFolder function in addFolder.tsx
 // The addFile function and the parentID is passed to the sendFile.tsx component
 const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
-    console.log("Addbutton parentID " + parentID)
+  console.log("Addbutton parentID " + parentID)
 
-    const [visible, setVisible] = useState(false); 
-    const [isTextVisible, setIsTextVisible] = useState(false);
-  
-    const toggleTextVisibility = () => {
-      setIsTextVisible(!isTextVisible);
-    };
-    const TextPosition= 120
-    const iconPopIn1 = 180
-    const iconPopIn2 = 250
-    const restState= 100
+  const [visible, setVisible] = useState(false); 
+  const [isTextVisible, setIsTextVisible] = useState(false);
 
+  const toggleTextVisibility = () => {
+    setIsTextVisible(!isTextVisible);
+  };
+  const TextPosition= 120
+  const iconPopIn1 = 180
+  const iconPopIn2 = 250
+  const restState= 100
 
   const [icon_1] = useState(new Animated.Value(restState));
   const [icon_2] = useState(new Animated.Value(restState));
@@ -89,19 +88,20 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
   }
 
   const handleDocumentPick = async () => {
-    await pickDocument(parentID, addFile);
+    try {
+      await pickDocument(parentID, addFile);
+    } catch(err) {
+      Alert.alert('Failed to upload file', `${err || 'Unknown error'}`);
+    }
   };
 
   const handleFolderCreation = () => {
     setVisible(!visible)
     console.log("Vising is bere " + visible)
-    
   };
     
   const colorScheme = useColorScheme();
-
   const isDarkMode = colorScheme === 'dark';
-
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
     
   return (
@@ -112,37 +112,34 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
        
     <Animated.View style={[styles.cont, { bottom: icon_1}]}>
         <TouchableOpacity style={styles.touchable} onPress={handleDocumentPick}>
-        <Image
-        source={require('../assets/images/file.webp')}
-        style={styles.icon}
-      />
+          <Image
+            source={require('../assets/images/file.webp')}
+            style={styles.icon}
+          />
         </TouchableOpacity>
       </Animated.View>
       
-      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn1+20, right: TextPosition}]}>Create a File </Text>}
+      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn1+20, right: TextPosition}]}>Add File </Text>}
       
-      
-
       <Animated.View style={[styles.cont, { bottom: icon_2}]}>
         <TouchableOpacity style={styles.touchable} onPress={handleFolderCreation}>
-        <Image
-        source={require('../assets/images/folder.webp')}
-        style={styles.icon}
-      />
+          <Image
+            source={require('../assets/images/folder.webp')}
+            style={styles.icon}
+          />
         </TouchableOpacity >
       </Animated.View>
      { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} parentID={parentID} />}
-      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create a Folder </Text>}
-
+      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create Folder </Text>}
 
       <TouchableOpacity style={styles.cont} onPress={() => {
           pop === false ? popIn() : popOut();
           toggleTextVisibility()
         }}>
-      <Image
-        source={require('../assets/images/plus.png')}
-        style={styles.image}
-      />
+        <Image
+          source={require('../assets/images/plus.png')}
+          style={styles.image}
+        />
     </TouchableOpacity>
     </View>
   );

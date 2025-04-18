@@ -159,10 +159,15 @@ func handleSignup(c *gin.Context) {
 	token, err := generateAuthToken(c, signupData.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleLogin] Failed to generate authToken")
+		log.WithField("error", err).Error("[handleSignup] Failed to generate authToken")
 		return
 	}
-
+	err = insertPublicKey(c, signupData.UserID, signupData.PublicKey)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+		log.WithField("error", err).Error("[handleSignup] Failed to insert public key")
+		return
+	}
 	c.JSON(200, gin.H{"success": true, "userID": signupData.UserID, "authToken": token})
 }
 
@@ -425,4 +430,10 @@ func generateBase64ID(size int) (string, error) {
 	return encoded, nil
 }
 
+func insertPublicKey(ctx context.Context, userID string, key string) error {
+	const description string = "Public key"
+	log.Debug("inserting public key")
+	_, err := db.ExecContext(ctx, "INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES (?, ?, ?,now());", key, userID, description)
+	return err
+}
 // https://gowebexamples.com/password-hashing/

@@ -12,6 +12,7 @@ const storedUserID = String(SecureStore.getItem('userID'));
 // Then send a request to the server to upload the file
 async function pickDocument(parentDir: string, addFile: AddFileType) {  
   // TODO: set a type for addFile. AND maybe a comment somewhere explaining what it is
+  console.log("storedAuthToken: " + storedToken)
   console.log("Uploading file to parentDIR: '" + parentDir + "'")
   try {
     const result = await DocumentPicker.getDocumentAsync({
@@ -29,18 +30,19 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
     var fileName = String(`${result.assets[0].name}`)
     var fileURI = String(`${result.assets[0].uri}`)
     var mimeType = result.assets[0].mimeType || "application/octet-stream" // this is the official default mime type for unkown files
+    var fileSize = result.assets[0].size || 0
+    console.log(`Ùploading file. fileName: ${fileName}, mimeType: ${mimeType}, size: ${fileSize}, fileURI: ${fileURI}`)
   
     const formData = new FormData();
     formData.append('file', {
-      uri: result.assets[0].uri,
+      uri: fileURI,
       name: fileName,
       type: mimeType,
-      size: result.assets[0].size || 0,
+      size: fileSize,
     } as any);
     formData.append("userID", storedUserID);
     formData.append("authToken", storedToken);
     formData.append("parentDir", parentDir);
-    
 
    /* console.log("before test")
     const response = await fetch('http://192.168.107.78:9090/testing');
@@ -57,7 +59,7 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
     // school : 216.37.97.95
     // 172.16.226.28 starbucks
    
-    console.log("before fetch")
+    console.log("Sending uploadFile request")
     const response = await fetch(`${apiUrl}/uploadFile`, {
       method: 'POST',
       body: formData,
@@ -77,12 +79,14 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
     } else {
       console.error('File upload failed. Status: ' + response.status + '. Error msg: ' + data.error);
       // setError(err.message || 'Error uploading file. Please try again.');
+      throw Error(data.error)
     }
       
   } catch (err) {
     console.warn('Error picking document', err);
+    // there is probably a better way of doing this, but idk how this works in js/typescript
+    throw err
   }
 }
-
 
 export { pickDocument };

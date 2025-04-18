@@ -11,11 +11,12 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"filippo.io/age"
+	"database/sql"
 )
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string,  fileID string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
@@ -24,7 +25,7 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.P
 	defer fileIn.Close()
 
 	// get public keys
-	recipients, err := getPublicKeys()
+	recipients, err := getPublicKeys(ctx, fileID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,10 +74,52 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string) (*s3.P
 	*/
 }
 
-func getPublicKeys() ([]age.Recipient, error) {
+func getPublicKeys(ctx context.Context, fileID string) ([]age.Recipient, error) {
 	var recipients []age.Recipient
-	publicKey := "age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj"
+
+	userID, err := getUserIDFromFileID(ctx, fileID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get userID from fileID: %w", err)
+	}
+
+	publicKey, err := getPublicKeyForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get public key for userID %s: %w", userID, err)
+	}
+
 	recipient, err := age.ParseX25519Recipient(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+
 	recipients = append(recipients, recipient)
-	return recipients, err
+	return recipients, nil
+}
+
+func getUserIDFromFileID(ctx context.Context, fileID string) (string, error) {
+	var userID string
+	query := `SELECT userID FROM files WHERE id = ? LIMIT 1`
+	err := db.QueryRowContext(ctx, query, fileID).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("no file found with ID %s", fileID)
+		}
+		return "", err
+	}
+	return userID, nil
+}
+
+func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
+	var publicKey string
+	query := `SELECT publicKey FROM encryptionKeys WHERE userID = ? LIMIT 1`
+
+	err := db.QueryRowContext(ctx, query, userID).Scan(&publicKey)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("no public key found for userID %s", userID)
+		}
+		return "", err
+	}
+
+	return publicKey, nil
 }
