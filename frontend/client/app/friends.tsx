@@ -149,7 +149,7 @@ const handleAddFriend = async () => {
         {error && <Text style={styles.error}>{error}</Text>}
         <View style={styles.table}>
           <FlatList
-            data={data}
+            data={friends}
             renderItem={({item}) => <UserProfile userID={item.userID} />}
             ListEmptyComponent={<Text>You have no friends</Text>}
             keyExtractor={item => item.userID}
