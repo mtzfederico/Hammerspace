@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { useNavigation } from '@react-navigation/native';
 
 import { deleteEverythingLocally } from '@/services/database';
 
@@ -39,6 +40,8 @@ export default function UserProfileScreen() {
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
+  const navigation = useNavigation();
+
 
   useEffect(() => {
     const init = async () => {
@@ -207,7 +210,10 @@ export default function UserProfileScreen() {
         await deleteEverythingLocally()
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('userID');
-        router.replace('/login');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'login' as never }],
+        });
       }
       else {
         console.log(`Failed to log out '${data.error}'`)
