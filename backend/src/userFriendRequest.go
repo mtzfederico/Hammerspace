@@ -7,16 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hammerspace/db"
 )
 
 // This is the test function
 func testUserFriendRequest() {
-	if err := db.InitDB(); err != nil {
-		log.Fatal("Failed to connect to DB:", err)
-	}
-	defer db.DB.Close()
-
 	var currentUser string
 	fmt.Print("Enter your userID: ")
 	fmt.Scanln(&currentUser)
@@ -33,14 +27,14 @@ func testUserFriendRequest() {
 		var targetUser string
 		fmt.Print("Enter the userID of the person you'd like to add: ")
 		fmt.Scanln(&targetUser)
-		err := sendFriendRequest(db.DB, currentUser, targetUser)
+		err := sendFriendRequest(db, currentUser, targetUser)
 		if err != nil {
 			log.Println("Error sending request:", err)
 		} else {
 			fmt.Println("Friend request sent.")
 		}
 	case 2:
-		friends, err := getFriendList(db.DB, currentUser)
+		friends, err := getFriendList(db, currentUser)
 		if err != nil {
 			log.Println("Error retrieving friend list:", err)
 			return
@@ -54,9 +48,9 @@ func testUserFriendRequest() {
 			}
 		}
 	case 3:
-		handleFriendRequestAction(db.DB, currentUser, true)
+		handleFriendRequestAction(db, currentUser, true)
 	case 4:
-		handleFriendRequestAction(db.DB, currentUser, false)
+		handleFriendRequestAction(db, currentUser, false)
 	default:
 		fmt.Println("Invalid choice.")
 	}
