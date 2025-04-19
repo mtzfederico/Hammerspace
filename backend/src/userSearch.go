@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
 /*
@@ -99,27 +100,83 @@ for rows.Next() {
 c.JSON(200, gin.H{"success": true,"friends": friendIDs,})
 }
 
+func handleGetPendingFriendRequests(c *gin.Context) {
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request AddFriendRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		log.WithField("error", err).Error("[handleGetPendingFriendRequests] Failed to decode JSON")
+		return
+	}
+
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetPendingFriendRequests] Failed to verify token")
+		return
+	}
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT userID1
+		FROM user_friends
+		WHERE userID2 = ? AND request_status = 'pending'
+	`, request.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleGetPendingFriendRequests] Failed to query pending requests")
+		return
+	}
+	defer rows.Close()
+
+	var pendingUsers []string
+	for rows.Next() {
+		var userID1 string
+		if err := rows.Scan(&userID1); err != nil {
+			log.WithField("error", err).Error("[handleGetPendingFriendRequests] Failed to scan row")
+			continue
+		}
+		pendingUsers = append(pendingUsers, userID1)
+	}
+
+	c.JSON(200, gin.H{"success": true, "pendingRequests": pendingUsers})
+}
+
+
 func handleAddFriends(c *gin.Context) {
 	if c.Request.Body == nil {
-		c.JSON(400, gin.H{"success": false , "error": "No data recieved"})
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
 	}
+
 	var request AddFriendRequest
-	err:= c.BindJSON(&request)
+	err := c.BindJSON(&request)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
 		log.WithField("error", err).Error("[handleAddFriends] Failed to decode JSON")
 		return
 	}
+
+	// Verify authentication token
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
-	if err != nil {	
+	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleAddFriends] Failed to verify token")
 		return
 	}
-	if !valid {	
+	if !valid {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
+
 	// Prevent self-friend requests
 	if request.UserID == request.ForUserID {
 		c.JSON(400, gin.H{"success": false, "error": "Cannot add yourself as a friend"})
@@ -155,15 +212,15 @@ func handleAddFriends(c *gin.Context) {
 		return
 	}
 
-	// Create new friendship request
+	// Generate a unique friendship ID
 	friendshipID, err := generateBase64ID(10)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
 		log.WithField("error", err).Error("[handleAddFriends] Failed to generate friendship ID")
 		return
 	}
-	
 
+	// Insert the new friendship request into the database
 	_, err = db.Exec(`
 		INSERT INTO user_friends (friendshipID, userID1, userID2, request_status, createdDate)
 		VALUES (?, ?, ?, 'Pending', now())
@@ -173,6 +230,14 @@ func handleAddFriends(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
 		log.WithField("error", err).Error("[handleAddFriends] Failed to insert new friendship")
 		return
+	}
+
+	// Create an alert for the recipient about the friend request
+	alertDescription := fmt.Sprintf("%s sent you a friend request", request.UserID)
+	err = addAlert(c, request.ForUserID, alertDescription, "", request.UserID)
+	if err != nil {
+		log.WithField("error", err).Error("[handleAddFriends] Failed to create friend request alert")
+		// We don't fail the friend request creation if alert creation fails
 	}
 
 	c.JSON(200, gin.H{"success": true, "message": "Friend request sent"})
@@ -186,4 +251,70 @@ func doesUserExist(userID string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+func handleAcceptFriendRequest(c *gin.Context) {
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request AddFriendRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to decode JSON")
+		return
+	}
+
+	// Verify authentication token
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to verify token")
+		return
+	}
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	// Check if the friend request exists and is pending
+	var status string
+	err = db.QueryRow(`
+		SELECT request_status FROM user_friends
+		WHERE userID1 = ? AND userID2 = ? AND request_status = 'pending'
+	`, request.ForUserID, request.UserID).Scan(&status)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
+		} else {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+			log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
+		}
+		return
+	}
+
+	// Update the request status to accepted
+	_, err = db.Exec(`
+		UPDATE user_friends
+		SET request_status = 'accepted'
+		WHERE userID1 = ? AND userID2 = ? AND request_status = 'pending'
+	`, request.ForUserID, request.UserID)
+
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to update request status")
+		return
+	}
+
+	// Create an alert for the sender that their friend request was accepted
+	alertDescription := fmt.Sprintf("%s accepted your friend request", request.UserID)
+	err = addAlert(c, request.ForUserID, alertDescription, "", request.UserID)
+	if err != nil {
+		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to create acceptance alert")
+		// Still return success even if alert creation fails
+	}
+
+	c.JSON(200, gin.H{"success": true, "message": "Friend request accepted"})
 }

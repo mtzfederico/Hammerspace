@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import Login from "./login";
 import HomeScreen from './tabs/homescreen';
+import { router, useRouter } from 'expo-router';
 
 
 // This is the entry point of the app
@@ -10,6 +11,7 @@ import HomeScreen from './tabs/homescreen';
 
 export default function appIndex(){
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -28,11 +30,11 @@ export default function appIndex(){
 
   if(isLoggedIn === true){
     return (
-    <HomeScreen/>
+    router.replace('/tabs/homescreen') // Redirect to the home screen
   )
 } else {
     return (
-      <Login/>
+      router.replace('/login') // Redirect to the login screen
     )
   }
     

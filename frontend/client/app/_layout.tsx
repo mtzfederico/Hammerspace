@@ -54,14 +54,14 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
             {/* Show the home or tab screen if the user is logged in */}
-            <Stack.Screen
-            name="tabs" // This will auto-reference `app/tabs.tsx`
-            options={{ headerShown: false }}
-          />
          <Stack.Screen
             name="login" // This will auto-reference `app/login.tsx`
             options={{ headerShown: false }}
           />
+             <Stack.Screen
+          name="tabs" 
+        options={{ headerShown: false }}
+    />
         <Stack.Screen
             name="register" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}

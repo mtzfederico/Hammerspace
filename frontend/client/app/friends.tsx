@@ -134,29 +134,42 @@ const handleAddFriend = async () => {
     </View>
     */
 
+<SafeAreaProvider>
+  <SafeAreaView style={[styles.container, backgroundStyle]}>
+    <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}>
+      <Text style={textStyle}>{'< Back'}</Text>
+    </TouchableOpacity>
 
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text >{'< Back'}</Text>
-        </TouchableOpacity>
-        <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => {
-              console.log("add friend pressed")
-            }}>
-            <Image source={require('../assets/images/plus.png')} style={styles.plusImage}/>
-        </TouchableOpacity>
-        {error && <Text style={styles.error}>{error}</Text>}
-        <View style={styles.table}>
-          <FlatList
-            data={friends}
-            renderItem={({item}) => <UserProfile userID={item.userID} />}
-            ListEmptyComponent={<Text>You have no friends</Text>}
-            keyExtractor={item => item.userID}
-          />
-        </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+    <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+
+    <TouchableOpacity
+  style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
+  onPress={() => router.push('/addFriends')}
+>
+      <Image
+        source={require('../assets/images/plus.png')}
+        style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]}
+      />
+    </TouchableOpacity>
+
+    {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
+
+    <View style={styles.table}>
+      <FlatList
+        data={friends}
+        renderItem={({ item }) => (
+          <View style={[styles.UserProfile, isDarkMode ? styles.darkUserProfile : styles.lightUserProfile]}>
+            <Image source={{ uri: "../assets/images/default-profile-picture.jpeg" }} style={styles.profilePicture} />
+            <Text style={[styles.title, textStyle]}>{item.userID}</Text>
+          </View>
+        )}
+        ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
+        keyExtractor={item => item.userID}
+      />
+    </View>
+  </SafeAreaView>
+</SafeAreaProvider>
+
   );
 };
 
@@ -246,5 +259,28 @@ const styles = StyleSheet.create({
     darkText: {
         color: 'white',
     },
+    darkUserProfile: {
+      backgroundColor: '#1a1a1a',
+      borderColor: '#444',
+    },
+    lightUserProfile: {
+      backgroundColor: '#fff',
+      borderColor: '#000',
+    },
+    darkBackButton: {
+      backgroundColor: '#444',
+    },
+    lightBackButton: {
+      backgroundColor: '#ccc',
+    },
+    darkAddButton: {
+      backgroundColor: '#333',
+      borderRadius: 10,
+    },
+    lightAddButton: {
+      backgroundColor: '#f0f0f0',
+      borderRadius: 10,
+    },
+  
 });
 
