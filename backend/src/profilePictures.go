@@ -51,12 +51,15 @@ func handleGetProfilePicture(c *gin.Context) {
 
 	log.WithFields(log.Fields{"userID": request.UserID, "ForUserID": request.ForUserID, "profilePictureID": profilePictureID}).Trace("[handleGetProfilePicture] Got data from DB")
 
-	if profilePictureID == "" {
-		c.JSON(400, gin.H{"success": false, "error": "No profile picture found"})
-		log.Trace("[handleGetProfilePicture] No profile picture found")
+	if profilePictureID == "" || profilePictureID == "default" {
+		c.JSON(200, gin.H{
+			"success":           true,
+			"profilePictureID":  "default",
+		})
+		log.Trace("[handleGetProfilePicture] No custom profile picture, using default")
 		return
 	}
-
+	
 	// Get the MIME Subtype from the ID. It is added to the end after a dot
 	partsOfID := strings.Split(profilePictureID, ".")
 	if len(partsOfID) != 2 {
