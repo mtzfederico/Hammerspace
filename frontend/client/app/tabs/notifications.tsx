@@ -75,7 +75,7 @@ export default function NotificationsScreen() {
         Alert.alert('Error', data.error || 'Could not accept request');
       }
     } catch (err) {
-      Alert.alert('Error', 'Something went wrong');
+      Alert.alert('Error', `${err || 'unknown error'}`);
     }
   };
 
