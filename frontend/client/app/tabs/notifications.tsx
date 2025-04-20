@@ -2,11 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-type FriendRequest = {
-  userID: string;        // your ID
-  fromUserID: string;    // who sent the request
-  username?: string;     // optional for display
-};
+type FriendRequest = string; // Just the sender's userID
+
 
 export default function NotificationsScreen() {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
@@ -51,6 +48,11 @@ export default function NotificationsScreen() {
       const userID = await SecureStore.getItemAsync('userID');
       const authToken = await SecureStore.getItemAsync('authToken');
 
+      console.log('Accepting request from:', fromUserID); // Log for debugging
+      console.log('User ID:', userID); // Log for debugging
+    
+     
+
       const response = await fetch(`${apiUrl}/acceptFriendRequest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,20 +90,20 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Friend Requests</Text>
-      {friendRequests.length === 0 ? (
-        <Text style={styles.noRequests}>No pending friend requests</Text>
-      ) : (
-        <FlatList
-          data={friendRequests}
-          keyExtractor={(item) => item.fromUserID}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.username}>{item.username || item.fromUserID}</Text>
-              <Button title="Accept" onPress={() => acceptRequest(item.fromUserID)} />
-            </View>
-          )}
-        />
-      )}
+      {friendRequests && friendRequests.length === 0 ? (
+    <Text style={styles.noRequests}>No pending friend requests</Text>
+) : (
+    <FlatList
+    data={friendRequests || []}
+    keyExtractor={(item) => item}
+    renderItem={({ item }) => (
+      <View style={styles.card}>
+        <Text style={styles.username}>{item}</Text>
+        <Button title="Accept" onPress={() => acceptRequest(item)} />
+      </View>
+    )}
+  />
+)}
     </View>
   );
 }
