@@ -131,7 +131,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   
       if (!fileResponse.ok) {
         const data = await fileResponse.json();
-        console.error('[getOrFetchFileUri] Failed to fetch file from backend:', `'${data.error}'` || `${fileResponse.status} ${fileResponse.statusText}`);
+        console.error(`[getOrFetchFileUri] Failed to fetch file from backend. status: ${fileResponse.status}. '${data.error}'` || `${fileResponse.statusText}`);
         if (data.error === "File not found") {
           console.log("[getOrFetchFileUri] Deleting file locally")
           await deleteFileLocally(id);
