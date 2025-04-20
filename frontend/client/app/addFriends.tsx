@@ -50,7 +50,7 @@ import {
         if (data.success) {
           Alert.alert('Success', 'Friend request sent!');
           setForUserID('');
-          router.push('/friends');
+          router.back();
         } else {
           Alert.alert('Error', data.error || 'Failed to send friend request');
         }
@@ -84,6 +84,7 @@ import {
           placeholderTextColor={isDark ? '#aaa' : '#666'}
           value={forUserID}
           onChangeText={setForUserID}
+          autoCapitalize="none"
           style={[
             styles.input,
             {
