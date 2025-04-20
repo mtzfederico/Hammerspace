@@ -400,7 +400,7 @@ func createAccount(ctx context.Context, userID string, email string, newPass str
 	}
 
 	log.Debug("creating account")
-	_, err = db.ExecContext(ctx, "INSERT INTO users (userID, email, password, roleID, createdDate) VALUES (?, ?, ?, ?, now());", userID, email, newPassHashed, DefaultRoleID)
+	_, err = db.ExecContext(ctx, "INSERT INTO users (userID, email, password, roleID, profilePictureID, createdDate) VALUES (?, ?, ?, ?,?, now());", userID, email, newPassHashed, DefaultRoleID, "default")
 	return err
 }
 

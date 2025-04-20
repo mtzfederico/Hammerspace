@@ -26,7 +26,7 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
 export default function UserProfileScreen() {
   const { userID: forUserID } = useLocalSearchParams<{ userID: string }>();
-  const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null);
+  const [profilePictureUri, setProfilePictureUri] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,12 @@ export default function UserProfileScreen() {
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const navigation = useNavigation();
 
+  
+  
+  const defaultProfilePicture = require('@/assets/images/default-profile-picture.jpeg');
+console.log('defaultProfilePicture:', defaultProfilePicture);
+
+
 
   useEffect(() => {
     const init = async () => {
@@ -52,10 +58,13 @@ export default function UserProfileScreen() {
       } 
       setIsOwnProfile(storedUserID === forUserID);
       await checkLocalProfilePicture(storedUserID, storedToken, forUserID);
+      console.log('Profile picture URI:', profilePictureUri);
     };
 
     init()
   }, [forUserID]);
+
+  
 
   const checkLocalProfilePicture = async (userID: string, token: string, forUserID: string) => {
     const localUri = FileSystem.documentDirectory + `${forUserID}_profile.jpg`;
@@ -84,12 +93,30 @@ export default function UserProfileScreen() {
           forUserID,
         }),
       });
+      const contentType = response.headers.get('Content-Type') || '';
 
       if (!response.ok) {
-        console.log(`[fetchProfilePicture] Status ${response.status}`)
+        console.log(`[fetchProfilePicture] Status ${response.status}`);
         const data = await response.json();
-        throw new Error(data.error || response.status + " " + response.statusText);
+        throw new Error(data.error || response.status + ' ' + response.statusText);
       }
+  
+      // 🟡 Handle default case (JSON with profilePictureID = "default")
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.profilePictureID === 'default' || data.profilePictureID === '') {
+          console.log('Setting default profile picture:', defaultProfilePicture);
+          setProfilePictureUri(defaultProfilePicture);
+           console.log('Using default profile picture' + profilePictureUri);
+           
+          return;   
+        } else {
+          console.warn('Unexpected JSON response:', data);
+          setProfilePictureUri(defaultProfilePicture);
+          return;
+        }
+      }
+  
 
       const blob = await response.blob();
 
@@ -239,7 +266,11 @@ export default function UserProfileScreen() {
       {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
 
       {profilePictureUri && (
-        <Image source={{ uri: profilePictureUri }} style={styles.profileImage} />
+       <Image
+       source={typeof profilePictureUri === 'string' ? { uri: profilePictureUri } : profilePictureUri}
+       style={styles.profileImage}
+       resizeMode="cover"
+     />
       )}
 
       {isOwnProfile && (
