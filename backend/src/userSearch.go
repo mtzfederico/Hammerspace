@@ -277,23 +277,26 @@ func handleAcceptFriendRequest(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
+	
+	log.Infof("Querying friend request: userID1=%s, userID2=%s", request.ForUserID, request.UserID)
+
 
 	// Check if the friend request exists and is pending
-	var status string
-	err = db.QueryRow(`
-		SELECT request_status FROM user_friends
-		WHERE userID1 = ? AND userID2 = ? AND request_status = 'pending'
-	`, request.ForUserID, request.UserID).Scan(&status)
+var status string
+err = db.QueryRow(`
+	SELECT request_status FROM user_friends
+	WHERE userID1 = ? AND userID2 = ? AND request_status = 'pending'
+`, request.ForUserID, request.UserID).Scan(&status)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
-		} else {
-			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-			log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
-		}
-		return
+if err != nil {
+	if err == sql.ErrNoRows {
+		c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
+	} else {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
 	}
+	return
+}
 
 	// Update the request status to accepted
 	_, err = db.Exec(`
