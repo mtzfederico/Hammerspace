@@ -10,6 +10,7 @@ frontend/client/node_modules/
 dist/
 web-build/
 expo-env.d.ts
+router.d.ts
 
 # Native
 *.orig.*
