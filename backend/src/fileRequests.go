@@ -20,6 +20,11 @@ var (
 	errFileProcessing error = errors.New("file is still processing")
 )
 
+const (
+	// The maximum file name length in the files table on the db
+	MaxFileNameLength = 265
+)
+
 // Handles the requests to uplooad files to the server
 func handleFileUpload(c *gin.Context) {
 	/*
@@ -97,8 +102,14 @@ func handleFileUpload(c *gin.Context) {
 		return
 	}
 
-	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Debug("[handleFileUpload] Received file")
+	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Trace("[handleFileUpload] Received file")
 	contentType := file.Header.Get("Content-Type")
+
+	if len(file.Filename) > MaxFileNameLength {
+		c.JSON(400, gin.H{"success": false, "error": "File name is too long"})
+		log.Debug("[handleFileUpload] Filename too long")
+		return
+	}
 
 	// filePath := fmt.Sprintf("%s%s", serverConfig.TMPStorageDir, file.Filename)
 	filePath := fmt.Sprintf("%s%s", serverConfig.TMPStorageDir, fileID)

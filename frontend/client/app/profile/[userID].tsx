@@ -234,7 +234,7 @@ console.log('defaultProfilePicture:', defaultProfilePicture);
       if (data.success || data.error === "Invalid Credentials") { 
         // the item's should still be deleted if the backend returns certain errors like "Invalid Credentials"
         // delete the files that are stored locally and truncate the db
-       // await deleteEverythingLocally()
+        await deleteEverythingLocally();
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('userID');
         navigation.reset({

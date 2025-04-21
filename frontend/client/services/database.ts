@@ -27,21 +27,21 @@ export const createTables = async() => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   try { 
     db.runAsync(
-      `CREATE TABLE IF NOT EXISTS users  (
+      `CREATE TABLE IF NOT EXISTS users (
         userID    VARCHAR(36)   PRIMARY KEY,
         pfpID     VARCHAR(50)   NOT NULL
       );`
     );
     
     db.runAsync(
-      `CREATE TABLE IF NOT EXISTS folders  (
-        id            VARCHAR(36)   PRIMARY KEY,
-        parentDir     VARCHAR(50)   NOT NULL,
-        name          VARCHAR(50)   NOT NULL,
-        type          VARCHAR(50)   NOT NULL,
-        uri          VARCHAR(500)   ,
-        fileSize          INT        NOT NULL,
-        userID        VARCHAR(50)   NOT NULL
+      `CREATE TABLE IF NOT EXISTS folders (
+        id           VARCHAR(36)    PRIMARY KEY,
+        parentDir    VARCHAR(50)    NOT NULL,
+        name         VARCHAR(50)    NOT NULL,
+        type         VARCHAR(50)    NOT NULL,
+        uri          VARCHAR(500),
+        fileSize     INT            NOT NULL,
+        userID       VARCHAR(50)    NOT NULL
       );`
     );
     
@@ -292,8 +292,9 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   export const deleteEverythingLocally = async () => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try { 
-      await db.runAsync('TRUNCATE folders');
-      await db.runAsync('TRUNCATE users');
+      // sqlite doesn't have truncate
+      await db.runAsync('DELETE FROM folders');
+      await db.runAsync('DELETE FROM users');
 
       FileSystem.deleteAsync(FileSystem.documentDirectory || '', {
         idempotent: true
