@@ -39,3 +39,4 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+frontend/client/.expo/types/router.d.ts
