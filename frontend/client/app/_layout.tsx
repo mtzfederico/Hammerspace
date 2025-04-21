@@ -79,6 +79,10 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="ImageView/[URI]" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="addFriends" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
