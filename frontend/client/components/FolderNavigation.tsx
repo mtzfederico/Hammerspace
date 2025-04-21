@@ -51,9 +51,9 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           if (!file.uri || file.uri === 'null') {
             // TODO: this needs work
             const encryptedUri = await getOrFetchFileUri(file.id);
-            // const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
-            // await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
-            // await updateFileUri(file.id, decryptedPath);
+            const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+            await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+            await updateFileUri(file.id, decryptedPath);
           }
         }
   
