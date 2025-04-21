@@ -42,20 +42,24 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
   useEffect(() => {
     const syncAndRefresh = async () => {
+      // try {
+      // TODO: handle error here
       setLoadingFiles(true); // Start loading
       await syncWithBackend(storedUserID, storedToken);
       await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
         for (const file of files) {
           if (!file.uri || file.uri === 'null') {
-            const encryptedUri = await getOrFetchFileUri(file.id, '');
-            const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
-            await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
-            await updateFileUri(file.id, decryptedPath);
+            // TODO: this needs work
+            const encryptedUri = await getOrFetchFileUri(file.id);
+            // const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+            // await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+            // await updateFileUri(file.id, decryptedPath);
           }
         }
   
         await refreshData(); // Fetch again after all decryption + URI set
         setLoadingFiles(false); // Done loading
+        
       });
     };
   
@@ -103,7 +107,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     checkProfileImage();
   }, []);
 
-  const getOrFetchFileUri = async (id: string, uri: string)=> {
+  // returns the path to the decrypted fileID
+  const getOrFetchFileUri = async (id: string) => {
     try {
       // Step 1: Get URI from local DB
       const localResult = await getFileUri(id);
@@ -113,7 +118,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         return localResult.uri; // Return local URI immediately
       }
 
-      console.log(`userID: ${storedUserID} authToken: ${storedToken} fileID: ${id}`);
+      console.log(`[getOrFetchFileUri] userID: ${storedUserID} authToken: ${storedToken} fileID: ${id}`);
       console.log(`[getOrFetchFileUri] No local URI found. Fetching from server...`);
   
       // Step 2: Fetch from backend
@@ -137,13 +142,15 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           await deleteFileLocally(id);
           return null;
         }
+
+        if (data.error === "File is being processed, try again later") {
+          console.log("File is still being processed");
+          return null;
+        }
         throw Error(data.error || `${fileResponse.status} ${fileResponse.statusText}`);
       }
   
       const blob = await fileResponse.blob();
-      // TODO: the file extension is unecesary and this might cause issues, we could store it with the id and no file extension
-      // const fileExtension = blob.type.split('/')[1] || 'bin';  // Default to 'bin' if no file type is found
-      // const localPath = `${FileSystem.documentDirectory}${id}.${fileExtension}`;
       const localPath = `${FileSystem.documentDirectory}${id}`;
   
       // Step 3: Save the file to local storage
@@ -177,10 +184,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
   
   const handleFilePress = async (item: FileItem) => {
-      console.log("file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
+      console.log("** file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
     
       if (item.type === "application/pdf") {
-        const encryptedUri = await getOrFetchFileUri(item.id, String(item.uri));
+        const encryptedUri = await getOrFetchFileUri(item.id);
         if (!encryptedUri) {
           console.error("[handleFilePress] Failed to get encrypted URI");
           return;
@@ -203,9 +210,57 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     
         return;
       }
+      // My failed attampt at encrypting at download
+      /*
+      if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
+        const fileURI = await getOrFetchFileUri(item.id);
+        if (!fileURI) {
+          console.error("[handleFilePress: image] Failed to get URI");
+          return;
+        }
+    
+        try {
+          const encodedURI = encodeURI(fileURI);
+          router.push({
+            pathname: "/ImageView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress: image] Decryption failed:", err);
+        }
+    
+        return;
+      } */
+
+        if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
+          const encryptedUri = await getOrFetchFileUri(item.id);
+          if (!encryptedUri) {
+            console.error("[handleFilePress: image] Failed to get encrypted URI");
+            return;
+          }
+      
+          const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
+          console.log("privateKey: " + privateKey)
+          try {
+            await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
+            console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
+      
+            const encodedURI = encodeURI(decryptedPath);
+            router.push({
+              pathname: "/ImageView/[URI]",
+              params: { URI: encodedURI },
+            });
+          } catch (err) {
+            console.error("[handleFilePress: image] Decryption failed:", err);
+          }
+      
+          return;
+        }
+
+
       // TODO: show something when the fle type is not supported
       console.warn("[handleFilePress] Unsupported file type:", item.type);
-      await getOrFetchFileUri(item.id, "");
+      await getOrFetchFileUri(item.id);
   };
 
   const handleItemLongPress = (item: FileItem) => {
