@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 22,
     fontWeight: '600',
-    marginBottom: 12,
+    marginTop: 40,
   },
   noRequests: {
     marginTop: 20,
