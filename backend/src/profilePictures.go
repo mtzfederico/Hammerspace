@@ -51,15 +51,13 @@ func handleGetProfilePicture(c *gin.Context) {
 
 	log.WithFields(log.Fields{"userID": request.UserID, "ForUserID": request.ForUserID, "profilePictureID": profilePictureID}).Trace("[handleGetProfilePicture] Got data from DB")
 
+	// profilePictureID is "default" when a user is created
 	if profilePictureID == "" || profilePictureID == "default" {
-		c.JSON(200, gin.H{
-			"success":           true,
-			"profilePictureID":  "default",
-		})
+		c.JSON(200, gin.H{"success": true, "profilePictureID": "default"})
 		log.Trace("[handleGetProfilePicture] No custom profile picture, using default")
 		return
 	}
-	
+
 	// Get the MIME Subtype from the ID. It is added to the end after a dot
 	partsOfID := strings.Split(profilePictureID, ".")
 	if len(partsOfID) != 2 {
@@ -71,7 +69,7 @@ func handleGetProfilePicture(c *gin.Context) {
 	file, err := getFile(c, s3Client, serverConfig.S3BucketName, profilePictureID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4), Please try again later"})
-		log.WithField("error", err).Error("[handleGetProfilePicture] Failed to get file")
+		log.WithFields(log.Fields{"error": err, "profilePictureID": profilePictureID}).Error("[handleGetProfilePicture] Failed to get file")
 		return
 	}
 

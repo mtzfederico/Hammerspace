@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // This is the test function
@@ -58,11 +56,12 @@ func testUserFriendRequest() {
 
 // This is the function to send friend request
 func sendFriendRequest(dbConn *sql.DB, userID, friendID string) error {
-	id := uuid.New().String()
-	_, err := dbConn.Exec(`
-		INSERT INTO user_friends (id, userID, friendID, status, createdDate)
-		VALUES (?, ?, ?, 'pending', ?)`,
-		id, userID, friendID, time.Now().Format("2006-01-02 15:04:05"))
+	id, err := getNewID()
+	if err != nil {
+		return err
+	}
+	_, err = dbConn.Exec("INSERT INTO user_friends (id, userID, friendID, status, createdDate) VALUES (?, ?, ?, 'pending', ?)",
+		id.String(), userID, friendID, time.Now().Format("2006-01-02 15:04:05"))
 	return err
 }
 

@@ -2,9 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"fmt"
 )
 
 /*
@@ -45,9 +46,9 @@ func userSearch(conn *sql.DB, userID string) (*User, error) {
 	return &u, nil
 }
 
-func handleGetFriends(c *gin.Context){
+func handleGetFriends(c *gin.Context) {
 	if c.Request.Body == nil {
-		c.JSON(400, gin.H{"success": false , "error": "No data recieved"})
+		c.JSON(400, gin.H{"success": false, "error": "No data recieved"})
 	}
 	var request BasicRequest
 	err := c.BindJSON(&request)
@@ -56,48 +57,48 @@ func handleGetFriends(c *gin.Context){
 		log.WithField("error", err).Error("[handleGetFriends] Failed to decode JSON")
 		return
 	}
-		// verify that the token is valid
-		valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
-		if err != nil {
-			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
-			log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
-			return
-		}
-	
-		if !valid {
-			c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
-			return
-		}
-		// Query accepted friendships
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleGetDirectory] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+	// Query accepted friendships
 	rows, err := db.Query(`
 	SELECT userID1, userID2 FROM user_friends
 	WHERE (userID1 = ? OR userID2 = ?) AND request_status = 'Accepted'
 `, request.UserID, request.UserID)
 
-if err != nil {
-	c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-	log.WithField("error", err).Error("[handleGetFriends] DB query failed")
-	return
-}
-defer rows.Close()
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleGetFriends] DB query failed")
+		return
+	}
+	defer rows.Close()
 
-friendIDs := []string{}
+	friendIDs := []string{}
 
-for rows.Next() {
-	var userID1, userID2 string
-	if err := rows.Scan(&userID1, &userID2); err != nil {
-		log.WithField("error", err).Error("[handleGetFriends] Failed to scan row")
-		continue
+	for rows.Next() {
+		var userID1, userID2 string
+		if err := rows.Scan(&userID1, &userID2); err != nil {
+			log.WithField("error", err).Error("[handleGetFriends] Failed to scan row")
+			continue
+		}
+
+		if userID1 == request.UserID {
+			friendIDs = append(friendIDs, userID2)
+		} else {
+			friendIDs = append(friendIDs, userID1)
+		}
 	}
 
-	if userID1 == request.UserID {
-		friendIDs = append(friendIDs, userID2)
-	} else {
-		friendIDs = append(friendIDs, userID1)
-	}
-}
-
-c.JSON(200, gin.H{"success": true,"friends": friendIDs,})
+	c.JSON(200, gin.H{"success": true, "friends": friendIDs})
 }
 
 func handleGetPendingFriendRequests(c *gin.Context) {
@@ -150,7 +151,6 @@ func handleGetPendingFriendRequests(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "pendingRequests": pendingUsers})
 }
 
-
 func handleAddFriends(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -187,6 +187,7 @@ func handleAddFriends(c *gin.Context) {
 	exists, err := doesUserExist(request.ForUserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("error", err).Error("[handleAddFriends] Failed check if user exists")
 		return
 	}
 	if !exists {
@@ -196,10 +197,7 @@ func handleAddFriends(c *gin.Context) {
 
 	// Check if a friendship already exists
 	var count int
-	err = db.QueryRow(`
-		SELECT COUNT(*) FROM user_friends
-		WHERE (userID1 = ? AND userID2 = ?) OR (userID1 = ? AND userID2 = ?)
-	`, request.UserID, request.ForUserID, request.ForUserID, request.UserID).Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM user_friends WHERE (userID1 = ? AND userID2 = ?) OR (userID1 = ? AND userID2 = ?)", request.UserID, request.ForUserID, request.ForUserID, request.UserID).Scan(&count)
 
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
@@ -213,7 +211,7 @@ func handleAddFriends(c *gin.Context) {
 	}
 
 	// Generate a unique friendship ID
-	friendshipID, err := generateBase64ID(10)
+	friendshipID, err := getNewID()
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
 		log.WithField("error", err).Error("[handleAddFriends] Failed to generate friendship ID")
@@ -221,10 +219,7 @@ func handleAddFriends(c *gin.Context) {
 	}
 
 	// Insert the new friendship request into the database
-	_, err = db.Exec(`
-		INSERT INTO user_friends (friendshipID, userID1, userID2, request_status, createdDate)
-		VALUES (?, ?, ?, 'Pending', now())
-	`, friendshipID, request.UserID, request.ForUserID)
+	_, err = db.Exec("INSERT INTO user_friends (friendshipID, userID1, userID2, request_status, createdDate) VALUES (?, ?, ?, 'Pending', now())", friendshipID, request.UserID, request.ForUserID)
 
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
@@ -252,6 +247,7 @@ func doesUserExist(userID string) (bool, error) {
 	}
 	return count > 0, nil
 }
+
 func handleAcceptFriendRequest(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -277,26 +273,25 @@ func handleAcceptFriendRequest(c *gin.Context) {
 		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
-	
+
 	log.Infof("Querying friend request: userID1=%s, userID2=%s", request.ForUserID, request.UserID)
 
-
 	// Check if the friend request exists and is pending
-var status string
-err = db.QueryRow(`
+	var status string
+	err = db.QueryRow(`
 	SELECT request_status FROM user_friends
 	WHERE userID1 = ? AND userID2 = ? AND request_status = 'pending'
 `, request.ForUserID, request.UserID).Scan(&status)
 
-if err != nil {
-	if err == sql.ErrNoRows {
-		c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
-	} else {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
+		} else {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+			log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
+		}
+		return
 	}
-	return
-}
 
 	// Update the request status to accepted
 	_, err = db.Exec(`

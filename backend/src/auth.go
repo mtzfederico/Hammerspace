@@ -417,7 +417,7 @@ func changePassword(ctx context.Context, userID string, newPass string) error {
 	return err
 }
 
-// Generate a random base64 url encoded string
+// Generate a random base64 url encoded string. This is used for authTokens. for a unique ID use getNewID()
 // https://medium.com/@jcox250/generating-prefixed-base64-ids-in-golang-e7731bd89c1b
 func generateBase64ID(size int) (string, error) {
 	b := make([]byte, size)
@@ -436,4 +436,5 @@ func insertPublicKey(ctx context.Context, userID string, key string) error {
 	_, err := db.ExecContext(ctx, "INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES (?, ?, ?,now());", key, userID, description)
 	return err
 }
+
 // https://gowebexamples.com/password-hashing/
