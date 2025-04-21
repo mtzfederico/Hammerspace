@@ -57,7 +57,8 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
         </View>
       );
     } else {
-      const fileExtensionsWithImages = ['.jpg', '.jpeg', '.png', '.pdf'];
+      // heic are images from the iphone
+      const fileExtensionsWithImages = ['.jpg', '.jpeg', '.png', '.heic', '.gif', '.pdf'];
       const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext));
       return (
         <View style={styles.imageContainer}>
