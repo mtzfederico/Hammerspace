@@ -38,12 +38,15 @@ CREATE TABLE IF NOT EXISTS authTokens (
 );
 
 -- The user's age public keys. The description is some sort of text to identify the key if the user has multiple public keys
+-- folderID is optional and only there if the public key is for a folder. When it is for a folder then the userID is the folders owner.
 CREATE TABLE IF NOT EXISTS encryptionKeys (
   publicKey    VARCHAR(65)     PRIMARY KEY,
   userID       VARCHAR(50)     NOT NULL,
   description  VARCHAR(50)     NOT NULL,
   createdDate  DATETIME        NOT NULL,
-  CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
+  folderID     VARCHAR(36)     DEFAULT null,
+  CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
+  CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (userID) REFERENCES files(id) ON DELETE CASCADE
 );
 
 ------------ test data starts ------------
