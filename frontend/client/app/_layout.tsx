@@ -86,6 +86,10 @@ export default function RootLayout() {
             name="addFriends" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="sharedfolder" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
       </Stack>
     </ThemeProvider>
   );

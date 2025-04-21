@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-
+	"crypto/rand"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	log "github.com/sirupsen/logrus"
 
@@ -122,4 +122,14 @@ func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
 	}
 
 	return publicKey, nil
+}
+
+func generateFolderKey(ctx context.Context) {
+	key := make([]byte, 64)
+
+    _, err := rand.Read(key)
+    if err != nil {
+        // handle error here
+		log.WithField("err", err).Error("[generateFolderKey] Error generating random key")
+    }
 }
