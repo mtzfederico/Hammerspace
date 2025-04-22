@@ -694,9 +694,13 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	return folders, nil
 }
 
+// getSharedFolders fetches all folders that are shared with a specific user
 func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 	// ctx to control DB interaction
 	// userID used to find files shared with them
+
+	// find folders from the files table that are shared with the given user
+	// only select folders that are listed in the 'sharedFiles' table
 	rows, err := db.QueryContext(ctx, `
 		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
 		FROM files f
@@ -704,20 +708,44 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		WHERE s.userID = ? AND f.type = 'folder'
 	`
 	, userID)
+	// if error executing the query, return the error
 	if err != nil {
 		return nil, err
 	}
+	// rows object closed after we're done reading from i
 	defer rows.Close()
 
+	// empty slice to hold the folder structs
 	var folders []Folder = []Folder{}
+
+	// loop through each row returned by the query
 	for rows.Next() {
 		var folder Folder
-		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID, &folder.LastModified); err != nil {
+
+		// read the data from the current row into the folder struct
+		if err := rows.Scan(
+			&folder.ID, 
+			&folder.ParentDir, 
+			&folder.Name, 
+			&folder.Type, 
+			&folder.FileSize, 
+			&folder.UserID, 
+			&folder.LastModified
+		);
+
+		err != nil {
+			//fail to read a row, return the error
 			return nil, err
 		}
+
+		// add successfully read folder
 		folders = append(folders, folder)
 	}
 
+	// return the full list of shared folders and no error
 	return folders, nil
 }
+
+
+
 
