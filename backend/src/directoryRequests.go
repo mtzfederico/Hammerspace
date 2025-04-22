@@ -693,3 +693,31 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	}
 	return folders, nil
 }
+
+func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
+	// ctx to control DB interaction
+	// userID used to find files shared with them
+	rows, err := db.QueryContext(ctx, `
+		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
+		FROM files f
+		INNER JOIN sharedFiles s ON f.id = s.fileID
+		WHERE s.userID = ? AND f.type = 'folder'
+	`
+	, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var folders []Folder = []Folder{}
+	for rows.Next() {
+		var folder Folder
+		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID, &folder.LastModified); err != nil {
+			return nil, err
+		}
+		folders = append(folders, folder)
+	}
+
+	return folders, nil
+}
+
