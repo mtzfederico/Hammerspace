@@ -168,3 +168,20 @@ func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) (map[string
 
 	return encryptedKeys, nil
 }
+
+
+func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encryptedKey []byte, folderID string, userPublicKey string) error {
+	// S3 object key format (customize as needed)
+	objKey := fmt.Sprintf("folderkeys/%s/%s.age", folderID, userPublicKey)
+
+	// Wrap encryptedKey []byte in a reader
+	reader := bytes.NewReader(encryptedKey)
+
+	// Upload
+	_, err := uploadBytes(ctx, s3Client, serverConfig.S3BucketName, reader, int64(len(encryptedKey)), objKey)
+	if err != nil {
+		return fmt.Errorf("failed to upload encrypted key to S3: %w", err)
+	}
+
+	return nil
+}

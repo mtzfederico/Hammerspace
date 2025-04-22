@@ -702,8 +702,7 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		FROM files f
 		INNER JOIN sharedFiles s ON f.id = s.fileID
 		WHERE s.userID = ? AND f.type = 'folder'
-	`
-	, userID)
+	`, userID)
 	if err != nil {
 		return nil, err
 	}
