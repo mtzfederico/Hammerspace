@@ -46,25 +46,22 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
   useEffect(() => {
     const syncAndRefresh = async () => {
-      // try {
-      // TODO: handle error here
       setLoadingFiles(true); // Start loading
       await syncWithBackend(storedUserID, storedToken);
-      await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
-        for (const file of files) {
-          if (!file.uri || file.uri === 'null') {
-            // TODO: this needs work
-            const encryptedUri = await getOrFetchFileUri(file.id);
-            const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
-            await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
-            await updateFileUri(file.id, decryptedPath);
-          }
-        }
+      // await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
+      //   for (const file of files) {
+      //     if (!file.uri || file.uri === 'null') {
+      //       const encryptedUri = await getOrFetchFileUri(file.id);
+      //       const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+      //       await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+      //       await updateFileUri(file.id, decryptedPath);
+      //     }
+      //   }
   
-        await refreshData(); // Fetch again after all decryption + URI set
+      //   await refreshData(); // Fetch again after all decryption + URI set
         setLoadingFiles(false); // Done loading
         
-      });
+      // });
     };
   
     syncAndRefresh();
