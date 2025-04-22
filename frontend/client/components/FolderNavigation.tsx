@@ -40,6 +40,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const privateKey = String(SecureStore.getItem('privateKey'));
   const [loadingFiles, setLoadingFiles] = useState(true);
 
+  // a list of the image mime subtypes that the app can open.
+  // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
+  const SupportedImageTypes: string[] = ["jpeg", "png", "heic", "gif", "jp2"];
+
   useEffect(() => {
     const syncAndRefresh = async () => {
       // try {
@@ -187,7 +191,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   
   const handleFilePress = async (item: FileItem) => {
       console.log("** file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
-    
+
+      // if the file is a pdf, open it on the web view
       if (item.type === "application/pdf") {
         const encryptedUri = await getOrFetchFileUri(item.id);
         if (!encryptedUri) {
@@ -212,53 +217,17 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     
         return;
       }
-      // My failed attampt at encrypting at download
-      /*
-      if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
-        const fileURI = await getOrFetchFileUri(item.id);
-        if (!fileURI) {
-          console.error("[handleFilePress: image] Failed to get URI");
-          return;
-        }
-    
-        try {
-          const encodedURI = encodeURI(fileURI);
-          router.push({
-            pathname: "/ImageView/[URI]",
-            params: { URI: encodedURI },
-          });
-        } catch (err) {
-          console.error("[handleFilePress: image] Decryption failed:", err);
-        }
-    
-        return;
-      } */
 
-      if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
-        const encryptedUri = await getOrFetchFileUri(item.id);
-        if (!encryptedUri) {
-          console.error("[handleFilePress: image] Failed to get encrypted URI");
-          return;
-        }
-    
-        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
-        console.log("privateKey: " + privateKey)
-        try {
-          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
-          console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
-    
-          const encodedURI = encodeURI(decryptedPath);
-          router.push({
-            pathname: "/ImageView/[URI]",
-            params: { URI: encodedURI },
-          });
-        } catch (err) {
-          console.error("[handleFilePress: image] Decryption failed:", err);
-        }
-        return;
+      // 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
+      const mimeParts = item.type.split('/');
+      if (mimeParts.length != 2) {
+        console.error(`[handleFilePress: image] MIME type doesn't have two parts: '${item.type}'`);
+        return
       }
-
-      if (item.type === "text/plain" || item.type === "application/json" || item.type === "application/xml" || item.type === "text/csv" || item.type === "text/css" || item.type === "text/javascript" || item.type === "text/html") {
+      
+      // Check if the file is a text format and open it in the TextView
+      if ((mimeParts[0] === "text" && ["plain", "csv", "css", "javascript", "html", "markdown"].includes(mimeParts[1])) || (mimeParts[0] === "application" && ["json", "xml"].includes(mimeParts[1]))) {
+        // https://www.iana.org/assignments/media-types/media-types.xhtml#text
         const encryptedUri = await getOrFetchFileUri(item.id);
         if (!encryptedUri) {
           console.error("[handleFilePress: text] Failed to get encrypted URI");
@@ -282,6 +251,30 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         return;
       }
 
+      // Check if the file is an image and if the format is supported
+      if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
+        const encryptedUri = await getOrFetchFileUri(item.id);
+        if (!encryptedUri) {
+          console.error("[handleFilePress: image] Failed to get encrypted URI");
+          return;
+        }
+    
+        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
+        console.log("privateKey: " + privateKey)
+        try {
+          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
+          console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
+    
+          const encodedURI = encodeURI(decryptedPath);
+          router.push({
+            pathname: "/ImageView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress: image] Decryption failed:", err);
+        }
+        return;
+      }
 
       // TODO: show something when the fle type is not supported
       console.warn("[handleFilePress] Unsupported file type:", item.type);
