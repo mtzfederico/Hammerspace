@@ -286,11 +286,12 @@ func handleAcceptFriendRequest(c *gin.Context) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"success": false, "error": "No pending friend request found"})
+			return
 		} else {
 			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
 			log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to query request")
+			return
 		}
-		return
 	}
 
 	// Update the request status to accepted

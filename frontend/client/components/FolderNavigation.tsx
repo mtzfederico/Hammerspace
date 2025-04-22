@@ -160,6 +160,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       });
   
       console.log('[getOrFetchFileUri] File saved locally at:', localPath);
+
+      // TODO: Ideally decrypt the file here, delete the unencrypted file, and save the encrpted file's uri to the db
   
       // Step 4: Update DB with new URI
       await updateFileUri(id, localPath);  // Wait for the database update to complete
@@ -167,7 +169,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       return localPath;  // Return the new local URI
     } catch (error) {
       console.error('[getOrFetchFileUri] Error:', error);
-      return error;
+      throw error;
     }
   };
   
@@ -232,35 +234,58 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         return;
       } */
 
-        if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
-          const encryptedUri = await getOrFetchFileUri(item.id);
-          if (!encryptedUri) {
-            console.error("[handleFilePress: image] Failed to get encrypted URI");
-            return;
-          }
-      
-          const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
-          console.log("privateKey: " + privateKey)
-          try {
-            await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
-            console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
-      
-            const encodedURI = encodeURI(decryptedPath);
-            router.push({
-              pathname: "/ImageView/[URI]",
-              params: { URI: encodedURI },
-            });
-          } catch (err) {
-            console.error("[handleFilePress: image] Decryption failed:", err);
-          }
-      
+      if (item.type === "image/jpeg" || item.type === "image/png" || item.type === "image/heic" || item.type === "image/gif") {
+        const encryptedUri = await getOrFetchFileUri(item.id);
+        if (!encryptedUri) {
+          console.error("[handleFilePress: image] Failed to get encrypted URI");
           return;
         }
+    
+        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
+        console.log("privateKey: " + privateKey)
+        try {
+          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
+          console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
+    
+          const encodedURI = encodeURI(decryptedPath);
+          router.push({
+            pathname: "/ImageView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress: image] Decryption failed:", err);
+        }
+        return;
+      }
+
+      if (item.type === "text/plain" || item.type === "application/json" || item.type === "application/xml" || item.type === "text/csv" || item.type === "text/css" || item.type === "text/javascript" || item.type === "text/html") {
+        const encryptedUri = await getOrFetchFileUri(item.id);
+        if (!encryptedUri) {
+          console.error("[handleFilePress: text] Failed to get encrypted URI");
+          return;
+        }
+    
+        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.text`;
+        console.log("privateKey: " + privateKey)
+        try {
+          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.text`);
+          console.log("[handleFilePress: text] Decryption successful, decryptedPath:", decryptedPath);
+    
+          const encodedURI = encodeURI(decryptedPath);
+          router.push({
+            pathname: "/TextView/[URI]",
+            params: { URI: encodedURI },
+          });
+        } catch (err) {
+          console.error("[handleFilePress: text] Decryption failed:", err);
+        }
+        return;
+      }
 
 
       // TODO: show something when the fle type is not supported
       console.warn("[handleFilePress] Unsupported file type:", item.type);
-      await getOrFetchFileUri(item.id);
+      // await getOrFetchFileUri(item.id);
   };
 
   const handleItemLongPress = (item: FileItem) => {
