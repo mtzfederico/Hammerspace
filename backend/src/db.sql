@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
   createdDate  DATETIME        NOT NULL,
   folderID     VARCHAR(36)     DEFAULT null,
   CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
-  CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (userID) REFERENCES files(id) ON DELETE CASCADE
+  CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (folderid) REFERENCES files(id) ON DELETE CASCADE
 );
 
 ------------ test data starts ------------

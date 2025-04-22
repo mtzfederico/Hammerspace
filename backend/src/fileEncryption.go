@@ -124,7 +124,7 @@ func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
 	return publicKey, nil
 }
 
-func generateFolderKey(ctx context.Context) {
+func generateFolderKey(ctx context.Context) ([]byte, error) {
 	key := make([]byte, 64)
 
     _, err := rand.Read(key)
@@ -132,4 +132,39 @@ func generateFolderKey(ctx context.Context) {
         // handle error here
 		log.WithField("err", err).Error("[generateFolderKey] Error generating random key")
     }
+	return key, nil
+}
+
+func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) (map[string][]byte, error) {
+	encryptedKeys := make(map[string][]byte)
+
+	if(folderKey == nil || publicKeys == nil) {
+		log.WithField("folderKey", folderKey).Error("[encryptFolderKeyForUsers] Error: folder key or public keys are nil")
+	}
+
+	for _, pubKey := range publicKeys {
+		recipient, err := age.ParseX25519Recipient(pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("invalid public key: %w", err)
+		}
+
+		var buf bytes.Buffer
+		wc, err := age.Encrypt(&buf, recipient)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize age encryption: %w", err)
+		}
+
+		_, err = wc.Write(folderKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write folder key: %w", err)
+		}
+
+		if err := wc.Close(); err != nil {
+			return nil, fmt.Errorf("failed to close age writer: %w", err)
+		}
+
+		encryptedKeys[pubKey] = buf.Bytes()
+	}
+
+	return encryptedKeys, nil
 }
