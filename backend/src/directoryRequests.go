@@ -237,12 +237,15 @@ func handleShareDirectory(c *gin.Context) {
 
 	// check that the directory is not already shared
 	// This doesn't check if it is inside of a parentDir that is already shared
-	sharedFilesID, perm, err := querySharedFilesTable(c, request.DirID, request.WithUserID)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleShareDirectory] querySharedFilesTable error")
-		return
-	}
+// Loop over each user to share with using a basic for loop
+	for i := 0; i < len(request.WithUserID); i++ {
+		withUserID := request.WithUserID[i]
+
+		sharedFilesID, perm, err := querySharedFilesTable(c, request.DirID, withUserID)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "withUserID": withUserID}).Error("[handleShareDirectory] querySharedFilesTable")
+			continue
+		}
 
 	// TODO: test this
 	if perm != "" {
@@ -306,7 +309,7 @@ func handleShareDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleShareDirectory] Failed to add share to DB")
 		return
 	}
-
+	}
 	// The DB part is the same as with a file, but all of the files inside of the directory have to be reencrypted
 
 	// TODO: get the client to encrypt the files with all recipients, upload it, and set processed to true on the db
@@ -440,6 +443,15 @@ func handleCreateDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
+	 // Share the newly created directory with the specified users
+	 for _, shareWithUserID := range request.ShareWith {
+        // Grant write permission by default when creating and sharing
+        err = addFilePermission(c, dirID.String(), []string{shareWithUserID} , request.UserID, false) // isReadOnly = false for write permission
+        if err != nil {
+            log.WithFields(log.Fields{"error": err, "dirID": dirID, "shareWithUserID": shareWithUserID}).Error("[handleCreateDirectory] Failed to share directory")
+            // Consider whether to rollback the directory creation or continue with errors
+        }
+    }
 
 	c.JSON(200, gin.H{"success": true, "dirID": dirID})
 }

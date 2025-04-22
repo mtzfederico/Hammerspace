@@ -188,39 +188,54 @@ func changeFilePermission(ctx context.Context, sharedFileID, fileID, permission 
 	return err
 }
 
-func addFilePermission(ctx context.Context, fileID, WithUserID, fileOwner string, isReadOnly bool) error {
-	newID, err := getNewID()
-	if err != nil {
-		return fmt.Errorf("failed to get new fileID. %w", err)
-	}
+func addFilePermission(ctx context.Context, fileID string, WithUserID []string, fileOwner string, isReadOnly bool) error {
+	for _, userID := range WithUserID {
+		newID, err := getNewID()
+		if err != nil {
+			return fmt.Errorf("failed to get new ID for shared file: %w", err)
+		}
 
-	_, err = db.ExecContext(ctx, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", newID, fileID, WithUserID, fileOwner, isReadOnly)
-	return err
+		_, err = db.ExecContext(ctx, `
+			INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate)
+			VALUES (?, ?, ?, ?, ?, now());
+		`, newID, fileID, userID, fileOwner, isReadOnly)
+		
+		if err != nil {
+			return fmt.Errorf("failed to insert shared file permission for user %s: %w", userID, err)
+		}
+	}
+	return nil
 }
+
 
 // Used to check the permission when a request is sent to share it.
 // Only used in handleShareFile.
 // sharedFilesID is empty when a parentDir is shared.
 // Returns ID from sharedFiles, permission level, error
-func checkFilePermission(ctx context.Context, fileID, withUserID string) (string, string, error) {
-	// Check if the file is shared
-	id, permission, err := querySharedFilesTable(ctx, fileID, withUserID)
-	if err != nil {
-		return "", "", fmt.Errorf("error from querySharedFilesTable. %w", err)
-	}
+func checkFilePermission(ctx context.Context, fileID string, withUserIDs []string) (string, string, error) {
+    if len(withUserIDs) == 0 {
+        return "", "", nil // No users to check
+    }
 
-	if permission != "" {
-		return id, permission, nil
-	}
+    withUserID := withUserIDs[0] // Only process the first user
 
-	// Check if a parentDir is shared
-	permission, err = checkIfParentDirIsShared(ctx, fileID, withUserID, 0)
-	if err != nil {
-		return "", "", fmt.Errorf("error from checkIfParentDirIsShared. %w", err)
-	}
+    // Check if the file is shared with the first user
+    id, permission, err := querySharedFilesTable(ctx, fileID, withUserID)
+    if err != nil {
+        return "", "", fmt.Errorf("error from querySharedFilesTable for user %s: %w", withUserID, err)
+    }
 
-	// TODO: Test this. "" was id
-	return "", permission, nil
+    if permission != "" {
+        return id, permission, nil
+    }
+
+    // Check if a parentDir is shared with the first user
+    permission, err = checkIfParentDirIsShared(ctx, fileID, withUserID, 0)
+    if err != nil {
+        return "", "", fmt.Errorf("error from checkIfParentDirIsShared for user %s: %w", withUserID, err)
+    }
+
+    return "", permission, nil
 }
 
 // Checks if the file is shared with the specified userID

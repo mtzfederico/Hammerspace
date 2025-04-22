@@ -8,7 +8,7 @@ console.log((`"${apiUrl}/createFolder"`))
 
 
 
-const sendFolder = async (dirName: string, parentID: string) => {
+const sendFolder = async (dirName: string, parentID: string, shareWith: any) => {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =   String(SecureStore.getItem('userID'));
 
@@ -20,9 +20,11 @@ const sendFolder = async (dirName: string, parentID: string) => {
     "useriD": storedUserID,
     "authToken": storedToken,
     "dirName": dirName,
-    "ParentDir": parentID
+    "ParentDir": parentID,
+    "shareWith": shareWith
   }
   console.log("Sending folder creation request, ParentDir: " + jsonData.ParentDir);
+  console.log("Users shared with: " + jsonData.shareWith)
   
     try {
         console.log('before error hopefully')
