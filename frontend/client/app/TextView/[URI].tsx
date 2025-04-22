@@ -41,10 +41,7 @@ export default function TextView() {
         setLoading(true)
         var uri = decodeURI(encodedURI as string)
         console.log("FIle URI: " + uri);
-        console.log("HERE1!!")
         const textFromFile = await FileSystem.readAsStringAsync(uri);
-        console.log("HERE2!!")
-        console.log(textFromFile);
         SetTextToShow(textFromFile || "Error loading text from file")
       } catch (e) {
         // Catches a malformed URI
