@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, Image, StyleSheet, ImageBackground, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { dropDatabase, createTables } from '@/services/database';
+import { dropDatabase, createTables, deleteEverythingLocally } from '@/services/database';
 import * as SecureStore from 'expo-secure-store';
 import { Stack } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 // login screen
 export default function Login() {
+  
   const [loading, setLoading] = useState(false);
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');

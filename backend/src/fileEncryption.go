@@ -135,44 +135,42 @@ func generateFolderKey(ctx context.Context) ([]byte, error) {
 	return key, nil
 }
 
-func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) (map[string][]byte, error) {
-	encryptedKeys := make(map[string][]byte)
-
-	if(folderKey == nil || publicKeys == nil) {
-		log.WithField("folderKey", folderKey).Error("[encryptFolderKeyForUsers] Error: folder key or public keys are nil")
+func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, error) {
+	if folderKey == nil || publicKeys == nil {
+		log.WithFields(log.Fields{"folderKey":  folderKey,"publicKeys": publicKeys,}).Error("[encryptFolderKeyForUsers] Error: folder key or public keys are nil")
 	}
 
+	var recipients []age.Recipient
 	for _, pubKey := range publicKeys {
 		recipient, err := age.ParseX25519Recipient(pubKey)
 		if err != nil {
 			return nil, fmt.Errorf("invalid public key: %w", err)
 		}
-
-		var buf bytes.Buffer
-		wc, err := age.Encrypt(&buf, recipient)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize age encryption: %w", err)
-		}
-
-		_, err = wc.Write(folderKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to write folder key: %w", err)
-		}
-
-		if err := wc.Close(); err != nil {
-			return nil, fmt.Errorf("failed to close age writer: %w", err)
-		}
-
-		encryptedKeys[pubKey] = buf.Bytes()
+		recipients = append(recipients, recipient)
 	}
 
-	return encryptedKeys, nil
+	var buf bytes.Buffer
+	wc, err := age.Encrypt(&buf, recipients...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize age encryption: %w", err)
+	}
+
+	if _, err := wc.Write(folderKey); err != nil {
+		return nil, fmt.Errorf("failed to write folder key: %w", err)
+	}
+
+	if err := wc.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close age writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 
-func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encryptedKey []byte, folderID string, userPublicKey string) error {
+
+func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encryptedKey []byte, folderID string) error {
 	// S3 object key format (customize as needed)
-	objKey := fmt.Sprintf("folderkeys/%s/%s.age", folderID, userPublicKey)
+	objKey := fmt.Sprintf("folderkeys/%s/folder.age", folderID)
 
 	// Wrap encryptedKey []byte in a reader
 	reader := bytes.NewReader(encryptedKey)

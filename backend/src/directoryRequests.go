@@ -443,6 +443,41 @@ func handleCreateDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
+	//  Generate the folder key
+	folderKey, err := generateFolderKey(c)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
+		return
+	}
+
+	// Fetch public keys for all users including the creator
+	shareWith := append(request.ShareWith, request.UserID)
+	publicKeys := []string{}
+	for _, userID := range shareWith {
+		pubKey, err := getPublicKeyForUser(c, userID)
+		if err != nil {
+			log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
+			continue
+		}
+		publicKeys = append(publicKeys, pubKey)
+	}
+
+	// Encrypt the folder key for all recipients at once
+	encryptedKey, err := encryptFolderKeyForUsers(folderKey, publicKeys)
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+			return
+		}
+
+// Upload the single encrypted key once
+	err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+			return
+}
+
 	 // Share the newly created directory with the specified users
 	 for _, shareWithUserID := range request.ShareWith {
         // Grant write permission by default when creating and sharing
