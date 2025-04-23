@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getItemsInParentDB, syncWithBackend, getFileUri, updateFileUri, getAllFilesURi, deleteFileLocally } from '../services/database';
+import { getItemsInParentDB, syncWithBackend, getFileURIFromDB, updateFileUri, getAllFilesURi, deleteFileLocally } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
@@ -108,18 +108,89 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     checkProfileImage();
   }, []);
 
-  // returns the path to the decrypted fileID
+  // new attempt at getOrFetchFileUri that also decrypts the file
+  const getDecryptedFileURI = async (item: FileItem) => {
+    console.log(`[getFileURI] fileID: ${item.id}`);
+    try {
+      // Step 1: Get URI from local DB
+      const localURI = await getFileURIFromDB(item.id);
+
+      if (localURI && localURI && localURI !== "null") {
+        console.log("[getFileURI] Found local URI:", localURI);
+        return localURI; // Return local URI from DB
+      }
+
+      console.log(`[getFileURI] No local URI found. Fetching from server...`);
+
+      // Step 2: Fetch from backend
+      const fileResponse = await fetch(`${apiUrl}/getFile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "userID": storedUserID,
+          "authToken": storedToken,
+          "fileID": item.id,
+        }),
+      });
+
+      if (!fileResponse.ok) {
+        const data = await fileResponse.json();
+        console.error(`[getOrFetchFileUri] Failed to fetch file from backend. status: ${fileResponse.status}. '${data.error}'` || `${fileResponse.statusText}`);
+        if (data.error === "File not found") {
+          console.log("[getOrFetchFileUri] Deleting file locally")
+          await deleteFileLocally(item.id);
+          return null;
+        }
+
+        if (data.error === "File is being processed, try again later") {
+          console.log("File is still being processed");
+          return null;
+        }
+        throw Error(data.error || `${fileResponse.status} ${fileResponse.statusText}`);
+      }
+
+      const blob = await fileResponse.blob();
+      const tmpPath = `${FileSystem.documentDirectory}${item.id}_encrypted`;
+  
+      // Step 3: Save the file to local storage temporarily to decrypt it
+      const base64Data = await blobToBase64(blob);
+      await FileSystem.writeAsStringAsync(tmpPath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      console.log('[getOrFetchFileUri] File saved locally at:', tmpPath);
+
+      // decrypt the file
+      const decryptedPath = await decryptFile(tmpPath, privateKey, item.id, item.type)
+
+      // delete the unencrypted file
+      await FileSystem.deleteAsync(tmpPath);
+  
+      // Step 4: Update DB with URI of decrypted file
+      await updateFileUri(item.id, decryptedPath);  // Wait for the database update to complete
+      console.log('[getOrFetchFileUri] Database updated with new URI:', decryptedPath);
+      return decryptedPath;  // Return the new local URI
+
+    } catch(error) {
+      throw error
+    }
+  };
+
+  // returns the path to the encrypted fileID.
+  // got replaced with getDecryptedFileURI
+  /*
   const getOrFetchFileUri = async (id: string) => {
     try {
       // Step 1: Get URI from local DB
-      const localResult = await getFileUri(id);
+      const localURI = await getFileURIFromDB(id);
   
-      if (localResult && localResult.uri && localResult.uri !== "null") {
-        console.log("[getOrFetchFileUri] Found local URI:", localResult.uri);
-        return localResult.uri; // Return local URI immediately
+      if (localURI && localURI && localURI !== "null") {
+        console.log("[getOrFetchFileUri] Found local URI:", localURI);
+        return localURI; // Return local URI immediately
       }
 
-      console.log(`[getOrFetchFileUri] userID: ${storedUserID} authToken: ${storedToken} fileID: ${id}`);
       console.log(`[getOrFetchFileUri] No local URI found. Fetching from server...`);
   
       // Step 2: Fetch from backend
@@ -173,6 +244,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       throw error;
     }
   };
+  */
   
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -191,19 +263,14 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
       // if the file is a pdf, open it on the web view
       if (item.type === "application/pdf") {
-        const encryptedUri = await getOrFetchFileUri(item.id);
-        if (!encryptedUri) {
-          console.error("[handleFilePress] Failed to get encrypted URI");
+        const fileURI = await getDecryptedFileURI(item);
+        if (!fileURI) {
+          console.error("[handleFilePress: pdf] Failed to get file URI");
           return;
         }
-    
-        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.pdf`;
-        console.log("privateKey: " + privateKey)
+        
         try {
-          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.pdf`);
-          console.log("[handleFilePress] Decryption successful, decryptedPath:", decryptedPath);
-    
-          const encodedURI = encodeURI(decryptedPath);
+          const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/PDFView/[URI]",
             params: { URI: encodedURI },
@@ -225,19 +292,14 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       // Check if the file is a text format and open it in the TextView
       if ((mimeParts[0] === "text" && ["plain", "csv", "css", "javascript", "html", "markdown"].includes(mimeParts[1])) || (mimeParts[0] === "application" && ["json", "xml"].includes(mimeParts[1]))) {
         // https://www.iana.org/assignments/media-types/media-types.xhtml#text
-        const encryptedUri = await getOrFetchFileUri(item.id);
-        if (!encryptedUri) {
-          console.error("[handleFilePress: text] Failed to get encrypted URI");
+        const fileURI = await getDecryptedFileURI(item);
+        if (!fileURI) {
+          console.error("[handleFilePress: text] Failed to get file URI");
           return;
         }
     
-        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.text`;
-        console.log("privateKey: " + privateKey)
         try {
-          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.text`);
-          console.log("[handleFilePress: text] Decryption successful, decryptedPath:", decryptedPath);
-    
-          const encodedURI = encodeURI(decryptedPath);
+          const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/TextView/[URI]",
             params: { URI: encodedURI },
@@ -250,19 +312,14 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
       // Check if the file is an image and if the format is supported
       if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
-        const encryptedUri = await getOrFetchFileUri(item.id);
-        if (!encryptedUri) {
+        const fileURI = await getDecryptedFileURI(item);
+        if (!fileURI) {
           console.error("[handleFilePress: image] Failed to get encrypted URI");
           return;
         }
     
-        const decryptedPath = `${FileSystem.documentDirectory}${item.id}_decrypted.image`;
-        console.log("privateKey: " + privateKey)
         try {
-          await decryptFile(encryptedUri, privateKey, `${item.id}_decrypted.image`);
-          console.log("[handleFilePress: image] Decryption successful, decryptedPath:", decryptedPath);
-    
-          const encodedURI = encodeURI(decryptedPath);
+          const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/ImageView/[URI]",
             params: { URI: encodedURI },

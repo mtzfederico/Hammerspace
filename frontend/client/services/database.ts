@@ -163,35 +163,41 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   }
   };
 
-  export const getFileUri = async (id: string) => {
-    console.log('[getFileUri] called with ID:', id);
+  export const getFileURIFromDB = async (id: string) => {
+    console.log('[getFileURIFromDB] called with ID:', id);
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try {
       // Use db.getFirstAsync to retrieve a single row, specifying the correct shape of the result
-      const row = await db.getFirstAsync<{ uri: any }>('SELECT uri FROM folders WHERE id = ?;', id);
+      // db.getFirstAsync('SELECT uri FROM folders WHERE id=?;', id)
+      const row = await db.getFirstAsync<{ "uri": string }>('SELECT uri FROM folders WHERE id=?;', id);
       
       // Check if the row is found
       if (!row) {
-        console.log(`[getFileUri] No file found with ID: ${id}`);
-        return null;  // Return null if no row is found
+        console.log(`[getFileURIFromDB] No file found with ID: ${id}`);
+        // Return null if no row is found
+        return;
       }
   
       // Check if uri is null in the found row
       if (row.uri === null) {
-        console.log(`[getFileUri] File found but URI is null for ID: ${id}`);
-        return null;  // Return null if uri is null
+        console.log(`[getFileURIFromDB] File found but URI is null for ID: ${id}`);
+        // Return null if uri is null
+        return;
       }
   
       // Return the uri if found and it's not null
       return row.uri;
     } catch (error) {
-      console.error('[getFileUri] Error getting file URI:', error);
-      return null;  // Return null in case of an error
+      console.error('[getFileURIFromDB] Error getting file URI:', error);
+      // Return null in case of an error
     }
+
+    return null;
   };
   
   export const updateFileUri = async (id: string, uri: string) => {
     console.log('[UpdateFileUri] called with ID:', id);
+    // TODO: check if we should have a single db and use that one, or if this is ok.
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try {
       await db.runAsync('UPDATE folders SET uri=? WHERE id=?;', uri, id);
@@ -262,6 +268,7 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
     try { 
       const result = await db.getAllAsync('SELECT id, uri FROM folders WHERE parentDir=? AND userID=?', parentID, userID);
       const items = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
+      await db.closeAsync();
       callback(items);
     } catch (error) {
       console.error('[getAllFilesURi] Error getting items:', error);
