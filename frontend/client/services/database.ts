@@ -205,13 +205,19 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   export const getItemsInParentDB = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try { 
-      const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=? AND userID=?', parentID, userID);
+      const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=?', parentID,);
       const items = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
+      console.log(items)
       callback(items);
     } catch (error) {
       console.error('[getItemsInParentDB] Error getting items:', error);
     }
   };
+  // CqpIEl2Zmb4H6Q==
+  // raging
+  //curl -X POST "http://localhost:9090/sync" -H 'Content-Type: application/json' -d '{"userID":"raging","authToken":"CqpIEl2Zmb4H6Q=="}'
+
+
 
   export const syncWithBackend = async (userID: string, authToken: string) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -223,13 +229,23 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
         },
         body: JSON.stringify({ userID, authToken }),
       });
-  
+
+      if (!response.ok) {
+        let errorMessage = `Failed to sync: ${response.status} - ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage += ` - ${errorData.error}`;
+          }
+        } catch (jsonError) {
+          console.error("Failed to parse error JSON", jsonError);
+        }
+        console.error('[syncWithBackend] Failed to sync with backend:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
       const data = await response.json();
-      if (data.success) {
-        console.error('[syncWithBackend] Failed to sync with backend:', response.statusText);
-        return;
-      }
-  
+     
       console.log("syncWithBackend response: " + JSON.stringify(data));
   
       if (Array.isArray(data.folders)) {
@@ -240,13 +256,16 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
         for (const folder of data.folders) {
           console.log(`[syncWithBackend] syncing dir: ${folder.parentDir}`)
 
-          // TODO: type is hardcoded to directory. backend uses folder 
+       
+          try { 
           await db.runAsync(
             'INSERT OR REPLACE INTO folders (id, parentDir, name, type, uri, fileSize, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
             folder.id, folder.parentDir, folder.name, folder.type, "" ,folder.fileSize, folder.userID
           );
-          
+        } catch (error) {
+          console.error('[syncWithBackend] Error inserting folder:', error);
         }
+      }
         console.log('[syncWithBackend] Sync completed with no errors');
       } else {
         console.error('[syncWithBackend] No folders received from backend');
