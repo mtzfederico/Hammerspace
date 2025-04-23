@@ -694,6 +694,7 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	return folders, nil
 }
 
+
 // getSharedFolders fetches all folders that are shared with a specific user
 func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 	// ctx to control DB interaction
@@ -745,6 +746,35 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 	// return the full list of shared folders and no error
 	return folders, nil
 }
+
+
+// handles incoming HTTP POST requests to fetch shared folders 
+func handleGetSharedFolders(c *gin.Context) {
+	// capture the JSON fields in the request body
+	var request struct {
+		UserID    string `json:"userID"`
+		AuthToken string `json:"authToken"`
+	}
+	
+	// binding JSON request to struct
+	if err := c.ShouldBindJSON(&request); err != nil {
+		//if error return "404 Bad Request"
+		c.JSON(400, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// call the getSharedFolders function
+	folders, err := getSharedFolders(c.Request.Context(), request.UserID)
+	if err != nil {
+		// if error during DB query return "500 Internal Server Error"
+		c.JSON(500, gin.H{"error": "Database query failed"})
+		return
+	}
+
+	// successfully got shared folders, return as JSON w/ a 200 OK status
+	c.JSON(200, gin.H{"folders": folders})
+}
+
 
 
 
