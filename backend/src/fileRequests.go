@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"database/sql"
+	
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -372,3 +374,31 @@ func getMIMEType(extension string) string {
 	}
 }
 */
+
+import (
+	"database/sql"
+	"fmt"
+)
+
+// This is the renameFile functiion where it updates the file name for a given file ID
+func renameFile(db *sql.DB, fileID, newName string) error {
+	query := `
+		UPDATE files 
+		SET name = ?, lastModified = CURRENT_TIMESTAMP 
+		WHERE id = ?`
+	result, err := db.Exec(query, newName, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to rename file: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not get affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no file found with ID %s", fileID)
+	}
+
+	return nil
+}
+
