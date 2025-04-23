@@ -65,7 +65,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.container}>
       <FolderNavigation initialParentID={currentID} addFolder={addFolder} addFile={addFile} /> {/* Start from root folder */}
     </SafeAreaView>
   );

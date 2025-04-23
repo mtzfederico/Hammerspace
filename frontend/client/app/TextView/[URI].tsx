@@ -12,6 +12,8 @@ import * as SecureStore from 'expo-secure-store';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import Constants from 'expo-constants';
+import { getFolderKey } from '@/services/getFolderKey';
+import { saveFolderKey } from '@/services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 

@@ -40,7 +40,7 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string,
 		fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
 
 		if kind.MIME.Value != expectedMIMEType {
-			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Error("[processFile] Mismatched MIME Types")
+			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Warning("[processFile] Mismatched MIME Types")
 			// addAlert(ctx, )
 			// return errUnexpectedFileType
 		}

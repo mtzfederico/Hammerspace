@@ -4,6 +4,11 @@ import { Buffer } from 'buffer';
 import * as age from 'age-encryption';
 import * as SecureStore from 'expo-secure-store';
 import { FileItem } from '@/components/displayFolders';
+import { getFolderKey } from "@/services/database";
+
+const userPrivateKey = String(SecureStore.getItem('privateKey'));
+const userID = String(SecureStore.getItem('userID'));
+// const authToken = String(SecureStore.getItem('authToken'));
 
 /**
  * Decrypts an encrypted file from a URL using an AGE private key.
@@ -33,9 +38,11 @@ export async function generateKeys() {
   }
 }
 
-export async function decryptFile(encryptedFileUrl: string, privateKey: string, fileID: string, itemType: string): Promise<string> {
-  console.log(`[decryptFile] fileID: ${fileID}`)
+export async function decryptFile(encryptedFileUrl: string, file: FileItem): Promise<string> {
+  console.log(`[decryptFile] fileID: ${file.id}`)
   try {
+    const privateKey = await getPrivateKeyForFile(file);
+
     // Fetch encrypted file
     const response = await fetch(encryptedFileUrl);
     if (!response.ok) {
@@ -58,8 +65,8 @@ export async function decryptFile(encryptedFileUrl: string, privateKey: string, 
     const base64Data = Buffer.from(decryptedData).toString('base64');
     // we need the extension for certain files like pdf and images to load since the views that open them look at the extension to be able to show them and we can't change that.
     // Since the MIME type can contain dots and '+', we can't just use that as the extension, we need to remove those.
-    const fileExt = itemType.split('/')[1].split('.')[0].split('+')[0];
-    const outputPath = `${FileSystem.documentDirectory}${fileID}.${fileExt}`;
+    const fileExt = file.type.split('/')[1].split('.')[0].split('+')[0];
+    const outputPath = `${FileSystem.documentDirectory}${file.id}.${fileExt}`;
 
     await FileSystem.writeAsStringAsync(outputPath, base64Data, {
       encoding: FileSystem.EncodingType.Base64, 
@@ -67,15 +74,20 @@ export async function decryptFile(encryptedFileUrl: string, privateKey: string, 
 
     return outputPath;
   } catch (err) {
-    console.error(`[Decryption.tsx] Error decrypting file '${fileID}'. ${err}`);
+    console.error(`[Decryption.tsx] Error decrypting file '${file.id}'. ${err}`);
     // throw new Error('File decryption failed');
     throw err;
   }
-}
+};
 
-export async function getPrivateKeyForFile(file: FileItem): Promise<string> {
-  if (file.user === userLoggedIn)  {
-    return privatekey;
+async function getPrivateKeyForFile(file: FileItem): Promise<string> {
+  if (file.userID === userID)  {
+    return userPrivateKey;
+  }
+
+  const folderKey = await getFolderKey(file.parentDir);
+  if (folderKey === null) {
+    // check the parentDir's parentDir
   }
 
   // use recursion to check the parentDir that is being shared and get the folder's private key 

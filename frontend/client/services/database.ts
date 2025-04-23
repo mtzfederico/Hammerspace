@@ -1,7 +1,9 @@
 import * as SQLite from 'expo-sqlite';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FileItem } from '@/components/displayFolders';
 
+const currentDBVersion = "1.0"
 const apiURL= process.env.EXPO_PUBLIC_API_URL
 
 export const initDB = async () => {
@@ -12,13 +14,16 @@ console.log('Database opened at: ', db);
 export const createTables = async() => {
   try {
     // https://react-native-async-storage.github.io/async-storage/docs/usage/
-    const value = await AsyncStorage.getItem('isDBCreated');
-    if (value !== null) {
+    const dbVersion = await AsyncStorage.getItem('dbVersion');
+    if (dbVersion !== null) {
       // value previously stored
-      // Maybe check if it needs to be updated.
-      return
+      if (dbVersion === currentDBVersion) {
+        return;
+      }
+      console.log(`DB schema is an old version. Updating from '${dbVersion}' to '${currentDBVersion}`)
+    } else {
+      console.log(`DB not created. Using version '${currentDBVersion}'`)
     }
-    console.log("DB not created...")
   } catch (e) {
     // error reading value
     console.log('Error checking if DB is already created:', e);
@@ -42,6 +47,14 @@ export const createTables = async() => {
         uri          VARCHAR(500),
         fileSize     INT            NOT NULL,
         userID       VARCHAR(50)    NOT NULL
+      );`
+    );
+
+    db.runAsync(
+      `CREATE TABLE IF NOT EXISTS folder_keys (
+        folderID        VARCHAR(36)    PRIMARY KEY,
+        folderOwnerID   VARCHAR(50)    NOT NULL,
+        privateKey      VARCHAR(80)    NOT NULL,
       );`
     );
     
@@ -137,19 +150,19 @@ export const createTables = async() => {
     }
   };
 
-export const insertFolder =  async (name: string, dirID: string, parentID: string, userID: string) => {
+export const insertFolder = async (name: string, dirID: string, parentID: string, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
   db.runAsync(
       'INSERT INTO folders (id, parentDir, name, type, fileSize, uri, userID) VALUES (?, ?, ?, ?, ?, ?, ?)', dirID, parentID, name, "folder", 0, "null", userID
     );
-  }
+};
 
-  export const seeFiles = async () => {
-    console.log('SeeFiles')
-    const db = await SQLite.openDatabaseAsync('hammerspace.db');
-    const result = await db.getAllAsync('SELECT name FROM folders WHERE type="File";');
-    console.log("result of call is here " +result)
-  }
+export const seeFiles = async () => {
+  console.log('SeeFiles')
+  const db = await SQLite.openDatabaseAsync('hammerspace.db');
+  const result = await db.getAllAsync('SELECT name FROM folders WHERE type="File";');
+  console.log("result of call is here " +result)
+};
 
 export const insertFile = async (name: string, uri: string, dirID: string, type: string, parentID: string, size: number, userID: string) => {
   const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -161,7 +174,7 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   }catch (error) {
     console.error('Error inserting file' + error)
   }
-  };
+};
 
   export const getFileURIFromDB = async (id: string) => {
     console.log('[getFileURIFromDB] called with ID:', id);
@@ -207,11 +220,12 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
     }
   };
   
-  export const getItemsInParentDB = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
+  // should return an array of FileItems
+  export const getItemsInParentDB = async (parentID: string, userID: string, callback: (folders: FileItem[]) => void) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try { 
       const result = await db.getAllAsync('SELECT * FROM folders WHERE parentDir=?', parentID,);
-      const items = Array.isArray(result) ? result : []; // Ensure we handle cases where result is not an array.
+      const items = Array.isArray(result) ? result as FileItem[] : []; // Ensure we handle cases where result is not an array.
       console.log(items)
       callback(items);
     } catch (error) {
@@ -221,8 +235,6 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   // CqpIEl2Zmb4H6Q==
   // raging
   //curl -X POST "http://localhost:9090/sync" -H 'Content-Type: application/json' -d '{"userID":"raging","authToken":"CqpIEl2Zmb4H6Q=="}'
-
-
 
   export const syncWithBackend = async (userID: string, authToken: string) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -261,7 +273,6 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
         for (const folder of data.folders) {
           console.log(`[syncWithBackend] syncing dir: ${folder.parentDir}`)
 
-       
           try { 
           await db.runAsync(
             'INSERT OR REPLACE INTO folders (id, parentDir, name, type, uri, fileSize, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -281,6 +292,8 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   };
     
   
+  /*
+  // NOT USED
   // it does the same things as getItemsInParentDB. it could probably be replaced
   export const getAllFilesURi = async (parentID: string, userID: string, callback: (folders: any[]) => void) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
@@ -293,6 +306,7 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
       console.error('[getAllFilesURi] Error getting items:', error);
     }
   };
+  */
 
   // Deletes the file from the local DB and the file if it is downloaded
   export const deleteFileLocally = async (fileID: string) => {
@@ -309,6 +323,49 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
       await db.runAsync('DELETE FROM folders WHERE id=?', fileID);
     } catch (error) {
       console.error('[deleteFileLocally] Error getting items:', error);
+      throw error;
+    }
+  };
+
+  export const saveFolderKey = async (folderID: string, folderOwnerID: string, privateKey: string) => {
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      console.log('[saveFolderKey] Inserting folderKey for folderID:', folderID);
+    
+    db.runAsync('INSERT INTO folder_keys (folderID, folderOwnerID, privateKey) VALUES (?, ?, ?)', folderID, folderOwnerID, privateKey);
+    } catch (error) {
+      console.error('[saveFolderKey] Error inserting folderKey' + error)
+      return error;
+    }
+  };
+
+  export const getFolderKey = async (folderID: string): Promise<string | null> => {
+    console.log('[getFolderKey] called with folderID:', folderID);
+    const db = await SQLite.openDatabaseAsync('hammerspace.db');
+    try {
+      // Use db.getFirstAsync to retrieve a single row, specifying the correct shape of the result
+      // db.getFirstAsync('SELECT uri FROM folders WHERE id=?;', id)
+      const row = await db.getFirstAsync<{ "privateKey": string }>('SELECT privateKey FROM folder_keys WHERE folderID=?;', folderID);
+      
+      // Check if the row is found
+      if (!row) {
+        console.log(`[getFolderKey] No folderKey found for folderID: ${folderID}`);
+        // Return null if no row is found
+        return null;
+      }
+  
+      // Check if uri is null in the found row
+      if (row.privateKey === null) {
+        console.log(`[getFolderKey] folderKey is null for folderID: ${folderID}`);
+        // Return null if uri is null
+        return null;
+      }
+  
+      // Return the uri if found and it's not null
+      return row.privateKey;
+    } catch (error) {
+      console.error('[getFolderKey] Error getting folderKey:', error);
+      // Return null in case of an error
       throw error;
     }
   };

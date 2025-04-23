@@ -1,4 +1,5 @@
-import { StyleSheet, View, Image, Text, useColorScheme , FlatList, SafeAreaView, TouchableOpacity, Dimensions, Pressable} from "react-native";
+import { StyleSheet, View, Image, Text, useColorScheme , FlatList, TouchableOpacity, Dimensions, Pressable} from "react-native";
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import React, { useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { syncWithBackend } from "@/services/database";
@@ -13,6 +14,9 @@ export type FileItem = {
   name: string;
   type: string;
   uri?: string;
+  parentDir: string;
+  fileSize: number;
+  userID: string;
 };
 
 type DisplayFoldersProps = {
@@ -72,21 +76,21 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
   };
   
   return (
-    <View style={backgroundStyle}>
-      <SafeAreaView style={{ flex: 1 }}>
-      <FlatList
-        style={styles.list}
-        contentContainerStyle={{ gap: 80 , paddingBottom: 100,  flexGrow: 1, }}
-        data={data}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
-        numColumns={numColumns}
-        refreshing={isRefreshing}
-        onRefresh={handlePullToRefresh}
-      />
+    <SafeAreaProvider>
+      <SafeAreaView style={backgroundStyle} edges={['top', 'bottom']}>
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={{ gap: 40 , paddingBottom: 100,  flexGrow: 1, }}
+          data={data}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
+          numColumns={numColumns}
+          refreshing={isRefreshing}
+          onRefresh={handlePullToRefresh}
+        />
       </SafeAreaView>
-    </View>
+    </SafeAreaProvider>
   );
 };
 
@@ -131,20 +135,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     height: '100%',
     width: '100%',
-    padding:10
+    padding: 10
   },
   lightText: {
     color: 'black',
-    fontSize: 16,
+    paddingLeft: 4,
+    fontSize: 14,
     width: imageWidth
   },
   darkText: {
     color: 'white',
-    fontSize: 16,
+    paddingLeft: 4,
+    fontSize: 14,
     width : imageWidth
   },
   imageContainer: {
-    marginHorizontal: 30,
+    marginHorizontal: 10,
     flex: 1
   }
 });

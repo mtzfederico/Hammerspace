@@ -45,9 +45,7 @@ export default function UserProfileScreen() {
   
   
   const defaultProfilePicture = require('@/assets/images/default-profile-picture.jpeg');
-console.log('defaultProfilePicture:', defaultProfilePicture);
-
-
+  console.log('defaultProfilePicture:', defaultProfilePicture);
 
   useEffect(() => {
     const init = async () => {
@@ -63,8 +61,6 @@ console.log('defaultProfilePicture:', defaultProfilePicture);
 
     init()
   }, [forUserID]);
-
-  
 
   const checkLocalProfilePicture = async (userID: string, token: string, forUserID: string) => {
     const localUri = FileSystem.documentDirectory + `${forUserID}_profile.jpg`;
@@ -101,7 +97,7 @@ console.log('defaultProfilePicture:', defaultProfilePicture);
         throw new Error(data.error || response.status + ' ' + response.statusText);
       }
   
-      // 🟡 Handle default case (JSON with profilePictureID = "default")
+      // Handle default case (JSON with profilePictureID = "default")
       if (contentType.includes('application/json')) {
         const data = await response.json();
         if (data.profilePictureID === 'default' || data.profilePictureID === '') {
@@ -116,7 +112,6 @@ console.log('defaultProfilePicture:', defaultProfilePicture);
           return;
         }
       }
-  
 
       const blob = await response.blob();
 
