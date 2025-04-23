@@ -738,7 +738,7 @@ func handleSync(c *gin.Context) {
 	for _, folder := range allFolders {
 		resultFolders = append(resultFolders, folder)
 	}
-	
+
 	c.JSON(200, gin.H{"success": true, "folders": resultFolders})
 }
 
@@ -790,14 +790,8 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		var folder Folder
 
 		// read the data from the current row into the folder struct
-		if err := rows.Scan(
-			&folder.ID,
-			&folder.ParentDir,
-			&folder.Name,
-			&folder.Type,
-			&folder.FileSize,
-			&folder.UserID,
-			&folder.LastModified); err != nil {
+		err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID, &folder.LastModified)
+		if err != nil {
 			//fail to read a row, return the error
 			return nil, err
 		}
