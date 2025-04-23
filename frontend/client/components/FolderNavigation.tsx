@@ -238,8 +238,12 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
+      <View style={{ flex: 1 }}>
       <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
-      <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
+      </View>
+      <View style={styles.addButtonContainer}> {/* Container for absolute positioning */}
+        <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
+      </View>
     </View>
   );
 };
@@ -297,6 +301,13 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 15,
+  },
+  addButtonContainer: {
+    position: 'absolute',
+    bottom: 10, // Adjust as needed
+    left: 0,
+    right: 0,
+   
   },
 });
 

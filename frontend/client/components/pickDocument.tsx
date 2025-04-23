@@ -2,6 +2,7 @@ import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
 import * as SecureStore from 'expo-secure-store';
 import { AddFileType } from '@/components/addButton';
+import { getFolderKey } from '@/services/getFolderKey';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -15,6 +16,14 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
   console.log("storedAuthToken: " + storedToken)
   console.log("Uploading file to parentDIR: '" + parentDir + "'")
   try {
+       // 1. Get the decrypted folder key
+       const decryptedFK = await getFolderKey(parentDir); // parentDir is the folder ID
+
+       if (!decryptedFK) {
+         console.error("Failed to get decrypted folder key");
+         throw new Error("Unable to decrypt folder key");
+       }
+       const decryptedFKBlob = new Blob([decryptedFK], { type: 'application/octet-stream' });
     const result = await DocumentPicker.getDocumentAsync({
       type: '*/*', // Allow any file type to be selected
       multiple: false, // Only allow single file selection
@@ -43,6 +52,7 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
     formData.append("userID", storedUserID);
     formData.append("authToken", storedToken);
     formData.append("parentDir", parentDir);
+    formData.append("decryptedFK", decryptedFKBlob); 
 
    /* console.log("before test")
     const response = await fetch('http://192.168.107.78:9090/testing');
