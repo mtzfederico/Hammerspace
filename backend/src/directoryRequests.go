@@ -706,9 +706,7 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
 		FROM files f
 		INNER JOIN sharedFiles s ON f.id = s.fileID
-		WHERE s.userID = ? AND f.type = 'folder'
-	`
-	, userID)
+		WHERE s.userID = ? AND f.type = 'folder'`, userID)
 	// if error executing the query, return the error
 	if err != nil {
 		return nil, err
@@ -731,8 +729,7 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 			&folder.Type, 
 			&folder.FileSize, 
 			&folder.UserID, 
-			&folder.LastModified
-		);
+			&folder.LastModified);
 
 		err != nil {
 			//fail to read a row, return the error
