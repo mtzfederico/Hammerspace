@@ -741,29 +741,120 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 	return folders, nil
 }
 
+
+// getSharedFolders fetches all folders that are shared with a specific user
 func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 	// ctx to control DB interaction
 	// userID used to find files shared with them
+
+	// find folders from the files table that are shared with the given user
+	// only select folders that are listed in the 'sharedFiles' table
 	rows, err := db.QueryContext(ctx, `
 		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
 		FROM files f
 		INNER JOIN sharedFiles s ON f.id = s.fileID
-		WHERE s.userID = ? AND f.type = 'folder'
-	`, userID)
+		WHERE s.userID = ? AND f.type = 'folder'`, userID)
+	// if error executing the query, return the error
 	if err != nil {
 		return nil, err
 	}
+	// rows object closed after we're done reading from i
 	defer rows.Close()
 
+	// empty slice to hold the folder structs
 	var folders []Folder = []Folder{}
+
+	// loop through each row returned by the query
 	for rows.Next() {
 		var folder Folder
-		if err := rows.Scan(&folder.ID, &folder.ParentDir, &folder.Name, &folder.Type, &folder.FileSize, &folder.UserID, &folder.LastModified); err != nil {
+
+		// read the data from the current row into the folder struct
+		if err := rows.Scan(
+			&folder.ID, 
+			&folder.ParentDir, 
+			&folder.Name, 
+			&folder.Type, 
+			&folder.FileSize, 
+			&folder.UserID, 
+			&folder.LastModified
+		);
+
+		err != nil {
+			//fail to read a row, return the error
 			return nil, err
 		}
+
+		// add successfully read folder
 		folders = append(folders, folder)
 	}
 
+	// return the full list of shared folders and no error
 	return folders, nil
 }
 
+
+// checks if the provided token matches one in the database
+func validateAuthToken(userID string, authToken string) bool {
+	var storedToken string
+
+	// query the DB for token associated w/ user
+	err := db.QueryRow(`
+		SELECT authToken FROM users WHERE id = ?
+	`, userID).Scan(&storedToken)
+
+	if err != nil {
+		// user not found or query failed
+		return false
+	}
+
+	// check if the token matches
+	return storedToken == authToken
+}
+
+
+// handleGetSharedFolders handles incoming HTTP POST requests to fetch shared folders for a given user.
+func handleGetSharedFolders(c *gin.Context) {
+	// BasicRequest struct capture userID and authToken from the request body
+	var request BasicRequest
+
+	// bind JSON request to struct
+	if err := c.ShouldBindJSON(&request); err != nil {
+		// if bind fails return "400 Bad Request" with an error message
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "Invalid request",
+		})
+		return
+	}
+
+	// validate auth token
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	// call getSharedFolders function to fetch folders the user has access to
+	// passing gin context directly(?)
+	folders, err := getSharedFolders(c, request.UserID)
+	if err != nil {
+		// if error during the DB query return "500 Internal Server Error"
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   "Database query failed",
+		})
+		return
+	}
+
+	// success,, return in a JSON response with 200 OK
+	c.JSON(200, gin.H{
+		"success": true,
+		"folders": folders,
+	})
+}
