@@ -767,34 +767,49 @@ func validateAuthToken(userID string, authToken string) bool {
 }
 
 
-// handles incoming HTTP POST requests to fetch shared folders 
+// handleGetSharedFolders handles incoming HTTP POST requests to fetch shared folders for a given user.
 func handleGetSharedFolders(c *gin.Context) {
-	// capture the JSON fields in the request body
-	var request struct {
-		UserID    string `json:"userID"`
-		AuthToken string `json:"authToken"`
-	}
-	
-	// binding JSON request to struct
+	// BasicRequest struct capture userID and authToken from the request body
+	var request BasicRequest
+
+	// bind JSON request to struct
 	if err := c.ShouldBindJSON(&request); err != nil {
-		//if error return "404 Bad Request"
-		c.JSON(400, gin.H{"error": "Invalid request"})
+		// if bind fails return "400 Bad Request" with an error message
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "Invalid request",
+		})
 		return
 	}
 
-	if !validateAuthToken(request.UserID, request.AuthToken) {
-		c.JSON(401, gin.H{"error": "Unauthorized: Invalid auth token"})
-		return
-	}	
-
-	// call the getSharedFolders function
-	folders, err := getSharedFolders(c.Request.Context(), request.UserID)
+	// validate auth token
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
-		// if error during DB query return "500 Internal Server Error"
-		c.JSON(500, gin.H{"error": "Database query failed"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
 		return
 	}
 
-	// successfully got shared folders, return as JSON w/ a 200 OK status
-	c.JSON(200, gin.H{"folders": folders})
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	// call getSharedFolders function to fetch folders the user has access to
+	// passing gin context directly(?)
+	folders, err := getSharedFolders(c, request.UserID)
+	if err != nil {
+		// if error during the DB query return "500 Internal Server Error"
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   "Database query failed",
+		})
+		return
+	}
+
+	// success,, return in a JSON response with 200 OK
+	c.JSON(200, gin.H{
+		"success": true,
+		"folders": folders,
+	})
 }
