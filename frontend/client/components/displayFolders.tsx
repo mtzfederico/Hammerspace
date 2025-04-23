@@ -59,7 +59,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
     } else {
       // heic are images from the iphone
       const fileExtensionsWithImages = ['.jpg', '.jpeg', '.png', '.heic', '.gif', '.pdf'];
-      const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext));
+      const hasImage = fileExtensionsWithImages.some(ext => item.name.endsWith(ext)) && !(item.uri || item.uri === null || item.uri === "");
       return (
         <View style={styles.imageContainer}>
           <Pressable onPress={() => {onFilePress(item)}} onLongPress={() => {onItemLongPress(item)}}>

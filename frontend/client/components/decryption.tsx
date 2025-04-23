@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system';
 import { Buffer } from 'buffer';
 import * as age from 'age-encryption';
 import * as SecureStore from 'expo-secure-store';
+import { FileItem } from '@/components/displayFolders';
 
 /**
  * Decrypts an encrypted file from a URL using an AGE private key.
@@ -32,12 +33,15 @@ export async function generateKeys() {
   }
 }
 
-export async function decryptFile(encryptedFileUrl: string, privateKey: string, originalFileName: string): Promise<string> {
-  console.log(`[decryptFile] originalFileName: ${originalFileName}`)
+export async function decryptFile(encryptedFileUrl: string, privateKey: string, fileID: string, itemType: string): Promise<string> {
+  console.log(`[decryptFile] fileID: ${fileID}`)
   try {
     // Fetch encrypted file
     const response = await fetch(encryptedFileUrl);
-    if (!response.ok) throw new Error('Failed to fetch encrypted file');
+    if (!response.ok) {
+      throw new Error('Failed to fetch encrypted file');
+    }
+
     const encryptedArrayBuffer = await response.arrayBuffer();
     const encryptedBuffer = new Uint8Array(encryptedArrayBuffer);
 
@@ -45,14 +49,17 @@ export async function decryptFile(encryptedFileUrl: string, privateKey: string, 
     const decrypter = new age.Decrypter();
     console.log('[Decrypt] Using privateKey:', privateKey);
 
-    await decrypter.addIdentity(privateKey);
+    decrypter.addIdentity(privateKey);
 
     // Decrypt the file
     const decryptedData = await decrypter.decrypt(encryptedBuffer, 'uint8array');
 
     // Save to file
     const base64Data = Buffer.from(decryptedData).toString('base64');
-    const outputPath = `${FileSystem.documentDirectory}${originalFileName}`;
+    // we need the extension for certain files like pdf and images to load since the views that open them look at the extension to be able to show them and we can't change that.
+    // Since the MIME type can contain dots and '+', we can't just use that as the extension, we need to remove those.
+    const fileExt = itemType.split('/')[1].split('.')[0].split('+')[0];
+    const outputPath = `${FileSystem.documentDirectory}${fileID}.${fileExt}`;
 
     await FileSystem.writeAsStringAsync(outputPath, base64Data, {
       encoding: FileSystem.EncodingType.Base64, 
@@ -60,8 +67,17 @@ export async function decryptFile(encryptedFileUrl: string, privateKey: string, 
 
     return outputPath;
   } catch (err) {
-    console.error('[Decryption.tsx] Error decrypting file:', err);
+    console.error(`[Decryption.tsx] Error decrypting file '${fileID}'. ${err}`);
     // throw new Error('File decryption failed');
     throw err;
   }
+}
+
+export async function getPrivateKeyForFile(file: FileItem): Promise<string> {
+  if (file.user === userLoggedIn)  {
+    return privatekey;
+  }
+
+  // use recursion to check the parentDir that is being shared and get the folder's private key 
+  return "";
 }
