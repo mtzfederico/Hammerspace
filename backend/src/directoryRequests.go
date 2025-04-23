@@ -443,61 +443,64 @@ func handleCreateDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
-	//  Generate the folder key
-	privateKey, publicKey, err := generateFolderKey(c)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
-		return
-	}
 
-	_, err = db.ExecContext(c, `
-		INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID)
-		VALUES (?, ?, ?, now(), ?)`,
-		publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":     err,
-			"publicKey": publicKey,
-		}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+	// only generate a folderKey if the folder is shared
+	shareWithLen := len(request.ShareWith)
+	if shareWithLen > 0 {
+		log.WithFields(log.Fields{"shareWithLen": shareWithLen}).Trace("[handleCreateDirectory] Directory is shared")
 
-	}
-
-	// Fetch public keys for all users including the creator
-	shareWith := append(request.ShareWith, request.UserID)
-	publicKeys := []string{}
-	for _, userID := range shareWith {
-		pubKey, err := getPublicKeyForUser(c, userID)
+		//  Generate the folder key
+		privateKey, publicKey, err := generateFolderKey(c)
 		if err != nil {
-			log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
-			continue
+			c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
+			return
 		}
-		publicKeys = append(publicKeys, pubKey)
-	}
 
-	// Encrypt the folder key for all recipients at once
-	encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
-	if err != nil {
-		log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
-		return
-	}
-
-	// Upload the single encrypted key once
-	err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
-	if err != nil {
-		log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
-		return
-	}
-
-	// Share the newly created directory with the specified users
-	for _, shareWithUserID := range request.ShareWith {
-		// Grant write permission by default when creating and sharing
-		err = addFilePermission(c, dirID.String(), []string{shareWithUserID}, request.UserID, false) // isReadOnly = false for write permission
+		_, err = db.ExecContext(c, "INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID) VALUES (?, ?, ?, now(), ?)", publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
 		if err != nil {
-			log.WithFields(log.Fields{"error": err, "dirID": dirID, "shareWithUserID": shareWithUserID}).Error("[handleCreateDirectory] Failed to share directory")
+			log.WithFields(log.Fields{
+				"error":     err,
+				"publicKey": publicKey,
+			}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+		}
+
+		// Fetch public keys for all users including the creator
+		shareWith := append(request.ShareWith, request.UserID)
+		publicKeys := []string{}
+		for _, userID := range shareWith {
+			pubKey, err := getPublicKeyForUser(c, userID)
+			if err != nil {
+				log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
+				continue
+			}
+			publicKeys = append(publicKeys, pubKey)
+		}
+
+		// Encrypt the folder key for all recipients at once
+		encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+			return
+		}
+
+		// Upload the single encrypted key once
+		err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+			return
+		}
+
+		// Share the newly created directory with the specified users
+		// Grant write permission by default when creating and sharing
+		err = addFilePermission(c, dirID.String(), request.ShareWith, request.UserID, false) // isReadOnly = false for write permission
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "dirID": dirID}).Error("[handleCreateDirectory] Failed to share directory")
 			// Consider whether to rollback the directory creation or continue with errors
 		}
+	} else {
+		log.Trace("[handleCreateDirectory] Directory is not shared")
 	}
 
 	c.JSON(200, gin.H{"success": true, "dirID": dirID})
