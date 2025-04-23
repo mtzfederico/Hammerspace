@@ -46,7 +46,7 @@ export default function HomeScreen() {
   const [files, setFiles] = useState<any>([]);
   const [currentID, setCurrentID] = useState('root'); // Start with root as the current directory
 
-  const addFolder = (name: string, type: string, dirID: string, parentID: string) => {
+     function addFolder(name: string, type: string, dirID: string, parentID: string): void {
     console.log("in addFolder " + name + " " + type + " " + dirID + " " + currentID)
     insertFolder(name, dirID, parentID, storedUserID)
     setCurrentID(dirID); // Set the current folder to the new folder's dirID
@@ -76,3 +76,4 @@ const styles = StyleSheet.create({
     flex: 1,
   }
 });
+ 

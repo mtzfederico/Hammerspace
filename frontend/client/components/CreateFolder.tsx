@@ -1,9 +1,9 @@
-import React, { useState} from "react";
+import React, { useState, useEffect} from "react";
 import { StyleSheet, View,useColorScheme , StatusBar} from "react-native";
 import Dialog from "react-native-dialog";
 import sendFolder from "./sendFolder";
 import { useRouter } from "expo-router";
-
+import * as SecureStore from "expo-secure-store";
 interface CreateFolderProps {
   isVisible: boolean;
   setIsVisible: (visible: boolean) => void;
@@ -15,48 +15,48 @@ const CreateFolder =  ({ isVisible, setIsVisible, addFolder, parentID}: CreateFo
   const router = useRouter();
   const [inputValue, setInputValue] = useState('');
   const [isShared, setIsShared] = useState(false);
+ 
 
   const handleInput = (text: string) => {
-      setInputValue(text);
+    setInputValue(text);
   };
 
   const handleCancel = () => {
     setIsVisible(false);
     setInputValue('');
   };
- 
+
   const handleSubmission = async () => {
     const input = inputValue.trim();
     if (input === "") {
       alert("Please enter a folder name");
       return;
     }
-  
+
     setIsVisible(false);
-  
+
     if (isShared) {
-      // Navigate to shared folder creation screen
+      // Navigate to the shared folder screen
       router.push({
         pathname: "/sharedfolder",
         params: {
-          folderName: inputValue,
+          folderName: input,
           parentID: parentID,
         }
       });
       return;
     }
-  
-    // Regular private folder logic
+
     const type = "folder";
-    const dirID = await sendFolder(input, parentID);
+    const dirID = await sendFolder(input, parentID, []);
     if (dirID == null) {
       console.error("Failed to create folder");
       return;
     }
-  
+
     addFolder(input, type, dirID, parentID);
-  }
-  
+  };
+
 
   
 /*

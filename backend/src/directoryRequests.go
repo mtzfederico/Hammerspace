@@ -237,76 +237,79 @@ func handleShareDirectory(c *gin.Context) {
 
 	// check that the directory is not already shared
 	// This doesn't check if it is inside of a parentDir that is already shared
-	sharedFilesID, perm, err := querySharedFilesTable(c, request.DirID, request.WithUserID)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleShareDirectory] querySharedFilesTable error")
-		return
-	}
+	// Loop over each user to share with using a basic for loop
+	for i := 0; i < len(request.WithUserID); i++ {
+		withUserID := request.WithUserID[i]
 
-	// TODO: test this
-	if perm != "" {
-		switch perm {
-		case WritePermission:
-			// already has write permission
-			if request.ReadOnly {
-				// change the folder's permission to read only
-				err := changeFilePermission(c, sharedFilesID, request.DirID, ReadOnlyPermission)
-				if err != nil {
-					c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4a), Please try again later"})
-					log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+		sharedFilesID, perm, err := querySharedFilesTable(c, request.DirID, withUserID)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "withUserID": withUserID}).Error("[handleShareDirectory] querySharedFilesTable")
+			continue
+		}
+
+		// TODO: test this
+		if perm != "" {
+			switch perm {
+			case WritePermission:
+				// already has write permission
+				if request.ReadOnly {
+					// change the folder's permission to read only
+					err := changeFilePermission(c, sharedFilesID, request.DirID, ReadOnlyPermission)
+					if err != nil {
+						c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4a), Please try again later"})
+						log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+						return
+					}
+					c.JSON(200, gin.H{"success": true})
+					return
+				} else {
+					// do nothing, user already has write permission
+					c.JSON(400, gin.H{"success": false, "error": "User already has write permission for that directory"})
+					log.Trace("[handleShareDirectory] Dir already has write permission")
 					return
 				}
-				c.JSON(200, gin.H{"success": true})
-				return
-			} else {
-				// do nothing, user already has write permission
-				c.JSON(400, gin.H{"success": false, "error": "User already has write permission for that directory"})
-				log.Trace("[handleShareDirectory] Dir already has write permission")
-				return
-			}
-		case ReadOnlyPermission:
-			// already has read permission
-			if !request.ReadOnly {
-				// change the folder's permission to write
-				err := changeFilePermission(c, sharedFilesID, request.DirID, WritePermission)
-				if err != nil {
-					c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4b), Please try again later"})
-					log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+			case ReadOnlyPermission:
+				// already has read permission
+				if !request.ReadOnly {
+					// change the folder's permission to write
+					err := changeFilePermission(c, sharedFilesID, request.DirID, WritePermission)
+					if err != nil {
+						c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4b), Please try again later"})
+						log.WithField("error", err).Error("[handleShareDirectory] Failed to change permission")
+						return
+					}
+					c.JSON(200, gin.H{"success": true})
+					return
+				} else {
+					// do nothing, user already has read permission
+					c.JSON(400, gin.H{"success": false, "error": "User already has read permission for that directory"})
+					log.Trace("[handleShareDirectory] Dir already has read permission")
 					return
 				}
-				c.JSON(200, gin.H{"success": true})
-				return
-			} else {
-				// do nothing, user already has read permission
-				c.JSON(400, gin.H{"success": false, "error": "User already has read permission for that directory"})
-				log.Trace("[handleShareDirectory] Dir already has read permission")
+			default:
+				// unkown permission value
+				c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4c), Please try again later"})
+				log.WithFields(log.Fields{"perm": perm}).Error("[handleShareDirectory] File has unkown permission")
 				return
 			}
-		default:
-			// unkown permission value
-			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4c), Please try again later"})
-			log.WithFields(log.Fields{"perm": perm}).Error("[handleShareDirectory] File has unkown permission")
+		}
+
+		// directory is not already shared
+
+		id, err := getNewID()
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+			log.WithField("error", err).Error("[handleShareDirectory] Failed to get new fileID")
+			return
+		}
+
+		_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.DirID, request.WithUserID, request.UserID, request.ReadOnly)
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+			log.WithField("error", err).Error("[handleShareDirectory] Failed to add share to DB")
 			return
 		}
 	}
-
-	// directory is not already shared
-
-	id, err := getNewID()
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
-		log.WithField("error", err).Error("[handleShareDirectory] Failed to get new fileID")
-		return
-	}
-
-	_, err = db.ExecContext(c, "INSERT INTO sharedFiles (id, fileID, userID, fileOwner, isReadOnly, createdDate) VALUES (?, ?, ?, ?, ?, now());", id, request.DirID, request.WithUserID, request.UserID, request.ReadOnly)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
-		log.WithField("error", err).Error("[handleShareDirectory] Failed to add share to DB")
-		return
-	}
-
 	// The DB part is the same as with a file, but all of the files inside of the directory have to be reencrypted
 
 	// TODO: get the client to encrypt the files with all recipients, upload it, and set processed to true on the db
@@ -439,6 +442,62 @@ func handleCreateDirectory(c *gin.Context) {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4)"})
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
+	}
+	//  Generate the folder key
+	privateKey, publicKey, err := generateFolderKey(c)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
+		return
+	}
+
+	_, err = db.ExecContext(c, `
+		INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID)
+		VALUES (?, ?, ?, now(), ?)`,
+		publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":     err,
+			"publicKey": publicKey,
+		}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+
+	}
+
+	// Fetch public keys for all users including the creator
+	shareWith := append(request.ShareWith, request.UserID)
+	publicKeys := []string{}
+	for _, userID := range shareWith {
+		pubKey, err := getPublicKeyForUser(c, userID)
+		if err != nil {
+			log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
+			continue
+		}
+		publicKeys = append(publicKeys, pubKey)
+	}
+
+	// Encrypt the folder key for all recipients at once
+	encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
+	if err != nil {
+		log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+		return
+	}
+
+	// Upload the single encrypted key once
+	err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
+	if err != nil {
+		log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+		return
+	}
+
+	// Share the newly created directory with the specified users
+	for _, shareWithUserID := range request.ShareWith {
+		// Grant write permission by default when creating and sharing
+		err = addFilePermission(c, dirID.String(), []string{shareWithUserID}, request.UserID, false) // isReadOnly = false for write permission
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "dirID": dirID, "shareWithUserID": shareWithUserID}).Error("[handleCreateDirectory] Failed to share directory")
+			// Consider whether to rollback the directory creation or continue with errors
+		}
 	}
 
 	c.JSON(200, gin.H{"success": true, "dirID": dirID})
@@ -636,8 +695,6 @@ func handleSync(c *gin.Context) {
 		log.WithField("error", err).Error("[handleSync] Failed to decode JSON")
 		return
 	}
-	fmt.Println("userID is here: " + request.UserID)
-	fmt.Println("token is here: " + request.AuthToken)
 
 	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
 	if err != nil {
@@ -651,14 +708,38 @@ func handleSync(c *gin.Context) {
 		return
 	}
 
-	folders, err := getFolders(c, request.UserID)
+	// Get the user's own folders.
+	userFolders, err := getFolders(c, request.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
 		log.WithField("error", err).Error("[handleSync] Failed to get folders")
 		return
 	}
 
-	c.JSON(200, gin.H{"folders": folders})
+	// Get the folders shared with the user.
+	sharedFolders, err := getSharedFolders(c, request.UserID)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleSync] Failed to get shared folders")
+		return
+	}
+
+	// Merge the two lists, removing duplicates.
+	allFolders := make(map[string]Folder)
+	for _, folder := range userFolders {
+		allFolders[folder.ID] = folder
+	}
+	for _, folder := range sharedFolders {
+		allFolders[folder.ID] = folder
+	}
+
+	// Convert the map back to a slice.
+	var resultFolders []Folder
+	for _, folder := range allFolders {
+		resultFolders = append(resultFolders, folder)
+	}
+	
+	c.JSON(200, gin.H{"success": true, "folders": resultFolders})
 }
 
 func getFolders(ctx context.Context, userID string) ([]Folder, error) {
@@ -680,4 +761,98 @@ func getFolders(ctx context.Context, userID string) ([]Folder, error) {
 		folders = append(folders, folder)
 	}
 	return folders, nil
+}
+
+// getSharedFolders fetches all folders that are shared with a specific user
+func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
+	// ctx to control DB interaction
+	// userID used to find files shared with them
+
+	// find folders from the files table that are shared with the given user
+	// only select folders that are listed in the 'sharedFiles' table
+	rows, err := db.QueryContext(ctx, `
+		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
+		FROM files f
+		INNER JOIN sharedFiles s ON f.id = s.fileID
+		WHERE s.userID = ? AND f.type = 'folder'`, userID)
+	// if error executing the query, return the error
+	if err != nil {
+		return nil, err
+	}
+	// rows object closed after we're done reading from i
+	defer rows.Close()
+
+	// empty slice to hold the folder structs
+	var folders []Folder = []Folder{}
+
+	// loop through each row returned by the query
+	for rows.Next() {
+		var folder Folder
+
+		// read the data from the current row into the folder struct
+		if err := rows.Scan(
+			&folder.ID,
+			&folder.ParentDir,
+			&folder.Name,
+			&folder.Type,
+			&folder.FileSize,
+			&folder.UserID,
+			&folder.LastModified); err != nil {
+			//fail to read a row, return the error
+			return nil, err
+		}
+
+		// add successfully read folder
+		folders = append(folders, folder)
+	}
+
+	// return the full list of shared folders and no error
+	return folders, nil
+}
+
+// handleGetSharedFolders handles incoming HTTP POST requests to fetch shared folders for a given user.
+func handleGetSharedFolders(c *gin.Context) {
+	// BasicRequest struct capture userID and authToken from the request body
+	var request BasicRequest
+
+	// bind JSON request to struct
+	if err := c.ShouldBindJSON(&request); err != nil {
+		// if bind fails return "400 Bad Request" with an error message
+		c.JSON(400, gin.H{
+			"success": false,
+			"error":   "Invalid request",
+		})
+		return
+	}
+
+	// validate auth token
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleLogout] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	// call getSharedFolders function to fetch folders the user has access to
+	// passing gin context directly(?)
+	folders, err := getSharedFolders(c, request.UserID)
+	if err != nil {
+		// if error during the DB query return "500 Internal Server Error"
+		c.JSON(500, gin.H{
+			"success": false,
+			"error":   "Database query failed",
+		})
+		return
+	}
+
+	// success,, return in a JSON response with 200 OK
+	c.JSON(200, gin.H{
+		"success": true,
+		"folders": folders,
+	})
 }

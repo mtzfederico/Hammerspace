@@ -122,6 +122,7 @@ func main() {
 	router.POST("shareFile", handleShareFile)
 	router.POST("removeFile", handleRemoveFile)
 	router.POST("getSharedWith", handleGetSharedWith)
+	router.POST("getSharedFolders", handleGetSharedFolders)
 
 	router.POST("createDir", handleCreateDirectory)
 	router.POST("getDir", handleGetDirectory)
@@ -139,6 +140,8 @@ func main() {
 	router.POST("addFriends", handleAddFriends)
 	router.POST("getPendingFriendRequests", handleGetPendingFriendRequests)
 	router.POST("acceptFriendRequest", handleAcceptFriendRequest)
+
+	router.POST("getEncryptedFolderKey", handleGetFolderKey)
 
 	router.Run(serverConfig.ListenOn)
 

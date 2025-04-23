@@ -41,6 +41,7 @@ type CreateFolderRequest struct {
 	DirName string `json:"dirName"`
 	// For the root/home it is 'root', otherwise it is the parentDir's ID
 	ParentDir string `json:"parentDir"`
+	ShareWith []string `json:"shareWith"`
 }
 
 type GetDirectoryRequest struct {
@@ -55,7 +56,7 @@ type ShareDirectoryRequest struct {
 	AuthToken string `json:"authToken"`
 	// For the root/home it is 'root', otherwise it is the parentDir's ID
 	DirID      string `json:"dirID"`
-	WithUserID string `json:"withUserID"`
+	WithUserID []string `json:"withUserID"`
 	ReadOnly   bool   `json:"isReadOnly"`
 }
 
@@ -77,7 +78,7 @@ type ShareFileRequest struct {
 	AuthToken string `json:"authToken"`
 	// The fileID in the DB, NOT the S3 objKey
 	FileID     string `json:"fileID"`
-	WithUserID string `json:"withUserID"`
+	WithUserID []string `json:"withUserID"`
 	ReadOnly   bool   `json:"isReadOnly"`
 }
 
@@ -154,4 +155,10 @@ type AddFriendRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
 	ForUserID string `json:"forUserID"`
+}
+
+type GetFolderKeyRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	FolderID string `json:"folderID"`
 }

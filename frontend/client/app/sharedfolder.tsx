@@ -13,8 +13,11 @@ import {
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as FileSystem from 'expo-file-system';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import sendFolder  from '../components/sendFolder';
+import addFolder from "../app/tabs/homescreen"
+import { insertFolder } from '../services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -24,6 +27,7 @@ type Friend = {
 
 export default function SharedFolder() {
   const router = useRouter();
+  const { folderName, parentID } = useLocalSearchParams<{ folderName: string; parentID: string }>();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [profilePictures, setProfilePictures] = useState<{ [key: string]: string }>({});
@@ -92,8 +96,27 @@ export default function SharedFolder() {
     );
   };
 
-  const submit = () => {
+  const submit = async () => {
     console.log('Sharing with:', selected);
+    if (!folderName || !parentID) {
+      Alert.alert("Missing folder name or parentID");
+      return;
+    }
+
+    try {
+      // Create and share folder
+      console.log(selected)
+      const dirID = await sendFolder(folderName, parentID, selected);
+      if (dirID == null) {
+        console.error("Failed to create folder");
+        return;
+      }
+
+      insertFolder(folderName, dirID, parentID, userID)
+    } catch (error) {
+      console.error('Error sharing folder:', error);
+      Alert.alert('Error sharing folder');
+    }
     router.back(); // Or go to next screen
   };
 

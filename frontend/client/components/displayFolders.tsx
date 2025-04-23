@@ -76,7 +76,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
       <SafeAreaView style={{ flex: 1 }}>
       <FlatList
         style={styles.list}
-        contentContainerStyle={{ gap: 80 }}
+        contentContainerStyle={{ gap: 80 , paddingBottom: 100,  flexGrow: 1, }}
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   list: {
     width: '100%',
-    height: '800%',
+    height: '100%',
   },
   itemContainer: {
     backgroundColor: '#f1f1f1',
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   lightBackground: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f0f0f0",
     height: '100%',
     width: '100%',
     padding:10

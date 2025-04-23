@@ -37,17 +37,6 @@ CREATE TABLE IF NOT EXISTS authTokens (
   CONSTRAINT authTokens_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
 
--- The user's age public keys. The description is some sort of text to identify the key if the user has multiple public keys
--- folderID is optional and only there if the public key is for a folder. When it is for a folder then the userID is the folders owner.
-CREATE TABLE IF NOT EXISTS encryptionKeys (
-  publicKey    VARCHAR(65)     PRIMARY KEY,
-  userID       VARCHAR(50)     NOT NULL,
-  description  VARCHAR(50)     NOT NULL,
-  createdDate  DATETIME        NOT NULL,
-  folderID     VARCHAR(36)     DEFAULT null,
-  CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
-  CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (userID) REFERENCES files(id) ON DELETE CASCADE
-);
 
 ------------ test data starts ------------
 -- Test User. Password is "testPassword123"
@@ -78,6 +67,20 @@ CREATE TABLE IF NOT EXISTS files (
   lastModified  DATETIME      DEFAULT NULL,
   CONSTRAINT files_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
+
+
+-- The user's age public keys. The description is some sort of text to identify the key if the user has multiple public keys
+-- folderID is optional and only there if the public key is for a folder. When it is for a folder then the userID is the folders owner.
+CREATE TABLE IF NOT EXISTS encryptionKeys (
+  publicKey    VARCHAR(65)     PRIMARY KEY,
+  userID       VARCHAR(50)     NOT NULL,
+  description  VARCHAR(50)     NOT NULL,
+  createdDate  DATETIME        NOT NULL,
+  folderID     VARCHAR(36)     DEFAULT null,
+  CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
+  CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (folderid) REFERENCES files(id) ON DELETE CASCADE
+);
+
 
 -- items shared table
 -- processed is for files that have been marked as shared, but the new file that is encrypted with this user's pubkey has not been uploaded yet.

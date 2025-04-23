@@ -132,7 +132,7 @@ func handleFileUpload(c *gin.Context) {
 
 	// Start processing the file here
 	expectedMIMEType := file.Header.Get("Content-Type")
-	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType)
+	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType, parentDir)
 	if err != nil {
 		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
 	}

@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import { FileItem } from '@/components/displayFolders';
 import { decryptFile } from './decryption';
+import getSharedFolders from '@/services/getSharedFolders';
 
 type FolderNavigationProps = {
   initialParentID: string;
@@ -24,7 +25,7 @@ type FolderNavigationProps = {
 // Is recursively called when a folder is pressed
 const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
   const router = useRouter();
-  // const [folders, setFolders] = useState<any[]>([]);
+  //const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<any[]>([]);
   const [currentParentDirID, setCurrentParentDirID] = useState<any>(initialParentID);
   const [previousID, setPreviousID] = useState(null);
@@ -39,6 +40,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
   const privateKey = String(SecureStore.getItem('privateKey'));
   const [loadingFiles, setLoadingFiles] = useState(true);
+  const [loadingSharedFolders, setLoadingSharedFolders] = useState(false); // Add loading state for shared folders
+  const [sharedFolders, setSharedFolders] = useState<any[]>([]); // State for shared folders
 
   useEffect(() => {
     const syncAndRefresh = async () => {
@@ -292,6 +295,24 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     console.log("item long pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
   };
 
+
+  useEffect(() => {
+    const loadSharedFolders = async () => {
+      setLoadingSharedFolders(true);
+      try {
+        const fetchedFolders = await getSharedFolders();
+        setSharedFolders(fetchedFolders);
+      } catch (error) {
+        console.error("Failed to load shared folders:", error);
+        //  setError("Failed to load shared folders."); // set error, and display
+      } finally {
+        setLoadingSharedFolders(false);
+      }
+    };
+    loadSharedFolders();
+  }, []);
+
+
   return (
     <View style={[styles.container]}>
       <View style={styles.header}>
@@ -318,8 +339,12 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       </View>
       <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
+      <View style={{ flex: 1 }}>
       <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
-      <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
+      </View>
+      <View style={styles.addButtonContainer}> {/* Container for absolute positioning */}
+        <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
+      </View>
     </View>
   );
 };
@@ -377,6 +402,13 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 15,
+  },
+  addButtonContainer: {
+    position: 'absolute',
+    bottom: 10, // Adjust as needed
+    left: 0,
+    right: 0,
+   
   },
 });
 
