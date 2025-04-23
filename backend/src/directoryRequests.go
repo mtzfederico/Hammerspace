@@ -748,6 +748,25 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 }
 
 
+// checks if the provided token matches one in the database
+func validateAuthToken(userID string, authToken string) bool {
+	var storedToken string
+
+	// query the DB for token associated w/ user
+	err := db.QueryRow(`
+		SELECT authToken FROM users WHERE id = ?
+	`, userID).Scan(&storedToken)
+
+	if err != nil {
+		// User not found or query failed
+		return false
+	}
+
+	// Check if the token matches
+	return storedToken == authToken
+}
+
+
 // handles incoming HTTP POST requests to fetch shared folders 
 func handleGetSharedFolders(c *gin.Context) {
 	// capture the JSON fields in the request body
@@ -763,6 +782,11 @@ func handleGetSharedFolders(c *gin.Context) {
 		return
 	}
 
+	if !validateAuthToken(request.UserID, request.AuthToken) {
+		c.JSON(401, gin.H{"error": "Unauthorized: Invalid auth token"})
+		return
+	}	
+
 	// call the getSharedFolders function
 	folders, err := getSharedFolders(c.Request.Context(), request.UserID)
 	if err != nil {
@@ -774,8 +798,3 @@ func handleGetSharedFolders(c *gin.Context) {
 	// successfully got shared folders, return as JSON w/ a 200 OK status
 	c.JSON(200, gin.H{"folders": folders})
 }
-
-
-
-
-
