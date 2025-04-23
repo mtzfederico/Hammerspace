@@ -140,6 +140,8 @@ func main() {
 	router.POST("getPendingFriendRequests", handleGetPendingFriendRequests)
 	router.POST("acceptFriendRequest", handleAcceptFriendRequest)
 
+	router.POST("getEncryptedFolderKey", handleGetFolderKey)
+
 	router.Run(serverConfig.ListenOn)
 
 }

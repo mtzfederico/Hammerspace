@@ -444,11 +444,23 @@ func handleCreateDirectory(c *gin.Context) {
 		return
 	}
 	//  Generate the folder key
-	folderKey, err := generateFolderKey(c)
+	privateKey, publicKey, err := generateFolderKey(c)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
 		return
 	}
+	
+	_, err = db.ExecContext(c, `
+		INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID)
+		VALUES (?, ?, ?, now(), ?)`,
+		publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
+		if err != nil {
+			log.WithFields(log.Fields{
+				"error":     err,
+				"publicKey": publicKey,
+			}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+			
+		}
 
 	// Fetch public keys for all users including the creator
 	shareWith := append(request.ShareWith, request.UserID)
@@ -463,7 +475,7 @@ func handleCreateDirectory(c *gin.Context) {
 	}
 
 	// Encrypt the folder key for all recipients at once
-	encryptedKey, err := encryptFolderKeyForUsers(folderKey, publicKeys)
+	encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
 		if err != nil {
 			log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
 			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})

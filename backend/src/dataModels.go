@@ -156,3 +156,9 @@ type AddFriendRequest struct {
 	AuthToken string `json:"authToken"`
 	ForUserID string `json:"forUserID"`
 }
+
+type GetFolderKeyRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	FolderID string `json:"folderID"`
+}

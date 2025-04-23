@@ -24,7 +24,7 @@ var (
 	excemptedFileTypes = []string{"text/plain", "application/xml", "text/xml"}
 )
 
-func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string) error {
+func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string, parentDir string) error {
 	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open the file: %w", err)
@@ -62,7 +62,7 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 	}
 
 	// encrypt and upload
-	res, err := encryptAndUploadFile(ctx, filePath, objKey.String(), fileID)
+	res, err := encryptAndUploadFile(ctx, filePath, objKey.String(), fileID, parentDir)
 	if err != nil {
 		return fmt.Errorf("encryptAndUploadFile failed: %w", err)
 	}
