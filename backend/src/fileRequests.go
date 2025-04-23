@@ -375,11 +375,6 @@ func getMIMEType(extension string) string {
 }
 */
 
-import (
-	"database/sql"
-	"fmt"
-)
-
 // This is the renameFile functiion where it updates the file name for a given file ID
 func renameFile(db *sql.DB, fileID, newName string) error {
 	query := `
