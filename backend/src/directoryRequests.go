@@ -758,11 +758,11 @@ func validateAuthToken(userID string, authToken string) bool {
 	`, userID).Scan(&storedToken)
 
 	if err != nil {
-		// User not found or query failed
+		// user not found or query failed
 		return false
 	}
 
-	// Check if the token matches
+	// check if the token matches
 	return storedToken == authToken
 }
 
