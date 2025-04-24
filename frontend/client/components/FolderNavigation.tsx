@@ -294,7 +294,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
         </TouchableOpacity>
       </View>
       <TextInput style={searchBarStyle} placeholder="Search" placeholderTextColor='#888'/>
-      <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
+      {currentDirName === "Home" ? ( 
+        <Text style={[styles.recentlyOpened, textStyle]}>Recently opened</Text>
+        ): null }
+
       <View style={{ flex: 1 }}>
       <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
       </View>
@@ -359,6 +362,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 2,
+  },
+  recentlyOpened: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    marginLeft: 5,
   },
   lightBackground: {
     backgroundColor: 'white',

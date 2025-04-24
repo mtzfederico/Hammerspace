@@ -143,8 +143,6 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, []);
 
-  // if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-
   return (
     <SafeAreaProvider>
       <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={styles.gradientBackground}>
@@ -163,7 +161,7 @@ export default function NotificationsScreen() {
               )}
             />
         </SafeAreaView>
-        </LinearGradient>
+      </LinearGradient>
     </SafeAreaProvider>
   );
 }
