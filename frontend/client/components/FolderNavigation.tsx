@@ -261,9 +261,6 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     console.log("item long pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
   };
 
-
-
-
   var searchBarStyle = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
   var searchBarPlaceHoldertextColor = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
 
@@ -319,7 +316,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 20,
-    paddingHorizontal: 10,
+    // paddingHorizontal: 10,
   },
   header: {
     flexDirection: 'row',
@@ -382,7 +379,6 @@ const styles = StyleSheet.create({
     bottom: 10, // Adjust as needed
     left: 0,
     right: 0,
-   
   },
 });
 

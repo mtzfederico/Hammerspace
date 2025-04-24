@@ -1,7 +1,8 @@
-import {Image, StyleSheet, Text, TouchableOpacity, View, Animated , useColorScheme, Alert} from 'react-native';
+import {Image, StyleSheet, Text, Pressable, View, useColorScheme, Alert, Dimensions, Modal} from 'react-native';
 import React, { useState} from 'react';
 import { pickDocument } from './pickDocument';
 import CreateFolder  from './CreateFolder';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type addFolderType = ( 
   fileName: string,
@@ -25,122 +26,73 @@ type AddButtonProps = {
   parentID: string;
 };
 
-// Buttons at the buttom left of the Screen
+// Button at the buttom right of the Screen
 // Add Folder functions that were defined in homescreen.tsx get passed to this component
 // and then passed to the addFolder function in addFolder.tsx
 // The addFile function and the parentID is passed to the sendFile.tsx component
 const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
   console.log("Addbutton parentID " + parentID)
 
-  const [visible, setVisible] = useState(false); 
-  const [isTextVisible, setIsTextVisible] = useState(false);
-
-  const toggleTextVisibility = () => {
-    setIsTextVisible(!isTextVisible);
-  };
-  const TextPosition= 120
-  const iconPopIn1 = 180
-  const iconPopIn2 = 250
-  const restState= 100
-
-  const [icon_1] = useState(new Animated.Value(restState));
-  const [icon_2] = useState(new Animated.Value(restState));
-  const [icon_3] = useState(new Animated.Value(restState));
-
-  const [pop, setPop] = useState(false);
-
-  const popIn = () => {
-    setPop(true);
-    Animated.timing(icon_1, {
-      toValue: iconPopIn1,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(icon_2, {
-      toValue: iconPopIn2,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(icon_3, {
-      toValue: 130,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }
-
-  const popOut = () => {
-    setPop(false);
-    Animated.timing(icon_1, {
-      toValue: restState,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(icon_2, {
-      toValue: restState,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-    Animated.timing(icon_3, {
-      toValue: restState,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
-  }
+  const [modalVisible, setModalVisible] = useState(false);
+  const [isAddFolderViewVisible, setIsAddFolderViewVisible] = useState(false); 
 
   const handleDocumentPick = async () => {
+    setModalVisible(false);
     try {
       await pickDocument(parentID, addFile);
     } catch(err) {
       Alert.alert('Failed to upload file', `${err || 'Unknown error'}`);
     }
   };
-
-  const handleFolderCreation = () => {
-    setVisible(!visible)
-    console.log("Vising is bere " + visible)
-  };
     
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
-  const textStyle = isDarkMode ? styles.darkText : styles.lightText;
+  const titleTextStyle = isDarkMode ? styles.modalTitleDark : styles.modalTitleLight;
+  const closeBtnTextStyle = isDarkMode ? styles.closeBtnTextDark : styles.closeBtnTextLight;
+  const actionBtnTextStyle = isDarkMode ? styles.actionBtnDark : styles.actionBtnLight;
     
+  // TODO: make the outside of the model tappable so that it can be tapped outside to close it
   return (
-    <View style={{
-        flex: 1, 
-      }}
-      importantForAccessibility='no-hide-descendants'>
-       
-    <Animated.View style={[styles.cont, { bottom: icon_1}]}>
-        <TouchableOpacity style={styles.touchable} onPress={handleDocumentPick}>
-          <Image
-            source={require('../assets/images/file.webp')}
-            style={styles.icon}
-          />
-        </TouchableOpacity>
-      </Animated.View>
-      
-      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn1+20, right: TextPosition}]}>Add File </Text>}
-      
-      <Animated.View style={[styles.cont, { bottom: icon_2}]}>
-        <TouchableOpacity style={styles.touchable} onPress={handleFolderCreation}>
-          <Image
-            source={require('../assets/images/folder.webp')}
-            style={styles.icon}
-          />
-        </TouchableOpacity >
-      </Animated.View>
-     { visible && <CreateFolder isVisible={visible} setIsVisible={setVisible}  addFolder={addFolder} parentID={parentID} />}
-      {isTextVisible &&<Text style={[textStyle, {bottom: iconPopIn2+20, right: TextPosition}]} >Create Folder </Text>}
+    <View style={{ flex: 1 }} importantForAccessibility='no-hide-descendants'>
+      { isAddFolderViewVisible && <CreateFolder isVisible={isAddFolderViewVisible} setIsVisible={setIsAddFolderViewVisible} addFolder={addFolder} parentID={parentID} />}
+      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => {
+          Alert.alert('Modal has been closed.');
+          setModalVisible(!modalVisible);
+        }}
+      >
+        {/* The second Pressable is supposed to be used to ignore the taps inside the actual content view */}
+        <Pressable style={styles.centeredView} onPress={() => setModalVisible(false)}>
+          <Pressable onPress={() => {}} style={{ flex: 1, justifyContent: 'flex-end' }}>
+            <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#678ab5', '#b1b6c4']} style={styles.modalContainer}>
+              <Pressable style={[styles.button, styles.closeBtn]} onPress={() => setModalVisible(!modalVisible)}>
+                <Text style={closeBtnTextStyle}>X</Text>
+              </Pressable>
+              <Text style={titleTextStyle}>Select an option</Text>
 
-      <TouchableOpacity style={styles.cont} onPress={() => {
-          pop === false ? popIn() : popOut();
-          toggleTextVisibility()
-        }}>
-        <Image
-          source={require('../assets/images/plus.png')}
-          style={styles.image}
-        />
-    </TouchableOpacity>
+              <Pressable style={[styles.button, actionBtnTextStyle]} onPress={handleDocumentPick}>
+                <Text style={styles.textStyle}>Add File</Text>
+              </Pressable>
+
+              <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() =>{
+                // show view to take a picture
+                setModalVisible(false)
+              }}>
+                <Text style={styles.textStyle}>Take a Picture</Text>
+              </Pressable>
+              <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
+                setIsAddFolderViewVisible(true);
+                setModalVisible(false);
+              }}>
+                <Text style={styles.textStyle}>Create Folder</Text>
+              </Pressable>
+            </LinearGradient>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Pressable style={styles.addItemsBtn} onPress={() => {setModalVisible(!modalVisible)}}>
+      <Image source={require('../assets/images/plus.png')} style={styles.image}/>
+    </Pressable>
     </View>
   );
 };
@@ -148,7 +100,66 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
 export default AddButton;
 
 const styles = StyleSheet.create({
-  cont: {
+  closeBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 15,
+    zIndex: 1,
+  },
+  closeBtnTextLight: {
+    color: 'black',
+  },
+  closeBtnTextDark: {
+    color: 'white',
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+  },
+  actionBtnLight: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 10,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginVertical: 12,
+  },
+  actionBtnDark: {
+    // backgroundColor: '#2196F3',
+    // backgroundColor: '#7ea3d0',
+    backgroundColor: '#678ab5',
+    paddingVertical: 10,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginVertical: 12,
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    height: Dimensions.get('window').height / 2.5,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    // borderTopLeftRadius: 20,
+    // borderTopRightRadius: 20,
+    padding: 35,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  addItemsBtn: {
     backgroundColor: 'blue',
      width: 60,
      height: 60,
@@ -165,34 +176,16 @@ const styles = StyleSheet.create({
     height: 45,
     width: 45,
   },
-  icon: {
-    color: 'white',
-    tintColor: 'white',
-    height: 40,
-    width: 40,
-    position: 'absolute'
-    
-  },
-
-  lightText: {
+  modalTitleLight: {
     color: 'black',
-    fontSize: 16,
-    position: 'absolute'
+    fontSize: 18,
+    marginBottom: 15,
+    textAlign: 'center',
   },
-  darkText: {
+  modalTitleDark: {
     color: 'white',
-    fontSize: 16,
-    position: 'absolute'
-  },
-
-  touchable: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'blue',
-  },
-  view: {
-    flex: 1,
+    fontSize: 18,
+    marginBottom: 15,
+    textAlign: 'center',
   }
 });

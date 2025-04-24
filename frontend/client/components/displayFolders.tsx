@@ -83,7 +83,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
       <SafeAreaView style={styles.listBackground} edges={['top', 'bottom']}>
         <FlatList
           style={styles.list}
-          contentContainerStyle={{ gap: 80 , paddingBottom: 100,  flexGrow: 1, }}
+          contentContainerStyle={{ gap: 10, paddingTop: 4, paddingBottom: 100, flexGrow: 1 }}
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -99,13 +99,14 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
 };
 
 const styles = StyleSheet.create({
+  list: {
+    // width: '100%',
+    width: (Dimensions.get('window').width),
+    // height: '100%',
+  },/*
   container: {
     flex: 1,
     padding: 10,
-  },
-  list: {
-    width: '100%',
-    height: '100%',
   },
   itemContainer: {
     backgroundColor: '#f1f1f1',
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: 18,
     color: '#333',
-  },
+  },*/
 ////////////////////
   lightEmptyMsg: {
     fontSize: 28,
@@ -155,11 +156,10 @@ const styles = StyleSheet.create({
     width : imageWidth
   },
   imageContainer: {
-    marginHorizontal: 10,
+    // paddingLeft: 14,
+    marginHorizontal: 16,
     flex: 1
   }
 });
 
 export default DisplayFolders;
-      
-      
