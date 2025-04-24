@@ -285,11 +285,12 @@ export default function UserProfileScreen() {
             {selectedImage && (
               <Image source={{ uri: selectedImage }} style={styles.profileImage} />
             )}
-            <Button
-              title="Upload"
-              onPress={handleUpload}
-              disabled={!selectedImage || loading}
-            />
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={handleUpload}
+            disabled={!selectedImage || loading}>
+          <Text style={styles.uploadText}>Upload</Text>
+          </TouchableOpacity>
             <View style={styles.friendsText}>
               <Text
                 style={[styles.smallHeader, textStyle]}
@@ -340,6 +341,14 @@ const styles = StyleSheet.create({
     borderRadius: 90,
     marginVertical: 20,
   },
+  uploadButton: {
+    marginTop: 10,
+    backgroundColor: '#transparent',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    alignSelf: 'center',
+  },
   backButton: {
     position: 'absolute',
     top: 70,
@@ -347,6 +356,10 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  uploadText: {
+    color: 'white',
+    fontSize: 20,
   },
   backText: {
     fontSize: 16,
