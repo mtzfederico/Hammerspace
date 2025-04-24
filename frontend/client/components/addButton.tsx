@@ -90,7 +90,7 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
         </Pressable>
       </Modal>
 
-      <Pressable style={styles.addItemsBtn} onPress={() => {setModalVisible(!modalVisible)}}>
+      <Pressable style={[styles.addItemsBtn, {backgroundColor: isDarkMode ? '#c0c1c4' : '#626f94'}]} onPress={() => {setModalVisible(!modalVisible)}}>
       <Image source={require('../assets/images/plus.png')} style={styles.image}/>
     </Pressable>
     </View>
@@ -160,7 +160,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   addItemsBtn: {
-    backgroundColor: 'blue',
      width: 60,
      height: 60,
      position: 'absolute',
