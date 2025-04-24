@@ -33,7 +33,6 @@ export default function HomeScreen() {
     testSecureStorage();
   }, []);
   
-
   useEffect(() => {
     // Call createTables to initialize the database on app startup
     initDB()
@@ -50,19 +49,17 @@ export default function HomeScreen() {
   const [files, setFiles] = useState<any>([]);
   const [currentID, setCurrentID] = useState('root'); // Start with root as the current directory
 
-     function addFolder(name: string, type: string, dirID: string, parentID: string): void {
+  function addFolder(name: string, type: string, dirID: string, parentID: string): void {
     console.log("in addFolder " + name + " " + type + " " + dirID + " " + currentID)
     insertFolder(name, dirID, parentID, storedUserID)
     setCurrentID(dirID); // Set the current folder to the new folder's dirID
     
     testDBname()
-
   };
   
 
   // called from sendFile after the file has been uploaded
   const addFile = (name: string, uri: string, dirID: string, type: string, parentID: string, size: number) => {
-    // TODO: the uri is probably a tmp path. we might need to copy it to be able to reference it for later
     console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " + size + " type is " + type)
     insertFile(name, uri, dirID, type, parentID, size, storedUserID); 
     setCurrentID(dirID); // Set the current folder to the new folder's dirID

@@ -11,7 +11,6 @@ const storedUserID = String(SecureStore.getItem('userID'));
 // Function to open the document picker and handle the selected file
 // Then send a request to the server to upload the file
 async function pickDocument(parentDir: string, addFile: AddFileType) {  
-  // TODO: set a type for addFile. AND maybe a comment somewhere explaining what it is
   console.log("storedAuthToken: " + storedToken)
   console.log("Uploading file to parentDIR: '" + parentDir + "'")
   try {

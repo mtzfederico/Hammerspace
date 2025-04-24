@@ -52,14 +52,13 @@ export default function AddFriends() {
         }),
       });
 
-
       const data = await response.json();
       if (data.success) {
         Alert.alert('Success', 'Friend request sent!');
         setForUserID('');
         router.back();
       } else {
-        Alert.alert('Error', data.error || 'Failed to send friend request');
+        Alert.alert('Failed to send request', data.error || `Unknown Error: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error(error);
@@ -89,11 +88,9 @@ export default function AddFriends() {
         </Text>
       </TouchableOpacity>
 
-
       <Text style={[styles.header, { color: isDark ? '#fff' : '#000' }]}>
         Add a Friend
       </Text>
-
 
       <TextInput
         placeholder="Enter User ID"
