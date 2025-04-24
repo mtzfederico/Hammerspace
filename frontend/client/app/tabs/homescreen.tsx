@@ -5,10 +5,10 @@ import initDB, { seeFiles, insertFolder ,insertFile,  createTables, testDBname, 
 import  AddButton  from  '../../components/addButton'
 import DisplayFolders from '@/components/displayFolders';
 import FolderNavigation from '@/components/FolderNavigation';
-import { SafeAreaView } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme(); // detect light/dark mode
@@ -57,7 +57,6 @@ export default function HomeScreen() {
     testDBname()
   };
   
-
   // called from sendFile after the file has been uploaded
   const addFile = (name: string, uri: string, dirID: string, type: string, parentID: string, size: number) => {
     console.log("in index addFile  name is " + name  + " dirID is  " + dirID + "parentID is" + parentID + " size is " + size + " type is " + type)
@@ -68,14 +67,13 @@ export default function HomeScreen() {
 
   return (
     // linear gradient wrapper
-    <LinearGradient
-      colors={isDark ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
-      style={styles.container}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
-        <FolderNavigation initialParentID={currentID} addFolder={addFolder} addFile={addFile} />
-      </SafeAreaView>
-    </LinearGradient>
+    <SafeAreaProvider>
+      <LinearGradient colors={isDark ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={styles.container}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['left', 'right']}>
+          <FolderNavigation initialParentID={currentID} addFolder={addFolder} addFile={addFile} />
+        </SafeAreaView>
+      </LinearGradient>
+    </SafeAreaProvider>
   );
 }
 

@@ -146,31 +146,25 @@ export default function NotificationsScreen() {
   // if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
-    <LinearGradient
-      colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} 
-      style={styles.gradientBackground}
-    >
-      <SafeAreaProvider>
+    <SafeAreaProvider>
+      <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={styles.gradientBackground}>
         <SafeAreaView edges={['top', 'bottom']}>
           <Text style={[styles.heading, isDarkMode && {color: 'white'}]}>Notifications</Text>
           {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
-          {alerts && alerts.length === 0 ? (
-            <Text style={styles.noRequests}>No Notifications</Text>
-          ) : (
             <FlatList
               style={styles.table}
               data={alerts || []}
               keyExtractor={(item) => item.id}
               refreshing={isRefreshing}
+              ListEmptyComponent={<Text style={styles.noRequests}>No Notifications</Text>}
               onRefresh={handlePullToRefresh}
               renderItem={({ item }) => (
                 <Notification alert={item}/>
               )}
             />
-          )}
         </SafeAreaView>
-      </SafeAreaProvider>
-    </LinearGradient>
+        </LinearGradient>
+    </SafeAreaProvider>
   );
 }
 
@@ -191,6 +185,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: 'gray',
+    textAlign: 'center',
   },
   table: {
     paddingTop: 10,

@@ -273,7 +273,11 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           <Text style={textStyle}>{'< Back'}</Text>
         </TouchableOpacity>
         ): null }
-        <Text style={[styles.sectionTitle, textStyle]}>Current Directory: {currentDirName}</Text>
+
+        {currentDirName === "Home" ? ( 
+        <Text style={[styles.sectionTitle, textStyle]}>Hammerspace</Text>
+        ): (<Text style={[styles.sectionTitle, textStyle]}>{currentDirName}</Text>) }
+
         <TouchableOpacity
           style={styles.profileButton}
           onPress={() => router.push(`/profile/${storedUserID}` as any)}
@@ -353,7 +357,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 2,
   },
   lightBackground: {
     backgroundColor: 'white',
