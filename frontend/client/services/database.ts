@@ -263,7 +263,8 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
 
       const data = await response.json();
      
-      console.log("syncWithBackend response: " + JSON.stringify(data));
+      console.log('[syncWithBackend] Received items:', data.folders);
+     // console.log("syncWithBackend response: " + JSON.stringify(data));
   
       if (Array.isArray(data.folders)) {
         // Clear local folders for the given user
@@ -283,6 +284,12 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
         }
       }
         console.log('[syncWithBackend] Sync completed with no errors');
+      // Log all non-folder entries after syncing
+        const nonFolderRows = await db.getAllAsync(
+      'SELECT id, parentDir, name, type, uri, fileSize, userID FROM folders WHERE type != ?',
+      ['folder']
+    );
+      console.log('[syncWithBackend] Non-folder rows:', nonFolderRows);
       } else {
         console.error('[syncWithBackend] No folders received from backend');
       }
