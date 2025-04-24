@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
-import { getItemsInParentDB, syncWithBackend, getFileURIFromDB, updateFileUri, getAllFilesURi, deleteFileLocally } from '../services/database';
+import { getItemsInParentDB, syncWithBackend, getFileURIFromDB, updateFileUri, deleteFileLocally } from '../services/database';
 import AddButton from './addButton';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
@@ -26,7 +26,7 @@ type FolderNavigationProps = {
 const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
   const router = useRouter();
   //const [folders, setFolders] = useState<any[]>([]);
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<FileItem[]>([]);
   const [currentParentDirID, setCurrentParentDirID] = useState<any>(initialParentID);
   const [previousID, setPreviousID] = useState(null);
   const [currentDirName, setCurrentDirName] = useState('Home');
@@ -38,11 +38,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-  const privateKey = String(SecureStore.getItem('privateKey'));
   const [loadingFiles, setLoadingFiles] = useState(true);
-  const [loadingSharedFolders, setLoadingSharedFolders] = useState(false); // Add loading state for shared folders
-  const [sharedFolders, setSharedFolders] = useState<any[]>([]); // State for shared folders
-
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
   // a list of the image mime subtypes that the app can open.
   // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
   const SupportedImageTypes: string[] = ["jpeg", "png", "heic", "gif", "jp2"];
@@ -61,9 +58,9 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       //     }
       //   }
   
-      //   await refreshData(); // Fetch again after all decryption + URI set
+        await refreshData(); // Fetch again after all decryption + URI set
         setLoadingFiles(false); // Done loading
-        
+        setInitialLoadComplete(true);
       // });
     };
   
@@ -72,8 +69,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
   useEffect(() => {
     refreshData();
+ 
   }, [currentParentDirID, addFolder, addFile]);
 
+  // reload the data in the list showing the files
   const refreshData = () => {
     // getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
     getItemsInParentDB(currentParentDirID, storedUserID, setFiles);
@@ -166,7 +165,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       console.log('[getOrFetchFileUri] File saved locally at:', tmpPath);
 
       // decrypt the file
-      const decryptedPath = await decryptFile(tmpPath, privateKey, item.id, item.type)
+      const decryptedPath = await decryptFile(tmpPath, item)
 
       // delete the unencrypted file
       await FileSystem.deleteAsync(tmpPath);
@@ -249,37 +248,25 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
   */
   
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => {
-        const base64data = (reader.result as string).split(',')[1];
-        resolve(base64data);
-      };
-      reader.readAsDataURL(blob);
-    });
-  };
-  
   const handleFilePress = async (item: FileItem) => {
       console.log("** file pressed. fileID:", item.id, "fileName:", item.name, "type:", item.type);
 
       // if the file is a pdf, open it on the web view
       if (item.type === "application/pdf") {
-        const fileURI = await getDecryptedFileURI(item);
-        if (!fileURI) {
-          console.error("[handleFilePress: pdf] Failed to get file URI");
-          return;
-        }
-        
         try {
+          const fileURI = await getDecryptedFileURI(item);
+          if (!fileURI) {
+            console.error("[handleFilePress: pdf] Failed to get file URI");
+            return;
+          }
+          
           const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/PDFView/[URI]",
             params: { URI: encodedURI },
           });
         } catch (err) {
-          console.error("[handleFilePress] Decryption failed:", err);
+          console.error("[handleFilePress: pdf] failed to get URI:", err);
         }
     
         return;
@@ -294,41 +281,41 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       
       // Check if the file is a text format and open it in the TextView
       if ((mimeParts[0] === "text" && ["plain", "csv", "css", "javascript", "html", "markdown"].includes(mimeParts[1])) || (mimeParts[0] === "application" && ["json", "xml"].includes(mimeParts[1]))) {
-        // https://www.iana.org/assignments/media-types/media-types.xhtml#text
-        const fileURI = await getDecryptedFileURI(item);
-        if (!fileURI) {
-          console.error("[handleFilePress: text] Failed to get file URI");
-          return;
-        }
-    
         try {
+          // https://www.iana.org/assignments/media-types/media-types.xhtml#text
+          const fileURI = await getDecryptedFileURI(item);
+          if (!fileURI) {
+            console.error("[handleFilePress: text] getDecryptedFileURI failed");
+            return;
+          }
+
           const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/TextView/[URI]",
             params: { URI: encodedURI },
           });
         } catch (err) {
-          console.error("[handleFilePress: text] Decryption failed:", err);
+          console.error("[handleFilePress: text] failed to get URI:", err);
         }
         return;
       }
 
       // Check if the file is an image and if the format is supported
       if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
-        const fileURI = await getDecryptedFileURI(item);
-        if (!fileURI) {
-          console.error("[handleFilePress: image] Failed to get encrypted URI");
-          return;
-        }
-    
         try {
+          const fileURI = await getDecryptedFileURI(item);
+          if (!fileURI) {
+            console.error("[handleFilePress: image] Failed to get encrypted URI");
+            return;
+          }
+    
           const encodedURI = encodeURI(fileURI);
           router.push({
             pathname: "/ImageView/[URI]",
             params: { URI: encodedURI },
           });
         } catch (err) {
-          console.error("[handleFilePress: image] Decryption failed:", err);
+          console.error("[handleFilePress: image] failed to get URI:", err);
         }
         return;
       }
@@ -343,22 +330,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
 
 
-  useEffect(() => {
-    const loadSharedFolders = async () => {
-      setLoadingSharedFolders(true);
-      try {
-        const fetchedFolders = await getSharedFolders();
-        setSharedFolders(fetchedFolders);
-      } catch (error) {
-        console.error("Failed to load shared folders:", error);
-        //  setError("Failed to load shared folders."); // set error, and display
-      } finally {
-        setLoadingSharedFolders(false);
-      }
-    };
-    loadSharedFolders();
-  }, []);
 
+
+  var searchBarStyle = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
+  var searchBarPlaceHoldertextColor = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
 
   return (
     <View style={[styles.container]}>
@@ -384,7 +359,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           )}
         </TouchableOpacity>
       </View>
-      <TextInput style={styles.searchBar} placeholder="Search" placeholderTextColor="#888" />
+      <TextInput style={searchBarStyle} placeholder="Search" placeholderTextColor='#888'/>
       <Text style={[styles.sectionTitle, textStyle]}>Recently opened</Text>
       <View style={{ flex: 1 }}>
       <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
@@ -394,6 +369,18 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       </View>
     </View>
   );
+};
+
+export const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const base64data = (reader.result as string).split(',')[1];
+      resolve(base64data);
+    };
+    reader.readAsDataURL(blob);
+  });
 };
 
 const styles = StyleSheet.create({
@@ -418,7 +405,15 @@ const styles = StyleSheet.create({
   profileButton: {
     padding: 5,
   },
-  searchBar: {
+  searchBarLight: {
+    height: 40,
+    backgroundColor: '#d2d6d6',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  searchBarDark: {
     height: 40,
     backgroundColor: '#f0f0f0',
     borderRadius: 10,

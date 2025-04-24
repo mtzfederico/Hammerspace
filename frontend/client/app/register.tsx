@@ -40,8 +40,8 @@ export default function Register() {
 
     try {
       try {
-         publicKey = await generateKeys();
-        console.log('Public Key:', publicKey); // ✅ Check if this logs
+        publicKey = await generateKeys();
+        console.log('Public Key:', publicKey);
       } catch (err) {
         console.error('generateKeys failed:', err);
         setError('Key generation failed');
@@ -106,7 +106,7 @@ export default function Register() {
             placeholder="username"
             autoCapitalize="none"
             placeholderTextColor="#ccc"
-            value={userID}
+            value={userID.trim()}
             onChangeText={setUserID}
           />
           <TextInput

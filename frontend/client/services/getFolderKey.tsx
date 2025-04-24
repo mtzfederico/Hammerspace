@@ -1,16 +1,19 @@
 import * as SecureStore from 'expo-secure-store';
-import { Decrypter } from 'age-encryption';
+import * as age from 'age-encryption';
+import { Buffer } from 'buffer';
+import * as FileSystem from 'expo-file-system';
+import { blobToBase64 } from '../components/FolderNavigation';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export async function getFolderKey(folderID: string) {
+export async function getFolderKey(folderID: string): Promise<string> {
 	const authToken = await SecureStore.getItemAsync("authToken");
 	const userID = await SecureStore.getItemAsync("userID");
 
 	const jsonData = {
-		userID,
-		authToken,
-		folderID,
+		"userID": userID,
+		"authToken": authToken,
+		"folderID": folderID,
 	};
 
 	const res = await fetch(`${apiUrl}/getEncryptedFolderKey`, {
@@ -21,22 +24,70 @@ export async function getFolderKey(folderID: string) {
 		body: JSON.stringify(jsonData),
 	});
 
-	if (!res.ok) throw new Error("Failed to get encrypted folder key");
+	if (!res.ok) {
+		const jsonResponse = await res.json();
+		throw new Error("Failed to get encrypted folder key. ", jsonResponse.error);
+	}
 
-	const { encryptedKey } = await res.json();
-	if (!encryptedKey) throw new Error("Missing encrypted key in response");
+	const tmpPath = `${FileSystem.cacheDirectory}${folderID}_encrypted_fk`;
+	  
+	// Save the FK to local storage temporarily to decrypt it
+	const blob = await res.blob()
+	const base64Data = await blobToBase64(blob);
+	await FileSystem.writeAsStringAsync(tmpPath, base64Data, {
+		encoding: FileSystem.EncodingType.Base64,
+	});
 
-	// Decode base64 string to Uint8Array
-	const encryptedKeyBytes = Uint8Array.from(atob(encryptedKey), c => c.charCodeAt(0));
+	console.log('[getOrFetchFileUri] File saved locally at:', tmpPath);
+	// decrypt the file
+	const decryptedPath = await decryptFolderKey(tmpPath, folderID);
 
-	// Retrieve private key from SecureStore
-	const privateKeyStr = await SecureStore.getItemAsync("privateKey");
-	if (!privateKeyStr) throw new Error("Missing private key");
+	const privateKey = FileSystem.readAsStringAsync(decryptedPath);
 
-	// Decrypt using the age-encryption Decrypter class
-	const decrypter = new Decrypter();
-    decrypter.addIdentity(privateKeyStr);
-	const decryptedKey = await decrypter.decrypt(encryptedKeyBytes);
+	// delete the unencrypted file
+	await FileSystem.deleteAsync(tmpPath);
+	// delete the key file
+	await FileSystem.deleteAsync(decryptedPath);
 
-	return decryptedKey; // This is your folder key (FK)
+	return privateKey;
 }
+
+
+// decrypts the folder key with the user's private key. Returns the path to the decrypted file.
+// Used in getFolderKey
+async function decryptFolderKey(encryptedFileUrl: string, folderID: string): Promise<string> {
+	try {
+	  // Fetch encrypted file
+	  const response = await fetch(encryptedFileUrl);
+	  if (!response.ok) {
+		throw new Error('Failed to fetch encrypted file');
+	  }
+
+	  const userPrivateKey = String(SecureStore.getItem('privateKey'));
+	  const encryptedArrayBuffer = await response.arrayBuffer();
+	  const encryptedBuffer = new Uint8Array(encryptedArrayBuffer);
+  
+	  // Initialize Decrypter and add identity
+	  const decrypter = new age.Decrypter();
+	  console.log('[decryptFolderKey] Using privateKey:', userPrivateKey);
+  
+	  decrypter.addIdentity(userPrivateKey);
+  
+	  // Decrypt the file
+	  const decryptedData = await decrypter.decrypt(encryptedBuffer, 'uint8array');
+  
+	  // Save to file
+	  const base64Data = Buffer.from(decryptedData).toString('base64');
+	  const outputPath = `${FileSystem.cacheDirectory}${folderID}_fk}`;
+  
+	  await FileSystem.writeAsStringAsync(outputPath, base64Data, {
+		encoding: FileSystem.EncodingType.Base64, 
+	  });
+  
+	  return outputPath;
+	} catch (err) {
+	  console.error(`[decryptFolderKey] Error fk for '${folderID}'. ${err}`);
+	  // throw new Error('File decryption failed');
+	  throw err;
+	}
+  };

@@ -16,8 +16,9 @@ import * as FileSystem from 'expo-file-system';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import sendFolder  from '../components/sendFolder';
-import addFolder from "../app/tabs/homescreen"
-import { insertFolder } from '../services/database';
+import addFolder from "../app/tabs/homescreen";
+import { getFolderKey } from '../services/getFolderKey';
+import { insertFolder, saveFolderKey } from '../services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -106,16 +107,18 @@ export default function SharedFolder() {
     try {
       // Create and share folder
       console.log(selected)
-      const dirID = await sendFolder(folderName, parentID, selected);
-      if (dirID == null) {
+      const folderID = await sendFolder(folderName, parentID, selected);
+      if (folderID == null) {
         console.error("Failed to create folder");
         return;
       }
 
-      insertFolder(folderName, dirID, parentID, userID)
+      insertFolder(folderName, folderID, parentID, userID);
+      const folderKey = await getFolderKey(folderID);
+      saveFolderKey(folderID, userID, folderKey);
     } catch (error) {
       console.error('Error sharing folder:', error);
-      Alert.alert('Error sharing folder');
+      Alert.alert('Error sharing folder',`${ error || "Unknown error"}`);
     }
     router.back(); // Or go to next screen
   };

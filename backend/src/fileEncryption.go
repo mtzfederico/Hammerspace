@@ -3,20 +3,20 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"os"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	log "github.com/sirupsen/logrus"
-	"github.com/gin-gonic/gin"
+
 	"filippo.io/age"
-	"database/sql"
-	"encoding/base64"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string,  fileID string, parentDir string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string, fileID string, parentDir string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
@@ -25,7 +25,7 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string,  fileI
 	defer fileIn.Close()
 
 	// Get the public key associated with the parent folder
-	publicKey, err := getPublicKeyForFolder(parentDir, db) // Assuming 'db' is your database connection
+	publicKey, err := getPublicKeyForFolder(ctx, parentDir, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public key for folder %s: %w", parentDir, err)
 	}
@@ -36,14 +36,12 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string,  fileI
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
 
-
-
 	// encrypt
 	encryptedData := &bytes.Buffer{}
 	// variadic function
 	// https://go.dev/ref/spec#Passing_arguments_to_..._parameters
 	// https://gobyexample.com/variadic-functions
-	ageWriter, err := age.Encrypt(encryptedData,[]age.Recipient{recipients}...)
+	ageWriter, err := age.Encrypt(encryptedData, []age.Recipient{recipients}...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start encrypting the file: %w", err)
 	}
@@ -132,17 +130,16 @@ func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
 	return publicKey, nil
 }
 
-
-func generateFolderKey(ctx context.Context) (*age.X25519Identity, *age.X25519Recipient,  error) {
+func generateFolderKey(ctx context.Context) (*age.X25519Identity, *age.X25519Recipient, error) {
 	identity, err := age.GenerateX25519Identity()
-		if err != nil {
-		return nil,nil, fmt.Errorf("failed to generate age identity: %w", err)
-	}	
-	privateKey := identity               
-	publicKey := identity.Recipient()   
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to generate age identity: %w", err)
+	}
+	privateKey := identity
+	publicKey := identity.Recipient()
 
 	return privateKey, publicKey, err
-} 
+}
 
 func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, error) {
 	if folderKey == nil || publicKeys == nil {
@@ -165,7 +162,7 @@ func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, er
 	}
 
 	// Encrypt the folder key in-memory
-	 encryptedData := &bytes.Buffer{}
+	encryptedData := &bytes.Buffer{}
 
 	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
@@ -187,8 +184,6 @@ func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, er
 	return encryptedData.Bytes(), nil
 }
 
-
-
 func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encryptedKey []byte, folderID string) error {
 	// S3 object key format (customize as needed)
 	objKey := fmt.Sprintf("folderkeys/%s", folderID)
@@ -204,8 +199,9 @@ func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encrypte
 
 	return nil
 }
-func handleGetFolderKey(c *gin.Context){
-	if(c.Request.Body == nil){
+
+func handleGetFolderKey(c *gin.Context) {
+	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"error": "Request body is empty"})
 		return
 	}
@@ -229,37 +225,41 @@ func handleGetFolderKey(c *gin.Context){
 		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
-	 //  the S3 object key for this folder
-	 objKey := fmt.Sprintf("folderkeys/%s", request.FolderID)
+	// the S3 object key for this folder
+	objKey := fmt.Sprintf("folderkeys/%s", request.FolderID)
 
-	 // 3️⃣ Download the encrypted folder key from S3
-	 output, err := getFile(c.Request.Context(), s3Client, serverConfig.S3BucketName, objKey)
-	 if err != nil {
-		 log.WithFields(log.Fields{"folderID": request.FolderID, "error": err}).Error("[handleGetEncryptedFolderKey] S3 download failed")
-		 c.JSON(500, gin.H{"success": false, "error": "Failed to fetch encrypted folder key"})
-		 return
-	 }
-	 defer output.Body.Close()
- 
-	 // 4️⃣ Stream it back to the client
-	 buf := new(bytes.Buffer)
-	 if _, err := io.Copy(buf, output.Body); err != nil {
-		 log.WithError(err).Error("[handleGetEncryptedFolderKey] Failed to read S3 response body")
-		 c.JSON(500, gin.H{"success": false, "error": "Internal server error"})
-		 return
-	 }
- 
-	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-	c.JSON(200, gin.H{"success":true,"encryptedKey": b64,})
+	file, err := getFile(c, s3Client, serverConfig.S3BucketName, objKey)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
+		log.WithField("error", err).Error("[handleGetEncryptedFolderKey] Failed to get key from S3")
+		return
+	}
 
+	// https://www.iana.org/assignments/media-types/application/vnd.age
+	// asumming that all files returned are encrypted with age
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+	extraHeaders := map[string]string{"Cache-Control": "private"}
+	c.DataFromReader(200, int64(*file.ContentLength), "application/vnd.age", file.Body, extraHeaders)
 }
-func getPublicKeyForFolder(folderID string, db *sql.DB) (string, error) {
+
+// callNumber is increased in recursive calls, set it to zero.
+func getPublicKeyForFolder(ctx context.Context, folderID string, callNumber int) (string, error) {
+	// 10 might break folders inside folders inside folders
+	if callNumber > 10 {
+		return "", fmt.Errorf("called more than 10 times")
+	}
 	// Query to get the public key for the folder from the encryptionKeys table
 	var publicKey string
-	err := db.QueryRow("SELECT publicKey FROM encryptionKeys WHERE folderID = ? LIMIT 1", folderID).Scan(&publicKey)
+	err := db.QueryRowContext(ctx, "SELECT publicKey FROM encryptionKeys WHERE folderID = ? LIMIT 1", folderID).Scan(&publicKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", fmt.Errorf("no public key found for folder %s", folderID)
+			parentDir, err := getParentDirID(ctx, folderID)
+			if err != nil {
+				return "", fmt.Errorf("error getting parentDirID: %w", err)
+			}
+			callNumber++
+			return getPublicKeyForFolder(ctx, parentDir, callNumber)
 		}
 		return "", fmt.Errorf("failed to fetch public key: %w", err)
 	}

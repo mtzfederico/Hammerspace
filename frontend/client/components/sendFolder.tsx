@@ -8,7 +8,7 @@ console.log((`"${apiUrl}/createFolder"`))
 
 
 
-const sendFolder = async (dirName: string, parentID: string, shareWith: any) => {
+const sendFolder = async (dirName: string, parentID: string, shareWith: string[]) => {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =   String(SecureStore.getItem('userID'));
 

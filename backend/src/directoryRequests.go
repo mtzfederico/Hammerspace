@@ -443,61 +443,64 @@ func handleCreateDirectory(c *gin.Context) {
 		log.WithField("error", err).Error("[handleCreateDirectory] Failed to create a directory")
 		return
 	}
-	//  Generate the folder key
-	privateKey, publicKey, err := generateFolderKey(c)
-	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
-		return
-	}
 
-	_, err = db.ExecContext(c, `
-		INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID)
-		VALUES (?, ?, ?, now(), ?)`,
-		publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
-	if err != nil {
-		log.WithFields(log.Fields{
-			"error":     err,
-			"publicKey": publicKey,
-		}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+	// only generate a folderKey if the folder is shared
+	shareWithLen := len(request.ShareWith)
+	if shareWithLen > 0 {
+		log.WithFields(log.Fields{"shareWithLen": shareWithLen}).Trace("[handleCreateDirectory] Directory is shared")
 
-	}
-
-	// Fetch public keys for all users including the creator
-	shareWith := append(request.ShareWith, request.UserID)
-	publicKeys := []string{}
-	for _, userID := range shareWith {
-		pubKey, err := getPublicKeyForUser(c, userID)
+		//  Generate the folder key
+		privateKey, publicKey, err := generateFolderKey(c)
 		if err != nil {
-			log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
-			continue
+			c.JSON(500, gin.H{"success": false, "error": "Failed to generate folder key"})
+			return
 		}
-		publicKeys = append(publicKeys, pubKey)
-	}
 
-	// Encrypt the folder key for all recipients at once
-	encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
-	if err != nil {
-		log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
-		return
-	}
-
-	// Upload the single encrypted key once
-	err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
-	if err != nil {
-		log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
-		return
-	}
-
-	// Share the newly created directory with the specified users
-	for _, shareWithUserID := range request.ShareWith {
-		// Grant write permission by default when creating and sharing
-		err = addFilePermission(c, dirID.String(), []string{shareWithUserID}, request.UserID, false) // isReadOnly = false for write permission
+		_, err = db.ExecContext(c, "INSERT INTO encryptionKeys (publicKey, userID, description, createdDate, folderID) VALUES (?, ?, ?, now(), ?)", publicKey.String(), request.UserID, "Auto-generated folder key", dirID.String())
 		if err != nil {
-			log.WithFields(log.Fields{"error": err, "dirID": dirID, "shareWithUserID": shareWithUserID}).Error("[handleCreateDirectory] Failed to share directory")
+			log.WithFields(log.Fields{
+				"error":     err,
+				"publicKey": publicKey,
+			}).Error("[handleCreateDirectory] Failed to insert public key into encryptionKeys table")
+		}
+
+		// Fetch public keys for all users including the creator
+		shareWith := append(request.ShareWith, request.UserID)
+		publicKeys := []string{}
+		for _, userID := range shareWith {
+			pubKey, err := getPublicKeyForUser(c, userID)
+			if err != nil {
+				log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
+				continue
+			}
+			publicKeys = append(publicKeys, pubKey)
+		}
+
+		// Encrypt the folder key for all recipients at once
+		encryptedKey, err := encryptFolderKeyForUsers([]byte(privateKey.String()), publicKeys)
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to encrypt folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (5)"})
+			return
+		}
+
+		// Upload the single encrypted key once
+		err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
+		if err != nil {
+			log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
+			return
+		}
+
+		// Share the newly created directory with the specified users
+		// Grant write permission by default when creating and sharing
+		err = addFilePermission(c, dirID.String(), request.ShareWith, request.UserID, false) // isReadOnly = false for write permission
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "dirID": dirID}).Error("[handleCreateDirectory] Failed to share directory")
 			// Consider whether to rollback the directory creation or continue with errors
 		}
+	} else {
+		log.Trace("[handleCreateDirectory] Directory is not shared")
 	}
 
 	c.JSON(200, gin.H{"success": true, "dirID": dirID})
@@ -708,38 +711,65 @@ func handleSync(c *gin.Context) {
 		return
 	}
 
-	// Get the user's own folders.
-	userFolders, err := getFolders(c, request.UserID)
+	// Get the user's own folders and files.  These functions now return both.
+	userItems, err := getFolders(c, request.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleSync] Failed to get folders")
+		log.WithField("error", err).Error("[handleSync] Failed to get user folders and files")
 		return
 	}
 
-	// Get the folders shared with the user.
-	sharedFolders, err := getSharedFolders(c, request.UserID)
+	// Get the folders and files shared with the user.  These functions now return both.
+	sharedItems, err := getSharedFolders(c, request.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleSync] Failed to get shared folders")
+		log.WithField("error", err).Error("[handleSync] Failed to get shared folders and files")
 		return
 	}
+	// Combine all files and folders into a single slice.
+	var allItems []Folder
+	allItems = append(allItems, userItems...)
+	allItems = append(allItems, sharedItems...)
+	
 
-	// Merge the two lists, removing duplicates.
-	allFolders := make(map[string]Folder)
-	for _, folder := range userFolders {
-		allFolders[folder.ID] = folder
-	}
-	for _, folder := range sharedFolders {
-		allFolders[folder.ID] = folder
-	}
+	for i := range sharedItems {
+		folder := sharedItems[i] // pointer to modify in-place
 
-	// Convert the map back to a slice.
-	var resultFolders []Folder
-	for _, folder := range allFolders {
-		resultFolders = append(resultFolders, folder)
-	}
+		owner := folder.UserID
 
-	c.JSON(200, gin.H{"success": true, "folders": resultFolders})
+		objKey, err := getObjectKey(c, folder.ID, owner, true)
+		if err != nil {
+			log.WithField("error", err).Error("[handleSync] Failed to get object key")
+
+		}
+		files, err := getItemsInDir(c, owner, folder.ID)
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4)"})
+			log.WithField("error", err).Error("[handleSync] Failed to get items in directory")
+			return
+		}
+		for _, file := range files {
+			fileItem := Folder{
+				ID:       file.ID,
+				Name:     file.Name,
+				Type:     file.FileType, // Map FileType
+				FileSize: file.Size,
+				ParentDir: folder.ID,
+				//  or set it to a default value.
+			}
+			allItems = append(allItems, fileItem)
+		}
+		log.WithField("sharedItems", sharedItems).Trace("[handleSync] shareItems")
+		log.WithField("ownerID", owner).Trace("[handleSync] owner")
+		log.WithField("folder", folder).Trace("[handleSync] folder")
+		log.WithField("files", files).Trace("[handleSync] files")
+		log.WithField("folder", objKey).Trace("[handleSync] Object key")
+		log.WithField("folder", allItems).Trace("[handleSync] All items")
+
+	}
+	fmt.Printf("\nAll items: %v\n", allItems)
+
+	c.JSON(200, gin.H{"success": true, "folders": allItems})
 }
 
 func getFolders(ctx context.Context, userID string) ([]Folder, error) {
@@ -774,7 +804,7 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
 		FROM files f
 		INNER JOIN sharedFiles s ON f.id = s.fileID
-		WHERE s.userID = ? AND f.type = 'folder'`, userID)
+		WHERE s.userID = ?`, userID)
 	// if error executing the query, return the error
 	if err != nil {
 		return nil, err

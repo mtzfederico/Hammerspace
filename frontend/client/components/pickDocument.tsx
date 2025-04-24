@@ -2,7 +2,6 @@ import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
 import * as SecureStore from 'expo-secure-store';
 import { AddFileType } from '@/components/addButton';
-import { getFolderKey } from '@/services/getFolderKey';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 

@@ -85,11 +85,11 @@ return (
             value={inputValue}
             placeholder="Enter text here"
           />
-            <Dialog.Switch
-          label="Make this a shared folder"
-          value={isShared}
-          onValueChange={setIsShared}
-        />
+          <Dialog.Switch
+            label="Make this a shared folder"
+            value={isShared}
+            onValueChange={setIsShared}
+          />
           <Dialog.Button label="Cancel" onPress={handleCancel} />
           <Dialog.Button label="Create Folder" onPress={() => handleSubmission()} />
           
