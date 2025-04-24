@@ -138,7 +138,7 @@ func main() {
 
 	router.POST("getFriends", handleGetFriends)
 	router.POST("addFriends", handleAddFriends)
-	router.POST("getPendingFriendRequests", handleGetPendingFriendRequests)
+	// router.POST("getPendingFriendRequests", handleGetPendingFriendRequests)
 	router.POST("acceptFriendRequest", handleAcceptFriendRequest)
 
 	router.POST("getEncryptedFolderKey", handleGetFolderKey)

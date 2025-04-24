@@ -101,6 +101,7 @@ func handleGetFriends(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "friends": friendIDs})
 }
 
+/*
 func handleGetPendingFriendRequests(c *gin.Context) {
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -149,7 +150,7 @@ func handleGetPendingFriendRequests(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"success": true, "pendingRequests": pendingUsers})
-}
+}*/
 
 func handleAddFriends(c *gin.Context) {
 	if c.Request.Body == nil {
@@ -228,8 +229,8 @@ func handleAddFriends(c *gin.Context) {
 	}
 
 	// Create an alert for the recipient about the friend request
-	alertDescription := fmt.Sprintf("%s sent you a friend request", request.UserID)
-	err = addAlert(c, request.ForUserID, alertDescription, "", request.UserID)
+	// alertDescription := fmt.Sprintf("%s sent you a friend request", request.UserID)
+	err = addAlert(c, request.ForUserID, "friendRequest", request.UserID, friendshipID.String())
 	if err != nil {
 		log.WithField("error", err).Error("[handleAddFriends] Failed to create friend request alert")
 		// We don't fail the friend request creation if alert creation fails

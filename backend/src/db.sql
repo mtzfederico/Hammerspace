@@ -16,7 +16,6 @@ INSERT INTO roles (roleID, canModifyOtherUser, createdDate) VALUES
 ("user", false, now()),
 ("admin", true, now());
 
-
 -- profilePicture is the S3 objKey for the user's profile picture
 CREATE TABLE IF NOT EXISTS users (
   userID            VARCHAR(50)     PRIMARY KEY,
@@ -36,7 +35,6 @@ CREATE TABLE IF NOT EXISTS authTokens (
   loginDate  DATETIME,
   CONSTRAINT authTokens_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
-
 
 ------------ test data starts ------------
 -- Test User. Password is "testPassword123"
@@ -68,7 +66,6 @@ CREATE TABLE IF NOT EXISTS files (
   CONSTRAINT files_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
 
-
 -- The user's age public keys. The description is some sort of text to identify the key if the user has multiple public keys
 -- folderID is optional and only there if the public key is for a folder. When it is for a folder then the userID is the folders owner.
 CREATE TABLE IF NOT EXISTS encryptionKeys (
@@ -80,7 +77,6 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
   CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
   CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (folderid) REFERENCES files(id) ON DELETE CASCADE
 );
-
 
 -- items shared table
 -- processed is for files that have been marked as shared, but the new file that is encrypted with this user's pubkey has not been uploaded yet.
@@ -104,16 +100,13 @@ CREATE TABLE IF NOT EXISTS sharedFiles (
 -- fileID and fileOwner are optinal and only used if the alert involves a file and or another user
 -- processed is used to know if it has been sent. Once the user dismisses it, we could delete it.
 CREATE TABLE IF NOT EXISTS activeAlerts (
-  id            VARCHAR(36)   PRIMARY KEY,
-  userID        VARCHAR(50)   NOT NULL,
-  description   VARCHAR(50)   NOT NULL,
-  fileID        VARCHAR(36),
-  fileOwner     VARCHAR(50),
-  processed     BOOL          NOT NULL  DEFAULT false,
-  createdDate   DATETIME      NOT NULL,
-  lastModified  DATETIME      DEFAULT NULL,
-  CONSTRAINT activeAlerts_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
-  CONSTRAINT activeAlerts_fileID_fk FOREIGN KEY (fileID) REFERENCES files(id) ON DELETE CASCADE
+  id             VARCHAR(36)   PRIMARY KEY,
+  userID         VARCHAR(50)   NOT NULL,
+  alertType      VARCHAR(50)   NOT NULL,
+  dataPrimary    VARCHAR(80)   NOT NULL,
+  dataSecondary  VARCHAR(80),
+  createdDate    DATETIME      NOT NULL,
+  CONSTRAINT activeAlerts_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE
 );
 
 -- This is the user_friends table to track friendships

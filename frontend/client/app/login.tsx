@@ -51,7 +51,7 @@ export default function Login() {
         await SecureStore.setItem('userID', String(data.userID));
         router.replace('/tabs/homescreen');
       } else {
-        setError(data.error || 'Failed to log in');
+        setError(data.error || `log in request failed. Status: ${response.status}`);
       }
     } catch (err) {
       console.error(err);

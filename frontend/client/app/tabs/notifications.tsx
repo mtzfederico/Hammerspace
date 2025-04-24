@@ -1,66 +1,108 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Button, StyleSheet, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useColorScheme } from 'react-native';
-type FriendRequest = string; // Just the sender's userID
-
-
-
+// type FriendRequest = string; // Just the sender's userID
 
 export default function NotificationsScreen() {
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
+  type AlertData = {
+    id: string;
+    alertType: string;
+    dataPrimary: string;
+    dataSecondary?: string;
+    createdDate: string;
+  };
 
-  const fetchRequests = async () => {
+  const getNotificationTitle = (alert: AlertData): string => {
+    if (alert.alertType === "friendRequest") {
+      return "Friend Request";
+    }
+    return alert.alertType;
+  };
+
+  const getNotificationBody = (alert: AlertData): string => {
+    if (alert.alertType === "friendRequest") {
+      return `${alert.dataPrimary} sent you a friend request`;
+    }
+    return alert.dataPrimary;
+  };
+
+  const getNotificationButtonTitle = (alert: AlertData): string => {
+    if (alert.alertType === "friendRequest") {
+      return "Accept";
+    }
+    return "No handler";
+  };
+
+  const handleNotificationButtonTapped = (alert: AlertData): void => {
+    if (alert.alertType === "friendRequest") {
+      acceptFriendRequest(alert.dataPrimary);
+      return;
+    }
+    return;
+  };
+  
+  type ItemProps = {alert: AlertData};
+
+  const Notification = (alert: ItemProps) => (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle} >{getNotificationTitle(alert.alert)}</Text>
+      <Text style={styles.cardBody}>{getNotificationBody(alert.alert)}</Text>
+      <Button title={getNotificationButtonTitle(alert.alert)} onPress={() => handleNotificationButtonTapped(alert.alert)}/>
+    </View>
+  );
+
+  /*
+  <View style={styles.card}>
+    <Text style={styles.cardTitle}>{item}</Text>
+    <Button title="Accept" onPress={() => acceptRequest(item)}/>
+  </View>
+  */
+
+  const fetchNotifications = async () => {
     try {
       setLoading(true);
       const userID = await SecureStore.getItemAsync('userID');
       const authToken = await SecureStore.getItemAsync('authToken');
  
-      const response = await fetch(`${apiUrl}/getPendingFriendRequests`, {
+      const response = await fetch(`${apiUrl}/getAlerts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userID, authToken }),
       });
  
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.error || 'Failed to load requests');
+        console.log("[fetchNotifications] Error getting notifications", data.error || "<no data>")
+        Alert.alert('Error', data.error || 'Failed to load notifications');
         return;
       }
  
-      const data = await response.json();
-      console.log('Friend requests data:', data); // Log for debugging
-      if (data.success) {
-        setFriendRequests(data.pendingRequests); // Use 'pendingRequests' key
-      } else {
-        Alert.alert('Error', data.error || 'Failed to load requests');
-      }
+      console.log('Notifications data:', data); // Log for debugging
+      setAlerts(data.alerts);
     } catch (error) {
-      Alert.alert('Error', 'Could not fetch friend requests');
+      Alert.alert('Error', 'Could not fetch notifications');
     } finally {
       setLoading(false);
     }
   };
- 
 
-
-  const acceptRequest = async (fromUserID: string) => {
+  const acceptFriendRequest = async (fromUserID: string) => {
     try {
       const userID = await SecureStore.getItemAsync('userID');
       const authToken = await SecureStore.getItemAsync('authToken');
 
-
-      console.log('Accepting request from:', fromUserID); // Log for debugging
+      console.log('[acceptFriendRequest] Accepting request from:', fromUserID); // Log for debugging
       console.log('User ID:', userID); // Log for debugging
-   
-     
-
 
       const response = await fetch(`${apiUrl}/acceptFriendRequest`, {
         method: 'POST',
@@ -72,18 +114,16 @@ export default function NotificationsScreen() {
         }),
       });
 
-
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert('Error', errorData.error || 'Could not accept request');
         return;
       }
 
-
       const data = await response.json();
       if (data.success) {
         Alert.alert('Success', 'Friend request accepted');
-        fetchRequests(); // Refresh list
+        await fetchNotifications(); // Refresh list
       } else {
         Alert.alert('Error', data.error || 'Could not accept request');
       }
@@ -92,40 +132,47 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handlePullToRefresh = () => {
+    setIsRefreshing(true);
+    console.log("Pull to refresh")
+    fetchNotifications();
+    setIsRefreshing(false);
+  };
 
   useEffect(() => {
-    fetchRequests();
+    fetchNotifications();
   }, []);
 
-
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
-
+  // if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
   return (
     <LinearGradient
       colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} 
       style={styles.gradientBackground}
     >
-      <Text style={[styles.heading, isDarkMode && {color: 'white'}]}>Notifications</Text>
-      {friendRequests && friendRequests.length === 0 ? (
-        <Text style={styles.noRequests}>No new notifications</Text>
-      ) : (
-        <FlatList
-          data={friendRequests || []}
-          keyExtractor={(item) => item}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.username}>{item}</Text>
-              <Button title="Accept" onPress={() => acceptRequest(item)} />
-            </View>
+      <SafeAreaProvider>
+        <SafeAreaView edges={['top', 'bottom']}>
+          <Text style={[styles.heading, isDarkMode && {color: 'white'}]}>Notifications</Text>
+          {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
+          {alerts && alerts.length === 0 ? (
+            <Text style={styles.noRequests}>No Notifications</Text>
+          ) : (
+            <FlatList
+              style={styles.table}
+              data={alerts || []}
+              keyExtractor={(item) => item.id}
+              refreshing={isRefreshing}
+              onRefresh={handlePullToRefresh}
+              renderItem={({ item }) => (
+                <Notification alert={item}/>
+              )}
+            />
           )}
-        />
-      )}
+        </SafeAreaView>
+      </SafeAreaProvider>
     </LinearGradient>
   );
- 
 }
-
 
 const styles = StyleSheet.create({
   gradientBackground: {
@@ -134,11 +181,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
- 
   heading: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '600',
-    marginTop: 70,
+    marginTop: 20,
     color: '#333', 
   },
   noRequests: {
@@ -146,14 +192,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'gray',
   },
+  table: {
+    paddingTop: 10,
+    height: (Dimensions.get('window').height),
+  },
   card: {
     padding: 16,
     borderRadius: 10,
     backgroundColor: '#eee',
     marginBottom: 10,
   },
-  username: {
+  cardTitle: {
     fontSize: 18,
+    marginBottom: 8,
+  },
+  cardBody: {
+    fontSize: 12,
     marginBottom: 8,
   },
 });
