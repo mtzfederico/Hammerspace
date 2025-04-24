@@ -19,7 +19,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from 'react-native';
 import * as FileSystem from 'expo-file-system';
 import { useNavigation } from '@react-navigation/native';
-
+import { LinearGradient } from 'expo-linear-gradient';
 import { deleteEverythingLocally } from '@/services/database';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
@@ -249,88 +249,100 @@ export default function UserProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-    <View style={[styles.container, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
-      </TouchableOpacity>
-
-      <Text style={[styles.header, textStyle]}>
-        {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
-      </Text>
-
-      {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
-
-      {profilePictureUri && (
-       <Image
-       source={typeof profilePictureUri === 'string' ? { uri: profilePictureUri } : profilePictureUri}
-       style={styles.profileImage}
-       resizeMode="cover"
-     />
-      )}
-
-      {isOwnProfile && (
-        <>
-          <Button title="Pick New Image" onPress={handlePickImage} />
-          {selectedImage && (
-            <Image source={{ uri: selectedImage }} style={styles.profileImage} />
-          )}
-          <Button
-            title="Upload"
-            onPress={handleUpload}
-            disabled={!selectedImage || loading}
-          />
-        <View style={styles.friendsText}>
-        <Text
-          style={[styles.header, textStyle]}
-          onPress={() => router.push('/friends')}
-        >
-          Your Friends
+      <LinearGradient
+        colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
+        style={[StyleSheet.absoluteFill, styles.container]}
+      >
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton,
+          {
+            backgroundColor: isDarkMode ? '#444' : '#C1C8D9', 
+          },
+        ]}>
+          <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
+        </TouchableOpacity>
+  
+        <Text style={[styles.header, textStyle]}>
+          {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
         </Text>
-      </View>
-      <Text
-  style={[styles.logoutText]}
-  onPress={() => {
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log Out', style: 'destructive', onPress: handleLogout },
-      ]
-    );
-  }}
->
-  Logout
-</Text>
-
-        </>
-      )}
-    </View>
+  
+        {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
+  
+        {profilePictureUri && (
+          <Image
+            source={
+              typeof profilePictureUri === 'string'
+                ? { uri: profilePictureUri }
+                : profilePictureUri
+            }
+            style={styles.profileImage}
+            resizeMode="cover"
+          />
+        )}
+  
+        {isOwnProfile && (
+          <>
+            <Button title="Pick New Image" onPress={handlePickImage} />
+            {selectedImage && (
+              <Image source={{ uri: selectedImage }} style={styles.profileImage} />
+            )}
+            <Button
+              title="Upload"
+              onPress={handleUpload}
+              disabled={!selectedImage || loading}
+            />
+            <View style={styles.friendsText}>
+              <Text
+                style={[styles.smallHeader, textStyle]}
+                onPress={() => router.push('/friends')}
+              >
+                Your Friends
+              </Text>
+            </View>
+            <Text
+              style={[styles.logoutText]}
+              onPress={() => {
+                Alert.alert('Log Out', 'Are you sure you want to log out?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Log Out', style: 'destructive', onPress: handleLogout },
+                ]);
+              }}
+            >
+              Logout
+            </Text>
+          </>
+        )}
+      </LinearGradient>
     </SafeAreaView>
   );
+  
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
+    paddingTop: 200,
     paddingHorizontal: 16,
     alignItems: 'center',
+    margin: 0,
   },
   header: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 20,
   },
+  smallHeader: {
+    fontSize: 22,
+    fontWeight: '600'
+  },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     marginVertical: 20,
   },
   backButton: {
     position: 'absolute',
-    top: 40,
+    top: 70,
     left: 20,
     padding: 8,
     backgroundColor: '#ccc',
@@ -353,17 +365,17 @@ const styles = StyleSheet.create({
   },
   friendsText: {
     position: 'absolute',
-    bottom: 400, // Adjust as needed to position it close to the bottom
+    bottom: 250, 
     fontSize: 22,
     fontWeight: 'bold',
-    alignSelf: 'center', // Center horizontally
+    alignSelf: 'center', 
   },
   logoutText: {
     position: 'absolute',
-    bottom: 80, // Adjust as needed to position it close to the bottom
+    bottom: 80, 
     fontSize: 22,
     fontWeight: 'bold',
-    alignSelf: 'center', // Center horizontally
+    alignSelf: 'center', 
     color: 'red',
   },
 });
