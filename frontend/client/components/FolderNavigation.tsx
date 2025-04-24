@@ -293,7 +293,13 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           )}
         </TouchableOpacity>
       </View>
-      <TextInput style={searchBarStyle} placeholder="Search" placeholderTextColor='#888'/>
+      <View style={{ alignItems: 'center' }}>
+      <TextInput
+      style={searchBarStyle}
+      placeholder="Search"
+      placeholderTextColor="#888"/>
+      </View>
+
       {currentDirName === "Home" ? ( 
         <Text style={[styles.recentlyOpened, textStyle]}>Recently opened</Text>
         ): null }
@@ -344,6 +350,7 @@ const styles = StyleSheet.create({
   },
   searchBarLight: {
     height: 40,
+    width:'90%',
     backgroundColor: '#d2d6d6',
     borderRadius: 12,
     paddingHorizontal: 15,
@@ -352,6 +359,7 @@ const styles = StyleSheet.create({
   },
   searchBarDark: {
     height: 40,
+    width:'90%',
     backgroundColor: '#f0f0f0',
     borderRadius: 10,
     paddingHorizontal: 15,
@@ -362,12 +370,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 2,
+    marginLeft: 0,
+    
   },
   recentlyOpened: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 4,
-    marginLeft: 5,
+    marginLeft: 22,
+    marginTop:8,
   },
   lightBackground: {
     backgroundColor: 'white',
@@ -381,7 +392,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   lightText: {
-    color: 'black',
+    color: '#2a2d38',
   },
   profileImage: {
     width: 50,
