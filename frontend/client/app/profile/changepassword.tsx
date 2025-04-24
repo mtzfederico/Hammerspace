@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useColorScheme } from 'react-native';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
@@ -10,6 +12,7 @@ export default function ChangePasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
+  const colorScheme = useColorScheme();
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
@@ -46,48 +49,76 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Change Password</Text>
+    <LinearGradient colors={ colorScheme === 'dark'? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
+      style={styles.container}
+    >
+      <Text style={[styles.title, {color: colorScheme == 'dark' ? 'white' : 'black'},]}>Change Password</Text>
       <TextInput
         style={styles.input}
         placeholder="Current Password"
+        placeholderTextColor="#888"
         secureTextEntry
         onChangeText={setCurrentPassword}
       />
       <TextInput
         style={styles.input}
         placeholder="New Password"
+        placeholderTextColor="#888"
         secureTextEntry
         onChangeText={setNewPassword}
       />
       <TextInput
         style={styles.input}
         placeholder="Confirm New Password"
+        placeholderTextColor="#888"
         secureTextEntry
         onChangeText={setConfirmPassword}
       />
-      <Button title="Update Password" onPress={handleChangePassword} />
-    </View>
+      <TouchableOpacity style={[styles.button,{backgroundColor: colorScheme === 'dark' ? '#2f416b' : '#4c8ef7',
+}]} onPress={handleChangePassword}>
+        <Text style={styles.buttonText}>Update Password</Text>
+        </TouchableOpacity>
+
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    paddingTop: 100,
-    backgroundColor: '#f2f2f2',
-    flex: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    alignSelf: 'center',
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-  },
+    container: {
+        padding: 20,
+        paddingTop: 200,
+        flex: 1,
+      },
+      title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 30,
+        alignSelf: 'center',
+        color: 'black',
+      },
+      input: {
+        backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 30,
+      },
+      button: {
+        backgroundColor: '#4c8ef7',
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5, // Android shadow
+      },
+      
+      buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+      },
+      
 });

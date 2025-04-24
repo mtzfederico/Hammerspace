@@ -24,6 +24,7 @@ type FolderNavigationProps = {
 // It uses the syncWithBackend function to sync the data with the backend
 // Is recursively called when a folder is pressed
 const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
+
   const router = useRouter();
   //const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
   searchBarLight: {
     height: 40,
     backgroundColor: '#d2d6d6',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 15,
     fontSize: 16,
     marginBottom: 10,

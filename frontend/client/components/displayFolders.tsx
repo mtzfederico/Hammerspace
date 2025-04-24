@@ -120,15 +120,15 @@ const styles = StyleSheet.create({
   },*/
 ////////////////////
   lightEmptyMsg: {
-    fontSize: 28,
+    fontSize: 25,
     textAlign: 'center',
-    marginTop: 10,
-    color: 'black',
+    marginTop: 100,
+    color: '#646b7d',
   },
   darkEmptyMsg: {
-    fontSize: 28,
+    fontSize: 25,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 100,
     color: 'white',
   },
  ///////////////////
@@ -142,6 +142,7 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
     marginBottom: 10,
+    alignItems: 'center',
   },
   lightText: {
     color: 'black',
