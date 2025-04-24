@@ -33,6 +33,10 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
+
+  // correct style based on dark mode
+  const emptyMsgStyle = isDarkMode ? styles.darkEmptyMsg : styles.lightEmptyMsg;
+
   // Get the screen width to calculate numColumns dynamically
   const screenWidth = Dimensions.get('window').width;
 
@@ -80,7 +84,8 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
         data={data}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
+        // ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
+        ListEmptyComponent={<Text style={emptyMsgStyle}>You have no files</Text>} //updated for dark mode
         numColumns={numColumns}
         refreshing={isRefreshing}
         onRefresh={handlePullToRefresh}
@@ -109,11 +114,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
   },
-  emptyMsg: {
+
+  
+////////////////////
+  lightEmptyMsg: {
     fontSize: 28,
     textAlign: 'center',
     marginTop: 10,
+    color: 'black',
   },
+  darkEmptyMsg: {
+    fontSize: 28,
+    textAlign: 'center',
+    marginTop: 10,
+    color: 'white',
+  },
+ ///////////////////
+
+
   image: {
     width: imageWidth,
     height: imageHeight,
