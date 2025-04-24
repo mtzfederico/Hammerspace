@@ -106,9 +106,9 @@ export default function NotificationsScreen() {
       colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} 
       style={styles.gradientBackground}
     >
-      <Text style={[styles.heading, isDarkMode && {color: 'white'}]}>Friend Requests</Text>
+      <Text style={[styles.heading, isDarkMode && {color: 'white'}]}>Notifications</Text>
       {friendRequests && friendRequests.length === 0 ? (
-        <Text style={styles.noRequests}>No pending friend requests</Text>
+        <Text style={styles.noRequests}>No new notifications</Text>
       ) : (
         <FlatList
           data={friendRequests || []}
