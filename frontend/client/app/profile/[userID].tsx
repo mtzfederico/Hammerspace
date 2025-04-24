@@ -41,6 +41,8 @@ export default function UserProfileScreen() {
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const navigation = useNavigation();
+  const [usedStorageMB, setUsedStorageMB] = useState<number | null>(null);
+  const [totalStorageMB, setTotalStorageMB] = useState<number | null>(null);
 
   
   
@@ -281,7 +283,7 @@ export default function UserProfileScreen() {
   
         {isOwnProfile && (
           <>
-            <Button title="Pick New Image" onPress={handlePickImage} />
+            <Button title="Pick New Image" onPress={handlePickImage} color = "#5467c7"/>
             {selectedImage && (
               <Image source={{ uri: selectedImage }} style={styles.profileImage} />
             )}
@@ -299,6 +301,19 @@ export default function UserProfileScreen() {
                 Your Friends
               </Text>
             </View>
+
+            <TouchableOpacity
+            style={styles.changePasswordButton}
+            onPress={() => router.push('/profile/changepassword')}>
+            <Text
+            style={[
+            styles.changePasswordText,
+            { color: isDarkMode ? 'white' : 'black' },]}>
+            Change Password
+            </Text>
+            </TouchableOpacity>
+
+
             <Text
               style={[styles.logoutText]}
               onPress={() => {
@@ -330,10 +345,11 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: 'black',
   },
   smallHeader: {
     fontSize: 22,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   profileImage: {
     width: 180,
@@ -358,14 +374,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   uploadText: {
-    color: 'white',
-    fontSize: 20,
+    color: '#787878',
+    fontSize: 18,
   },
   backText: {
     fontSize: 16,
   },
   lightBackground: {
-    backgroundColor: 'white',
+    backgroundColor: '#787878',
   },
   darkBackground: {
     backgroundColor: 'black',
@@ -378,7 +394,7 @@ const styles = StyleSheet.create({
   },
   friendsText: {
     position: 'absolute',
-    bottom: 250, 
+    bottom: 300, 
     fontSize: 22,
     fontWeight: 'bold',
     alignSelf: 'center', 
@@ -391,4 +407,21 @@ const styles = StyleSheet.create({
     alignSelf: 'center', 
     color: 'red',
   },
+  changePasswordButton: {
+    position: 'absolute',
+    bottom: 200,
+    alignSelf: 'center',
+    backgroundColor: '#transparent',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  
+  changePasswordText: {
+    color: 'black',
+    fontSize: 22,
+    fontWeight: '600',
+    alignSelf: 'center',
+  },
+  
 });
