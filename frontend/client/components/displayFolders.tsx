@@ -33,7 +33,6 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
   const isDarkMode = colorScheme === 'dark';
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
-  const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
@@ -81,7 +80,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
   
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={backgroundStyle} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.listBackground} edges={['top', 'bottom']}>
         <FlatList
           style={styles.list}
           contentContainerStyle={{ gap: 80 , paddingBottom: 100,  flexGrow: 1, }}
@@ -137,19 +136,11 @@ const styles = StyleSheet.create({
     height: imageHeight,
     resizeMode: 'cover' 
   },
-  darkBackground: {
+  listBackground: {
     flex: 1,
-    backgroundColor: "black",
     height: '100%',
     width: '100%',
     marginBottom: 10,
-  },
-  lightBackground: {
-    flex: 1,
-    backgroundColor: "#f0f0f0",
-    height: '100%',
-    width: '100%',
-    padding: 10
   },
   lightText: {
     color: 'black',
