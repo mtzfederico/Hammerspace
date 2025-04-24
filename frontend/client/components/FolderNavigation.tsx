@@ -40,9 +40,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
   const privateKey = String(SecureStore.getItem('privateKey'));
   const [loadingFiles, setLoadingFiles] = useState(true);
-  const [loadingSharedFolders, setLoadingSharedFolders] = useState(false); // Add loading state for shared folders
-  const [sharedFolders, setSharedFolders] = useState<any[]>([]); // State for shared folders
-
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
   // a list of the image mime subtypes that the app can open.
   // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
   const SupportedImageTypes: string[] = ["jpeg", "png", "heic", "gif", "jp2"];
@@ -61,9 +59,9 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       //     }
       //   }
   
-      //   await refreshData(); // Fetch again after all decryption + URI set
+        await refreshData(); // Fetch again after all decryption + URI set
         setLoadingFiles(false); // Done loading
-        
+        setInitialLoadComplete(true);
       // });
     };
   
@@ -72,6 +70,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
   useEffect(() => {
     refreshData();
+ 
   }, [currentParentDirID, addFolder, addFile]);
 
   const refreshData = () => {
@@ -343,21 +342,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
 
 
-  useEffect(() => {
-    const loadSharedFolders = async () => {
-      setLoadingSharedFolders(true);
-      try {
-        const fetchedFolders = await getSharedFolders();
-        setSharedFolders(fetchedFolders);
-      } catch (error) {
-        console.error("Failed to load shared folders:", error);
-        //  setError("Failed to load shared folders."); // set error, and display
-      } finally {
-        setLoadingSharedFolders(false);
-      }
-    };
-    loadSharedFolders();
-  }, []);
+
 
 
   return (

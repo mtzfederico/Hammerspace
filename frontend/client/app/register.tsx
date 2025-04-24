@@ -106,7 +106,7 @@ export default function Register() {
             placeholder="username"
             autoCapitalize="none"
             placeholderTextColor="#ccc"
-            value={userID}
+            value={userID.trim()}
             onChangeText={setUserID}
           />
           <TextInput

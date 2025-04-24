@@ -708,38 +708,65 @@ func handleSync(c *gin.Context) {
 		return
 	}
 
-	// Get the user's own folders.
-	userFolders, err := getFolders(c, request.UserID)
+	// Get the user's own folders and files.  These functions now return both.
+	userItems, err := getFolders(c, request.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleSync] Failed to get folders")
+		log.WithField("error", err).Error("[handleSync] Failed to get user folders and files")
 		return
 	}
 
-	// Get the folders shared with the user.
-	sharedFolders, err := getSharedFolders(c, request.UserID)
+	// Get the folders and files shared with the user.  These functions now return both.
+	sharedItems, err := getSharedFolders(c, request.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
-		log.WithField("error", err).Error("[handleSync] Failed to get shared folders")
+		log.WithField("error", err).Error("[handleSync] Failed to get shared folders and files")
 		return
 	}
+	// Combine all files and folders into a single slice.
+	var allItems []Folder
+	allItems = append(allItems, userItems...)
+	allItems = append(allItems, sharedItems...)
+	
 
-	// Merge the two lists, removing duplicates.
-	allFolders := make(map[string]Folder)
-	for _, folder := range userFolders {
-		allFolders[folder.ID] = folder
-	}
-	for _, folder := range sharedFolders {
-		allFolders[folder.ID] = folder
-	}
+	for i := range sharedItems {
+		folder := sharedItems[i] // pointer to modify in-place
 
-	// Convert the map back to a slice.
-	var resultFolders []Folder
-	for _, folder := range allFolders {
-		resultFolders = append(resultFolders, folder)
-	}
+		owner := folder.UserID
 
-	c.JSON(200, gin.H{"success": true, "folders": resultFolders})
+		objKey, err := getObjectKey(c, folder.ID, owner, true)
+		if err != nil {
+			log.WithField("error", err).Error("[handleSync] Failed to get object key")
+
+		}
+		files, err := getItemsInDir(c, owner, folder.ID)
+		if err != nil {
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4)"})
+			log.WithField("error", err).Error("[handleSync] Failed to get items in directory")
+			return
+		}
+		for _, file := range files {
+			fileItem := Folder{
+				ID:       file.ID,
+				Name:     file.Name,
+				Type:     file.FileType, // Map FileType
+				FileSize: file.Size,
+				ParentDir: folder.ID,
+				//  or set it to a default value.
+			}
+			allItems = append(allItems, fileItem)
+		}
+		log.WithField("sharedItems", sharedItems).Trace("[handleSync] shareItems")
+		log.WithField("ownerID", owner).Trace("[handleSync] owner")
+		log.WithField("folder", folder).Trace("[handleSync] folder")
+		log.WithField("files", files).Trace("[handleSync] files")
+		log.WithField("folder", objKey).Trace("[handleSync] Object key")
+		log.WithField("folder", allItems).Trace("[handleSync] All items")
+
+	}
+	fmt.Printf("\nAll items: %v\n", allItems)
+
+	c.JSON(200, gin.H{"success": true, "folders": allItems})
 }
 
 func getFolders(ctx context.Context, userID string) ([]Folder, error) {
@@ -774,7 +801,7 @@ func getSharedFolders(ctx context.Context, userID string) ([]Folder, error) {
 		SELECT f.id, f.parentDir, f.name, f.type, f.size, f.userID, f.lastModified
 		FROM files f
 		INNER JOIN sharedFiles s ON f.id = s.fileID
-		WHERE s.userID = ? AND f.type = 'folder'`, userID)
+		WHERE s.userID = ?`, userID)
 	// if error executing the query, return the error
 	if err != nil {
 		return nil, err

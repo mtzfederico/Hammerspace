@@ -23,7 +23,7 @@ type DisplayFoldersProps = {
 };
 
 const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: DisplayFoldersProps) => {
-  console.log("display is happening ")
+  console.log("display is happening " + JSON.stringify(data))
   
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
