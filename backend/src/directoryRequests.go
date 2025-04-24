@@ -499,6 +499,16 @@ func handleCreateDirectory(c *gin.Context) {
 			log.WithFields(log.Fields{"error": err, "dirID": dirID}).Error("[handleCreateDirectory] Failed to share directory")
 			// Consider whether to rollback the directory creation or continue with errors
 		}
+
+		// https://gobyexample.com/goroutines
+		go func() {
+			for _, userID := range shareWith {
+				err := addAlert(context.Background(), userID, "sharedFolder", request.UserID, dirID.String())
+				if err != nil {
+					log.WithFields(log.Fields{"userID": userID, "dirID": dirID.String()}).Error("[handleCreateDirectory: Goroutine] Failed to send alert to user")
+				}
+			}
+		}()
 	} else {
 		log.Trace("[handleCreateDirectory] Directory is not shared")
 	}
@@ -730,7 +740,6 @@ func handleSync(c *gin.Context) {
 	var allItems []Folder
 	allItems = append(allItems, userItems...)
 	allItems = append(allItems, sharedItems...)
-	
 
 	for i := range sharedItems {
 		folder := sharedItems[i] // pointer to modify in-place
@@ -750,10 +759,10 @@ func handleSync(c *gin.Context) {
 		}
 		for _, file := range files {
 			fileItem := Folder{
-				ID:       file.ID,
-				Name:     file.Name,
-				Type:     file.FileType, // Map FileType
-				FileSize: file.Size,
+				ID:        file.ID,
+				Name:      file.Name,
+				Type:      file.FileType, // Map FileType
+				FileSize:  file.Size,
 				ParentDir: folder.ID,
 				//  or set it to a default value.
 			}

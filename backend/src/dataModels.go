@@ -6,9 +6,9 @@ import (
 )
 
 type SignupRequest struct {
-	Email    string `json:"email"`
-	UserID   string `json:"userID"`
-	Password string `json:"password"`
+	Email     string `json:"email"`
+	UserID    string `json:"userID"`
+	Password  string `json:"password"`
 	PublicKey string `json:"publicKey"`
 }
 
@@ -40,7 +40,7 @@ type CreateFolderRequest struct {
 	// The name that the user sees
 	DirName string `json:"dirName"`
 	// For the root/home it is 'root', otherwise it is the parentDir's ID
-	ParentDir string `json:"parentDir"`
+	ParentDir string   `json:"parentDir"`
 	ShareWith []string `json:"shareWith"`
 }
 
@@ -55,9 +55,9 @@ type ShareDirectoryRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
 	// For the root/home it is 'root', otherwise it is the parentDir's ID
-	DirID      string `json:"dirID"`
+	DirID      string   `json:"dirID"`
 	WithUserID []string `json:"withUserID"`
-	ReadOnly   bool   `json:"isReadOnly"`
+	ReadOnly   bool     `json:"isReadOnly"`
 }
 
 type GetFileRequest struct {
@@ -77,9 +77,9 @@ type ShareFileRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
 	// The fileID in the DB, NOT the S3 objKey
-	FileID     string `json:"fileID"`
+	FileID     string   `json:"fileID"`
 	WithUserID []string `json:"withUserID"`
-	ReadOnly   bool   `json:"isReadOnly"`
+	ReadOnly   bool     `json:"isReadOnly"`
 }
 
 type GetDirectoryResponse struct {
@@ -131,11 +131,11 @@ type Folder struct {
 }
 
 type Alert struct {
-	ID          string    `json:"id"`
-	Description string    `json:"description"`
-	FileID      string    `json:"fileID" binding:"omitempty"`
-	FileOwner   string    `json:"fileOwner"  binding:"omitempty"`
-	CreatedDate time.Time `json:"createdDate"`
+	ID            string    `json:"id"`
+	AlertType     string    `json:"alertType"`
+	DataPrimary   string    `json:"dataPrimary" binding:"omitempty"`
+	DataSecondary string    `json:"dataSecondary"  binding:"omitempty"`
+	CreatedDate   time.Time `json:"createdDate"`
 }
 
 type RemoveAlertRequest struct {
@@ -151,14 +151,16 @@ type User struct {
 	Created string `json:"created"`
 }
 
+// Used to make and accept friend requests
 type AddFriendRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
+	// The user to send the request to or to accept from
 	ForUserID string `json:"forUserID"`
 }
 
 type GetFolderKeyRequest struct {
 	UserID    string `json:"userID"`
 	AuthToken string `json:"authToken"`
-	FolderID string `json:"folderID"`
+	FolderID  string `json:"folderID"`
 }

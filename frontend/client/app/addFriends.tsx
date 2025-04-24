@@ -13,7 +13,6 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 
-
 export default function AddFriends() {
   const [forUserID, setForUserID] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,25 +21,21 @@ export default function AddFriends() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-
   const sendFriendRequest = async () => {
     if (!forUserID.trim()) {
       Alert.alert('Error', 'Please enter a valid user ID');
       return;
     }
 
-
     try {
       setIsLoading(true);
       const authToken = await SecureStore.getItemAsync('authToken');
       const userID = await SecureStore.getItemAsync('userID');
 
-
       if (!authToken || !userID) {
         Alert.alert('Error', 'User not logged in');
         return;
       }
-
 
       const response = await fetch(`${apiUrl}/addFriends`, {
         method: 'POST',
@@ -68,30 +63,25 @@ export default function AddFriends() {
     }
   };
 
-
   return (
     <LinearGradient
       colors={isDark ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} // Linear gradient based on light or dark mode
       style={styles.container}
     >
       <TouchableOpacity
-  onPress={() => router.back()}
-  style={[
-    styles.backButton,
-    { backgroundColor: isDark ? '#333' : '#ccc' },
-  ]}
->
-
-
+        onPress={() => router.back()}
+        style={[
+          styles.backButton,
+          { backgroundColor: isDark ? '#333' : '#ccc' },
+        ]}
+      >
         <Text style={[styles.backText, { color: isDark ? '#fff' : '#000' }]}>
           {'< Back'}
         </Text>
       </TouchableOpacity>
-
       <Text style={[styles.header, { color: isDark ? '#fff' : '#000' }]}>
         Add a Friend
       </Text>
-
       <TextInput
         placeholder="Enter User ID"
         placeholderTextColor={isDark ? '#aaa' : '#666'}
