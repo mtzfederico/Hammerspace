@@ -19,6 +19,7 @@ import sendFolder  from '../components/sendFolder';
 import addFolder from "../app/tabs/homescreen";
 import { getFolderKey } from '../services/getFolderKey';
 import { insertFolder, saveFolderKey } from '../services/database';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -125,48 +126,75 @@ export default function SharedFolder() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={[styles.container, backgroundStyle]}>
-          <Text style={[styles.title, textStyle]}>Select friends to share with:</Text>
-          <FlatList
-            data={friends}
-            keyExtractor={(item) => item.userID}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => toggleSelect(item.userID)} style={styles.item}>
-                <Image
-                  source={{
-                    uri:
-                      profilePictures[item.userID] ||
-                      require('../assets/images/default-profile-picture.jpeg'),
-                  }}
-                  style={styles.profilePicture}
-                />
-                <Text style={[styles.name, textStyle]}>{item.userID}</Text>
-                <Text style={textStyle}>{selected.includes(item.userID) ? '✓' : ''}</Text>
-              </TouchableOpacity>
-            )}
-          />
-          <Button title="Share Folder" onPress={submit} disabled={selected.length === 0} />
-        </View>
-      </SafeAreaView>
-    </SafeAreaProvider>
+  <LinearGradient
+    colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
+    style={{ flex: 1 }}
+  >
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <Text style={[styles.title, textStyle]}>Select friends to share with:</Text>
+        <FlatList
+          data={friends}
+          keyExtractor={(item) => item.userID}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => toggleSelect(item.userID)} style={styles.item}>
+              <Image
+                source={{
+                  uri:
+                    profilePictures[item.userID] ||
+                    require('../assets/images/default-profile-picture.jpeg'),
+                }}
+                style={styles.profilePicture}
+              />
+              <Text style={[styles.name, textStyle]}>{item.userID}</Text>
+              <Text style={textStyle}>{selected.includes(item.userID) ? '✓' : ''}</Text>
+            </TouchableOpacity>
+          )}
+        />
+        <Button title="Share Folder" onPress={submit} disabled={selected.length === 0} />
+      </View>
+    </SafeAreaView>
+  </LinearGradient>
+</SafeAreaProvider>
+
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  container: {
+    flex: 1, 
+    padding: 16,
+  },
+  title: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 12 
+  },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
   },
-  name: { marginLeft: 12, flex: 1, fontSize: 18 },
-  profilePicture: { width: 40, height: 40, borderRadius: 20 },
-  darkText: { color: '#fff' },
-  lightText: { color: '#000' },
-  darkBackground: { backgroundColor: '#000' },
-  lightBackground: { backgroundColor: '#fff' },
+  name: { 
+    marginLeft: 12, 
+    flex: 1, 
+    fontSize: 18 
+  },
+    profilePicture: { 
+      width: 40, 
+      height: 40, 
+      borderRadius: 20 
+    },
+  darkText: { 
+    color: '#fff' 
+  },
+  lightText: { 
+    color: '#000' 
+  },
+  darkBackground: { 
+    backgroundColor: '#000' 
+  },
+  lightBackground: { 
+    backgroundColor: '#fff' 
+  },
 });
