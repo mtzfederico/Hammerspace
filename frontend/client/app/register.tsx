@@ -14,6 +14,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();  // Initialize the router for navigation
@@ -27,6 +28,12 @@ export default function Register() {
     // Validate the inputs
     if (!email || !userID || !password) {
       setError('All fields are required.');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
@@ -116,6 +123,14 @@ export default function Register() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
           {error && <Text style={styles.error}>{error}</Text>}
           <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
