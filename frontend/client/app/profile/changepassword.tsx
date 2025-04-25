@@ -13,6 +13,7 @@ export default function ChangePasswordScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
@@ -49,9 +50,10 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <LinearGradient colors={ colorScheme === 'dark'? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
-      style={styles.container}
-    >
+    <LinearGradient colors={ colorScheme === 'dark'? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={styles.container}>
+      <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' },]}>
+        <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
+      </TouchableOpacity>
       <Text style={[styles.title, {color: colorScheme == 'dark' ? 'white' : 'black'},]}>Change Password</Text>
       <TextInput
         style={styles.input}
@@ -74,11 +76,9 @@ export default function ChangePasswordScreen() {
         secureTextEntry
         onChangeText={setConfirmPassword}
       />
-      <TouchableOpacity style={[styles.button,{backgroundColor: colorScheme === 'dark' ? '#2f416b' : '#4c8ef7',
-}]} onPress={handleChangePassword}>
+      <TouchableOpacity style={[styles.button,{backgroundColor: colorScheme === 'dark' ? '#2f416b' : '#4c8ef7'}]} onPress={handleChangePassword}>
         <Text style={styles.buttonText}>Update Password</Text>
-        </TouchableOpacity>
-
+      </TouchableOpacity>
     </LinearGradient>
   );
 }
@@ -114,7 +114,17 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5, // Android shadow
       },
-      
+      backButton: {
+        position: 'absolute',
+        top: 70,
+        left: 20,
+        padding: 8,
+        backgroundColor: '#ccc',
+        borderRadius: 5,
+      },
+      backText: {
+        fontSize: 16,
+      },
       buttonText: {
         color: 'white',
         fontSize: 16,

@@ -1,6 +1,8 @@
 import {Image, StyleSheet, Text, Pressable, View, useColorScheme, Alert, Modal, Dimensions} from 'react-native';
 import React, { useState} from 'react';
 import { pickDocument } from './pickDocument';
+import * as ImagePicker from 'expo-image-picker';
+import * as SecureStore from 'expo-secure-store';
 import CreateFolder  from './CreateFolder';
 import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAvoidingView,Platform,TouchableWithoutFeedback,Keyboard,} from 'react-native';
@@ -36,14 +38,74 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isAddFolderViewVisible, setIsAddFolderViewVisible] = useState(false); 
+  const storedToken =  String(SecureStore.getItem('authToken'));
+  const storedUserID =  String(SecureStore.getItem('userID'));
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
   const handleDocumentPick = async () => {
-    setModalVisible(false);
     try {
       await pickDocument(parentID, addFile);
     } catch(err) {
       Alert.alert('Failed to upload file', `${err || 'Unknown error'}`);
     }
+    setModalVisible(false);
+  };
+
+  const handlePickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (result.canceled || result.assets.length === 0) {
+
+      return;
+    }
+
+    const imageUri = result.assets[0].uri;
+    const mimeType = result.assets[0].mimeType || 'image/jpeg';
+    const fileSize = result.assets[0].fileSize || -1;
+    const fileName = result.assets[0].fileName || "unamed image";
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      name: fileName,
+      type: mimeType,
+      size: fileSize,
+    } as any);
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
+    formData.append("parentDir", parentID);
+
+    console.log("[handlePickImage] Sending uploadFile request")
+    const response = await fetch(`${apiUrl}/uploadFile`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      console.log('[handlePickImage] File uploaded successfully:', data);
+      console.log("parentDIR " + parentID);
+        var dirID= String(data.fileID);
+        const size = JSON.parse(data.bytesUploaded);
+        // addFile adds it to the local DB. The actual code called is in homescreen
+        addFile(fileName, imageUri, dirID, mimeType, parentID, size);
+    } else {
+      console.error('[handlePickImage] File upload failed. Status: ' + response.status + '. Error msg: ' + data.error);
+      throw Error(data.error)
+    }
+
+    setModalVisible(false);
   };
     
   const colorScheme = useColorScheme();
@@ -81,13 +143,22 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
             <Pressable style={[styles.button, actionBtnTextStyle]} onPress={handleDocumentPick}>
               <Text style={styles.textStyle}>Add File</Text>
             </Pressable>
-
+            <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() =>{handlePickImage()}}>
+              <Text style={styles.textStyle}>Add from Photos App</Text>
+            </Pressable>
             <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
+                setIsAddFolderViewVisible(true);
+                setModalVisible(false);
+              }}
+            >
+              <Text style={styles.textStyle}>Create Folder</Text>
+            </Pressable>
+            <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
+              // open camera
               setModalVisible(false);
             }}>
               <Text style={styles.textStyle}>Take a Picture</Text>
             </Pressable>
-
             <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
               setIsAddFolderViewVisible(true);
               setModalVisible(false);
@@ -119,9 +190,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   closeBtnTextLight: {
+    fontSize: 18,
     color: 'black',
   },
   closeBtnTextDark: {
+    fontSize: 18,
     color: 'white',
   },
   button: {
@@ -155,12 +228,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    height: Dimensions.get('window').height / 2.5,
+    height: Dimensions.get('window').height / 2.3,
     backgroundColor: 'white',
     borderRadius: 20,
     // borderTopLeftRadius: 20,
     // borderTopRightRadius: 20,
-    padding: 35,
+    padding: 40,
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: {
@@ -203,5 +276,4 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     flex: 1,
   }
-  
 });

@@ -7,12 +7,12 @@ import {
   Button,
   Image,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Alert,
   Platform,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
@@ -44,7 +44,6 @@ export default function UserProfileScreen() {
   const [usedStorageMB, setUsedStorageMB] = useState<number | null>(null);
   const [totalStorageMB, setTotalStorageMB] = useState<number | null>(null);
 
-  
   
   const defaultProfilePicture = require('@/assets/images/default-profile-picture.jpeg');
   console.log('defaultProfilePicture:', defaultProfilePicture);
@@ -250,85 +249,57 @@ export default function UserProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <LinearGradient
-        colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
-        style={[StyleSheet.absoluteFill, styles.container]}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton,
-          {
-            backgroundColor: isDarkMode ? '#444' : '#C1C8D9', 
-          },
-        ]}>
-          <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
-        </TouchableOpacity>
-  
-        <Text style={[styles.header, textStyle]}>
-          {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
-        </Text>
-  
-        {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
-  
-        {profilePictureUri && (
-          <Image
-            source={
-              typeof profilePictureUri === 'string'
-                ? { uri: profilePictureUri }
-                : profilePictureUri
-            }
-            style={styles.profileImage}
-            resizeMode="cover"
-          />
-        )}
-  
-        {isOwnProfile && (
-          <>
-            <Button title="Pick New Image" onPress={handlePickImage} color = "#5467c7"/>
-            {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={styles.profileImage} />
-            )}
-          <TouchableOpacity
-            style={styles.uploadButton}
-            onPress={handleUpload}
-            disabled={!selectedImage || loading}>
-          <Text style={styles.uploadText}>Upload</Text>
-          </TouchableOpacity>
-            <View style={styles.friendsText}>
-              <Text
-                style={[styles.smallHeader, textStyle]}
-                onPress={() => router.push('/friends')}
-              >
-                Your Friends
-              </Text>
+    <SafeAreaProvider>
+      <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={[StyleSheet.absoluteFill]}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          <Pressable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
+            <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
+          </Pressable>
+    
+          <Text style={[styles.yourProfileText, textStyle]}>
+            {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
+          </Text>
+    
+          {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
+    
+          {selectedImage ? (
+            <Image source={{ uri: selectedImage }} style={styles.profileImage} />
+          ):((
+              <Image source={typeof profilePictureUri === 'string' ? { uri: profilePictureUri } : profilePictureUri} style={styles.profileImage} resizeMode="cover"/>
+            )
+          )}
+    
+          {isOwnProfile && (
+            <>
+            <View style={styles.pickNewImgBtn}>
+              <Button title="Pick New Image" onPress={handlePickImage} color = "#5467c7"/>
             </View>
+            {selectedImage && (
+              <Pressable style={styles.uploadButton} onPress={handleUpload} disabled={!selectedImage || loading}>
+                <Text style={styles.uploadText}>Upload</Text>
+              </Pressable>
+            )}
+            
+              <View style={styles.friendsText}>
+                <Text style={[styles.smallHeader, textStyle]} onPress={() => router.push('/friends')}>Your Friends</Text>
+              </View>
 
-            <TouchableOpacity
-            style={styles.changePasswordButton}
-            onPress={() => router.push('/profile/changepassword')}>
-            <Text
-            style={[
-            styles.changePasswordText,
-            { color: isDarkMode ? 'white' : 'black' },]}>
-            Change Password
-            </Text>
-            </TouchableOpacity>
+              <Pressable style={styles.changePasswordButton} onPress={() => router.push('/profile/changepassword')}>
+                  <Text style={[styles.changePasswordText, { color: isDarkMode ? 'white' : 'black' }]}>Change Password</Text>
+              </Pressable>
 
-
-            <Text
-              style={[styles.logoutText]}
-              onPress={() => {
-                Alert.alert('Log Out', 'Are you sure you want to log out?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Log Out', style: 'destructive', onPress: handleLogout },
-                ]);
-              }}
-            >
-              Logout
-            </Text>
-          </>
-        )}
+              <Text style={[styles.logoutText]} onPress={() => {
+                  Alert.alert('Log Out', 'Are you sure you want to log out?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Log Out', style: 'destructive', onPress: handleLogout },
+                    ]);
+                  }}
+                >Logout</Text>
+            </>
+          )}
+        </SafeAreaView>
       </LinearGradient>
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
   
 }
@@ -336,34 +307,10 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 200,
+    paddingTop: 20,
     paddingHorizontal: 16,
     alignItems: 'center',
     margin: 0,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: 'black',
-  },
-  smallHeader: {
-    fontSize: 22,
-    fontWeight: '600',
-  },
-  profileImage: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    marginVertical: 20,
-  },
-  uploadButton: {
-    marginTop: 10,
-    backgroundColor: '#transparent',
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    alignSelf: 'center',
   },
   backButton: {
     position: 'absolute',
@@ -372,6 +319,38 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  yourProfileText: {
+    position: 'relative',
+    fontSize: 28,
+    fontWeight: 'bold',
+    // marginBottom: 20,
+    marginTop: 150,
+    color: 'black',
+  },
+  profileImage: {
+    position: 'relative',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    // marginVertical: 20,
+    marginTop: 20,
+    // top: 40,
+  },
+  pickNewImgBtn: {
+    position: 'relative',
+    color: "#5467c7",
+    // paddingTop: 30,
+    marginTop: 10,
+  },
+  uploadButton: {
+    position: 'relative',
+    marginTop: 0,
+    backgroundColor: '#transparent',
+    borderRadius: 8,
+    // paddingVertical: 2,
+    // paddingHorizontal: 10,
+    alignSelf: 'center',
   },
   uploadText: {
     color: '#787878',
@@ -393,35 +372,41 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   friendsText: {
-    position: 'absolute',
-    bottom: 300, 
+    position: 'relative',
+    paddingTop: 35,
+    // bottom: 400, 
     fontSize: 22,
     fontWeight: 'bold',
     alignSelf: 'center', 
   },
-  logoutText: {
-    position: 'absolute',
-    bottom: 80, 
+  // Used for "Your Friends" text
+  smallHeader: {
     fontSize: 22,
-    fontWeight: 'bold',
-    alignSelf: 'center', 
-    color: 'red',
+    fontWeight: '600',
   },
   changePasswordButton: {
-    position: 'absolute',
-    bottom: 200,
+    position: 'relative',
+    paddingTop: 45,
+    // bottom: 200,
     alignSelf: 'center',
     backgroundColor: '#transparent',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
-  
   changePasswordText: {
     color: 'black',
     fontSize: 22,
     fontWeight: '600',
     alignSelf: 'center',
   },
-  
+  logoutText: {
+    position: 'absolute',
+    // paddingTop: 125,
+    bottom: 70, 
+    fontSize: 22,
+    fontWeight: 'bold',
+    alignSelf: 'center', 
+    color: 'red',
+  },
 });

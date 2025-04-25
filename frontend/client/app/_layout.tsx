@@ -91,6 +91,10 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
+            name="profile/changepassword"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
             name="sharedfolder" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
