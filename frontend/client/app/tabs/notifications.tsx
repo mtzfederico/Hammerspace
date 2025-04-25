@@ -45,11 +45,12 @@ export default function NotificationsScreen() {
 
   const handleNotificationButtonTapped = (alert: AlertData): void => {
     if (alert.alertType === "friendRequest") {
-      acceptFriendRequest(alert.dataPrimary);
+      acceptFriendRequest(alert.dataPrimary, alert.id);  // Pass the alert id to dismiss after success
       return;
     }
     return;
   };
+  
   
   type ItemProps = {alert: AlertData};
   const dismissNotification = (id: string) => {
@@ -115,14 +116,14 @@ export default function NotificationsScreen() {
     }
   };
 
-  const acceptFriendRequest = async (fromUserID: string) => {
+  const acceptFriendRequest = async (fromUserID: string, alertID: string) => {
     try {
       const userID = await SecureStore.getItemAsync('userID');
       const authToken = await SecureStore.getItemAsync('authToken');
-
+  
       console.log('[acceptFriendRequest] Accepting request from:', fromUserID); // Log for debugging
       console.log('User ID:', userID); // Log for debugging
-
+  
       const response = await fetch(`${apiUrl}/acceptFriendRequest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -132,17 +133,18 @@ export default function NotificationsScreen() {
           forUserID: fromUserID,
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert('Error', errorData.error || 'Could not accept request');
         return;
       }
-
+  
       const data = await response.json();
       if (data.success) {
         Alert.alert('Success', 'Friend request accepted');
         await fetchNotifications(); // Refresh list
+        dismissNotification(alertID);  // Dismiss notification after success
       } else {
         Alert.alert('Error', data.error || 'Could not accept request');
       }
@@ -150,7 +152,7 @@ export default function NotificationsScreen() {
       Alert.alert('Error', `${err || 'unknown error'}`);
     }
   };
-
+  
   const handlePullToRefresh = () => {
     setIsRefreshing(true);
     console.log("Pull to refresh")
