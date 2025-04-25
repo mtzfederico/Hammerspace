@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
-    backgroundColor: '#C1C8D9',
+    backgroundColor: '#444',
     borderRadius: 5,
   },
   profileButton: {

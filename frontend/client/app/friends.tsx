@@ -121,8 +121,8 @@ export default function Friends() {
     });
   }, [friends]);
 
-  const UserProfile = ({ userID }: { userID: string }) => (
-    <View style={styles.UserProfile}>
+  const UserProfile = ({ userID, isDarkMode }: { userID: string; isDarkMode: boolean }) => (
+    <View style={[styles.UserProfile, isDarkMode ? styles.darkProfile : styles.lightProfile]}>
       <Image
         source={{
           uri: profilePictures[userID] || '../assets/images/default-profile-picture.jpeg',
@@ -132,7 +132,7 @@ export default function Friends() {
       <Text style={[styles.title, textStyle]}>{userID}</Text>
     </View>
   );
-
+  
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
@@ -167,7 +167,7 @@ export default function Friends() {
             ) : (
               <FlatList
                 data={friends}
-                renderItem={({ item }) => <UserProfile userID={item.userID} />}
+                renderItem={({ item }) => <UserProfile userID={item.userID} isDarkMode={isDarkMode} />}
                 ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
                 keyExtractor={(item) => item.userID}
               />
@@ -204,8 +204,13 @@ const styles = StyleSheet.create({
     height: 68,
     flexDirection: 'row',
     borderRadius: 20,
-    backgroundColor:'#C1C8D9',
   },
+  darkProfile: {
+    backgroundColor: '#444',
+  },
+  lightProfile: {
+    backgroundColor: '#C1C8D9',
+  },  
   profilePicture: {
     width: 32,
     height: 32,
