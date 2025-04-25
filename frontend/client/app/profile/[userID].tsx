@@ -317,7 +317,6 @@ const styles = StyleSheet.create({
     top: 70,
     left: 20,
     padding: 8,
-    backgroundColor: '#ccc',
     borderRadius: 5,
   },
   yourProfileText: {
