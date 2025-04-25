@@ -54,7 +54,7 @@ export default function ChangePasswordScreen() {
       <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' },]}>
         <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
       </TouchableOpacity>
-      <Text style={[styles.title, {color: colorScheme == 'dark' ? 'white' : 'black'},]}>Change Password</Text>
+      <Text style={[styles.title, {color: colorScheme == 'dark' ? 'white' : '#2a2d38'},]}>Change Password</Text>
       <TextInput
         style={styles.input}
         placeholder="Current Password"
