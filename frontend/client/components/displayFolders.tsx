@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
   },*/
 ////////////////////
   lightEmptyMsg: {
-    fontSize: 25,
+    fontSize: 24,
     textAlign: 'center',
     marginTop: 100,
     color: '#646b7d',
   },
   darkEmptyMsg: {
-    fontSize: 25,
+    fontSize: 24,
     textAlign: 'center',
     marginTop: 100,
     color: 'white',
