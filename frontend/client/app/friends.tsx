@@ -14,7 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient'; // Importing LinearGradient
+import { LinearGradient } from 'expo-linear-gradient';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -125,7 +125,7 @@ export default function Friends() {
     <View style={styles.UserProfile}>
       <Image
         source={{
-          uri: profilePictures[userID] || '../assets/images/default-profile-picture.jpeg', // Show default if no picture is found
+          uri: profilePictures[userID] || '../assets/images/default-profile-picture.jpeg',
         }}
         style={styles.profilePicture}
       />
@@ -136,87 +136,44 @@ export default function Friends() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        {/* Conditionally apply LinearGradient for light mode and dark mode */}
-        {!isDarkMode ? (
-          <LinearGradient
-            colors={['#FFFFFF', '#92A0C3']}
-            style={styles.gradientBackground}
+        <LinearGradient
+          colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
+          style={styles.gradientBackground}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
           >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
-            >
-              <Text style={textStyle}>{'< Back'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.backButtonText}>{'< Back'}</Text>
+          </TouchableOpacity>
 
-            <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+          <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
 
-            <TouchableOpacity
-              style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
-              onPress={() => router.push('/addFriends')}
-            >
-              <Image
-                source={require('../assets/images/plus.png')}
-                style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]}
-              />
-            </TouchableOpacity>
-
-            {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
-
-            <View style={styles.table}>
-              {loading ? (
-                <ActivityIndicator style={{ marginTop: 10 }} />
-              ) : (
-                <FlatList
-                  data={friends}
-                  renderItem={({ item }) => <UserProfile userID={item.userID} />}
-                  ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
-                  keyExtractor={(item) => item.userID}
-                />
-              )}
-            </View>
-          </LinearGradient>
-        ) : (
-        
-          <LinearGradient
-            colors={['#030303', '#767676']}
-            style={styles.gradientBackground}
+          <TouchableOpacity
+            style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
+            onPress={() => router.push('/addFriends')}
           >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
-            >
-              <Text style={textStyle}>{'< Back'}</Text>
-            </TouchableOpacity>
+            <Image
+              source={require('../assets/images/plus.png')}
+              style={[styles.plusImage, { tintColor: 'white' }]} // Ensure the plus icon is white
+            />
+          </TouchableOpacity>
 
-            <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+          {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
 
-            <TouchableOpacity
-              style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
-              onPress={() => router.push('/addFriends')}
-            >
-              <Image
-                source={require('../assets/images/plus.png')}
-                style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]}
+          <View style={styles.table}>
+            {loading ? (
+              <ActivityIndicator style={{ marginTop: 10 }} />
+            ) : (
+              <FlatList
+                data={friends}
+                renderItem={({ item }) => <UserProfile userID={item.userID} />}
+                ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
+                keyExtractor={(item) => item.userID}
               />
-            </TouchableOpacity>
-
-            {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
-
-            <View style={styles.table}>
-              {loading ? (
-                <ActivityIndicator style={{ marginTop: 10 }} />
-              ) : (
-                <FlatList
-                  data={friends}
-                  renderItem={({ item }) => <UserProfile userID={item.userID} />}
-                  ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
-                  keyExtractor={(item) => item.userID}
-                />
-              )}
-            </View>
-          </LinearGradient>
-        )}
+            )}
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -231,7 +188,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   plusImage: {
-    tintColor: 'black',
     height: 20,
     width: 20,
   },
@@ -272,6 +228,9 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  backButtonText: {
+    color: 'white', 
   },
   table: {
     marginTop: 0,

@@ -72,10 +72,10 @@ export default function AddFriends() {
         onPress={() => router.back()}
         style={[
           styles.backButton,
-          { backgroundColor: isDark ? '#333' : '#ccc' },
+          { backgroundColor: isDark ? '#333' : '#C1C8D9' },
         ]}
       >
-        <Text style={[styles.backText, { color: isDark ? '#fff' : '#000' }]}>
+        <Text style={[styles.backText, { color: isDark ? '#fff' : '#fff' }]}>
           {'< Back'}
         </Text>
       </TouchableOpacity>
@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
+    
   },
   buttonText: {
     fontSize: 16,

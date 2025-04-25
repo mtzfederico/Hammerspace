@@ -110,7 +110,7 @@ export default function Register() {
           />
           <TextInput
             style={styles.input}
-            placeholder="username"
+            placeholder="Username"
             autoCapitalize="none"
             placeholderTextColor="#ccc"
             value={userID.trim()}
@@ -159,11 +159,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#fff',
+    fontFamily: 'Kavoon',
+    color: 'rgba(204, 204, 204, 1)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.250980406999588)',
+    textShadowRadius: 4,
+    textShadowOffset: {"width":0,"height":4},
   },
   subtitle: {
+    top:5,
     fontSize: 20,
     color: '#fff',
   },
