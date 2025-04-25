@@ -268,7 +268,6 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   return (
     <View style={[styles.container]}>
       <View style={styles.header}>
-        hide the back button on the home directory
         {previousID ? ( 
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Text style={textStyle}>{'< Back'}</Text>

@@ -71,11 +71,11 @@ async function pickDocument(parentDir: string, addFile: AddFileType) {
     const data = await response.json();
     if (data.success) {
       console.log('File uploaded successfully:', data);
-      console.log("parentDIR " + parentDir)
-       var dirID= String(data.fileID)
-       const size = JSON.parse(data.bytesUploaded)
+      console.log("parentDIR " + parentDir);
+       var dirID= String(data.fileID);
+       const size = JSON.parse(data.bytesUploaded);
        // addFile adds it to the local DB. The actual code called is in homescreen
-       addFile(fileName, fileURI, dirID, mimeType, parentDir, size)
+       addFile(fileName, fileURI, dirID, mimeType, parentDir, size);
     } else {
       console.error('File upload failed. Status: ' + response.status + '. Error msg: ' + data.error);
       // setError(err.message || 'Error uploading file. Please try again.');
