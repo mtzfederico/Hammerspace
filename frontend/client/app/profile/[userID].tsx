@@ -285,7 +285,7 @@ export default function UserProfileScreen() {
               </View>
 
               <Pressable style={styles.changePasswordButton} onPress={() => router.push('/profile/changepassword')}>
-                  <Text style={[styles.changePasswordText, { color: isDarkMode ? 'white' : 'black' }]}>Change Password</Text>
+                  <Text style={[styles.changePasswordText, { color: isDarkMode ? 'white' : '#2a2d38' }]}>Change Password</Text>
               </Pressable>
 
               <Text style={[styles.logoutText]} onPress={() => {
@@ -307,7 +307,7 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 20,
+    paddingTop: 0,
     paddingHorizontal: 16,
     alignItems: 'center',
     margin: 0,
@@ -366,16 +366,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'black',
   },
   lightText: {
-    color: 'black',
+    color: '#2a2d38',
   },
   darkText: {
     color: 'white',
   },
   friendsText: {
     position: 'relative',
-    paddingTop: 35,
+    paddingTop: 80,
     // bottom: 400, 
     fontSize: 22,
+    marginBottom: 30,
     fontWeight: 'bold',
     alignSelf: 'center', 
   },
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
   },
   changePasswordButton: {
     position: 'relative',
-    paddingTop: 45,
+    paddingTop: 50,
     // bottom: 200,
     alignSelf: 'center',
     backgroundColor: '#transparent',
@@ -395,7 +396,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   changePasswordText: {
-    color: 'black',
     fontSize: 22,
     fontWeight: '600',
     alignSelf: 'center',
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   logoutText: {
     position: 'absolute',
     // paddingTop: 125,
-    bottom: 70, 
+    bottom: 95, 
     fontSize: 22,
     fontWeight: 'bold',
     alignSelf: 'center', 
