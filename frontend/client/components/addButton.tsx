@@ -63,8 +63,12 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
     console.log(result);
 
     if (result.canceled || result.assets.length === 0) {
-
+      console.log("[handlePickImage] cancelled");
       return;
+    }
+
+    if (parentID === "") {
+      throw Error("parentID is empty");
     }
 
     const imageUri = result.assets[0].uri;
