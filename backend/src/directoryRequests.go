@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"filippo.io/age"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -466,14 +467,22 @@ func handleCreateDirectory(c *gin.Context) {
 
 		// Fetch public keys for all users including the creator
 		shareWith := append(request.ShareWith, request.UserID)
-		publicKeys := []string{}
+
+		publicKeys := []age.Recipient{}
 		for _, userID := range shareWith {
 			pubKey, err := getPublicKeyForUser(c, userID)
 			if err != nil {
 				log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
 				continue
 			}
-			publicKeys = append(publicKeys, pubKey)
+
+			recipient, err := age.ParseX25519Recipient(pubKey)
+			if err != nil {
+				log.WithField("pubKey", pubKey).WithError(err).Error("[handleCreateDirectory] Invalid public key")
+				// TODO: maybe return an error here
+				continue
+			}
+			publicKeys = append(publicKeys, recipient)
 		}
 
 		// Encrypt the folder key for all recipients at once

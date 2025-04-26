@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
-	"database/sql"
-	
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -134,7 +133,7 @@ func handleFileUpload(c *gin.Context) {
 
 	// Start processing the file here
 	expectedMIMEType := file.Header.Get("Content-Type")
-	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType, parentDir)
+	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType, parentDir, userID)
 	if err != nil {
 		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
 	}
@@ -396,4 +395,3 @@ func renameFile(db *sql.DB, fileID, newName string) error {
 
 	return nil
 }
-

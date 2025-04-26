@@ -16,7 +16,7 @@ import (
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string, fileID string, parentDir string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey, fileID, parentDir, userID string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
@@ -25,7 +25,9 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string, fileID
 	defer fileIn.Close()
 
 	// Get the public key associated with the parent folder
-	publicKey, err := getPublicKeyForFolder(ctx, parentDir, 0)
+	// TODO: This is not working for non shareed dirs
+	// add userID to this
+	publicKey, err := getPublicKeyForDirectory(ctx, parentDir, userID, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public key for folder %s: %w", parentDir, err)
 	}
@@ -80,6 +82,78 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey string, fileID
 	*/
 }
 
+// folderID is the parentDir
+// callNumber is increased in recursive calls, set it to zero.
+func getPublicKeyForDirectory(ctx context.Context, dirID, userID string, callNumber int) (string, error) {
+	// 10 might break folders inside folders inside folders
+	if callNumber > 10 {
+		return "", fmt.Errorf("called more than 10 times")
+	}
+
+	if dirID == "" {
+		return "", fmt.Errorf("dirID is empty")
+	}
+
+	if dirID == RootDirectoryID {
+		userKey, err := getPublicKeyForUser(ctx, userID)
+		if err != nil {
+			return "", nil
+		}
+		return userKey, nil
+	}
+
+	// Query to get the public key for the folder from the encryptionKeys table
+	rows, err := db.QueryContext(ctx, "SELECT publicKey FROM encryptionKeys WHERE folderID = ? LIMIT 1", dirID)
+	if err != nil {
+		return "", fmt.Errorf("db query error. %w", err)
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		var publicKey string
+		err := rows.Scan(&publicKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to scan profilePictureID. %w", err)
+		}
+		return publicKey, nil
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", fmt.Errorf("failed to get publicKey. %w", err)
+		}
+
+		// dir not found in the encryptionKeys db
+		// Assume that the directory is the user's directory
+		// TODO: there might be a case scenario missing here. Maybe modifiying a shared file
+		userKey, err := getPublicKeyForUser(ctx, userID)
+		if err != nil {
+			return "", nil
+		}
+		return userKey, nil
+	}
+
+	/*
+		// Query to get the public key for the folder from the encryptionKeys table
+		var publicKey string
+		rows, err = db.QueryRowContext(ctx, "SELECT publicKey FROM encryptionKeys WHERE folderID = ? LIMIT 1", folderID)
+		err := rows.Scan(&publicKey)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				parentDir, err := getParentDirID(ctx, folderID)
+				if err != nil {
+					return "", fmt.Errorf("error getting parentDirID: %w", err)
+				}
+				callNumber++
+				return getPublicKeyForDirectory(ctx, parentDir, userID, callNumber)
+			}
+			return "", fmt.Errorf("failed to fetch public key: %w", err)
+		}
+		return publicKey, nil
+	*/
+}
+
+/*
 func getPublicKeys(ctx context.Context, fileID string) ([]age.Recipient, error) {
 	var recipients []age.Recipient
 
@@ -101,11 +175,11 @@ func getPublicKeys(ctx context.Context, fileID string) ([]age.Recipient, error) 
 	recipients = append(recipients, recipient)
 	return recipients, nil
 }
+*/
 
 func getUserIDFromFileID(ctx context.Context, fileID string) (string, error) {
 	var userID string
-	query := `SELECT userID FROM files WHERE id = ? LIMIT 1`
-	err := db.QueryRowContext(ctx, query, fileID).Scan(&userID)
+	err := db.QueryRowContext(ctx, "SELECT userID FROM files WHERE id = ? LIMIT 1", fileID).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", fmt.Errorf("no file found with ID %s", fileID)
@@ -117,9 +191,8 @@ func getUserIDFromFileID(ctx context.Context, fileID string) (string, error) {
 
 func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
 	var publicKey string
-	query := `SELECT publicKey FROM encryptionKeys WHERE userID = ? LIMIT 1`
 
-	err := db.QueryRowContext(ctx, query, userID).Scan(&publicKey)
+	err := db.QueryRowContext(ctx, "SELECT publicKey FROM encryptionKeys WHERE userID = ? LIMIT 1", userID).Scan(&publicKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", fmt.Errorf("no public key found for userID %s", userID)
@@ -141,24 +214,10 @@ func generateFolderKey(ctx context.Context) (*age.X25519Identity, *age.X25519Rec
 	return privateKey, publicKey, err
 }
 
-func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, error) {
-	if folderKey == nil || publicKeys == nil {
-		log.WithFields(log.Fields{
-			"folderKey":  folderKey,
-			"publicKeys": publicKeys,
-		}).Error("[encryptFolderKeyForUsers] Error: folder key or public keys are nil")
+func encryptFolderKeyForUsers(folderKey []byte, recipients []age.Recipient) ([]byte, error) {
+	if folderKey == nil || recipients == nil {
+		log.WithFields(log.Fields{"folderKey": folderKey, "publicKeys": recipients}).Error("[encryptFolderKeyForUsers] Error: folder key or public keys are nil")
 		return nil, fmt.Errorf("folder key or public keys are nil")
-	}
-
-	// Convert string public keys to age recipients
-	var recipients []age.Recipient
-	for _, pubKey := range publicKeys {
-		recipient, err := age.ParseX25519Recipient(pubKey)
-		if err != nil {
-			log.WithField("pubKey", pubKey).WithError(err).Error("[encryptFolderKeyForUsers] Invalid public key")
-			return nil, fmt.Errorf("invalid public key: %w", err)
-		}
-		recipients = append(recipients, recipient)
 	}
 
 	// Encrypt the folder key in-memory
@@ -179,7 +238,7 @@ func encryptFolderKeyForUsers(folderKey []byte, publicKeys []string) ([]byte, er
 		return nil, fmt.Errorf("failed to close age writer: %w", err)
 	}
 
-	log.WithField("keyLength", len(encryptedData.Bytes())).Trace("[encryptFolderKeyForUsers] Folder key encrypted")
+	log.WithField("bytesEncrypted", len(encryptedData.Bytes())).Trace("[encryptFolderKeyForUsers] Folder key encrypted")
 
 	return encryptedData.Bytes(), nil
 }
@@ -241,27 +300,4 @@ func handleGetFolderKey(c *gin.Context) {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
 	extraHeaders := map[string]string{"Cache-Control": "private"}
 	c.DataFromReader(200, int64(*file.ContentLength), "application/vnd.age", file.Body, extraHeaders)
-}
-
-// callNumber is increased in recursive calls, set it to zero.
-func getPublicKeyForFolder(ctx context.Context, folderID string, callNumber int) (string, error) {
-	// 10 might break folders inside folders inside folders
-	if callNumber > 10 {
-		return "", fmt.Errorf("called more than 10 times")
-	}
-	// Query to get the public key for the folder from the encryptionKeys table
-	var publicKey string
-	err := db.QueryRowContext(ctx, "SELECT publicKey FROM encryptionKeys WHERE folderID = ? LIMIT 1", folderID).Scan(&publicKey)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			parentDir, err := getParentDirID(ctx, folderID)
-			if err != nil {
-				return "", fmt.Errorf("error getting parentDirID: %w", err)
-			}
-			callNumber++
-			return getPublicKeyForFolder(ctx, parentDir, callNumber)
-		}
-		return "", fmt.Errorf("failed to fetch public key: %w", err)
-	}
-	return publicKey, nil
 }
