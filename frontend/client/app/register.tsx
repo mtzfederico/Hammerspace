@@ -14,6 +14,7 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();  // Initialize the router for navigation
@@ -27,6 +28,12 @@ export default function Register() {
     // Validate the inputs
     if (!email || !userID || !password) {
       setError('All fields are required.');
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
@@ -103,7 +110,7 @@ export default function Register() {
           />
           <TextInput
             style={styles.input}
-            placeholder="username"
+            placeholder="Username"
             autoCapitalize="none"
             placeholderTextColor="#ccc"
             value={userID.trim()}
@@ -116,6 +123,14 @@ export default function Register() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
           {error && <Text style={styles.error}>{error}</Text>}
           <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
@@ -144,11 +159,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#fff',
+    fontFamily: 'Kavoon',
+    color: 'rgba(204, 204, 204, 1)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.250980406999588)',
+    textShadowRadius: 4,
+    textShadowOffset: {"width":0,"height":4},
   },
   subtitle: {
+    top:5,
     fontSize: 20,
     color: '#fff',
   },

@@ -39,9 +39,7 @@ CREATE TABLE IF NOT EXISTS authTokens (
 ------------ test data starts ------------
 -- Test User. Password is "testPassword123"
 INSERT INTO users (userID, email, password, roleID, createdDate) VALUES ("testUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now()), ("anotherTestUser", "test@example.com", "$2a$14$w3kWUlkLWc2wkM0FQLwiWu0.Cy05LyjaXl8xE7mIl5sB9IRDFs3Ie", "user", now());
--- Test public key for "AGE-SECRET-KEY-13ZV95MTF4J8K75DR5J884E9G2FRSZNJKMRHK9TV4TF7V6TTUGETQ9MZTQ7"
-INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
---
+
 INSERT INTO authTokens (tokenID, userID, loginDate) VALUES ('K1xS9ehuxeC5tw==', 'testUser', '2025-02-26 12:57:08');
 ------------- test data ends -------------
 
@@ -77,7 +75,9 @@ CREATE TABLE IF NOT EXISTS encryptionKeys (
   CONSTRAINT encryptionKeys_userID_fk FOREIGN KEY (userID) REFERENCES users(userID) ON DELETE CASCADE,
   CONSTRAINT encryptionKeys_folder_fk FOREIGN KEY (folderid) REFERENCES files(id) ON DELETE CASCADE
 );
-
+-- Test public key for "AGE-SECRET-KEY-13ZV95MTF4J8K75DR5J884E9G2FRSZNJKMRHK9TV4TF7V6TTUGETQ9MZTQ7"
+INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES ("age1pkl3nxgdqlfe35g6x96spkvqf0ru8me2nhp5vcqeg5p5wthmuerqss6agj", "testUser", "main key", now());
+--
 -- items shared table
 -- processed is for files that have been marked as shared, but the new file that is encrypted with this user's pubkey has not been uploaded yet.
 -- true means that it is ready to be accessed by the user that it is shared with.

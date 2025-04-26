@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 20,
     color: '#fff',
+    top:5,
   },
   description: {
     color: '#fff',

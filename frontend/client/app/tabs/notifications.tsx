@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Button, StyleSheet, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
@@ -45,19 +45,39 @@ export default function NotificationsScreen() {
 
   const handleNotificationButtonTapped = (alert: AlertData): void => {
     if (alert.alertType === "friendRequest") {
-      acceptFriendRequest(alert.dataPrimary);
+      acceptFriendRequest(alert.dataPrimary, alert.id);  // Pass the alert id to dismiss after success
       return;
     }
     return;
   };
   
+  
   type ItemProps = {alert: AlertData};
-
-  const Notification = (alert: ItemProps) => (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle} >{getNotificationTitle(alert.alert)}</Text>
-      <Text style={styles.cardBody}>{getNotificationBody(alert.alert)}</Text>
-      <Button title={getNotificationButtonTitle(alert.alert)} onPress={() => handleNotificationButtonTapped(alert.alert)}/>
+  const dismissNotification = (id: string) => {
+    setAlerts(prev => prev.filter(alert => alert.id !== id));
+  };
+  
+  const Notification = ({ alert }: ItemProps) => (
+    <View style={[styles.card, { backgroundColor: isDarkMode ? '#b0b0b0' : '#cbcfd6' }]}>
+      {/* X Dismiss button */}
+      <TouchableOpacity style={styles.dismissButton} onPress={() => dismissNotification(alert.id)}>
+        <Text style={styles.dismissText}>✕</Text>
+      </TouchableOpacity>
+  
+      <Text style={[styles.cardTitle, { color: isDarkMode ? 'black' : '#2a2d38' }]}>
+        {getNotificationTitle(alert)}
+      </Text>
+      <Text style={[styles.cardBody, { color: isDarkMode ? 'black' : '#2a2d38' }]}>
+        {getNotificationBody(alert)}
+      </Text>
+  
+      {/* Accept styled button */}
+      <TouchableOpacity
+        style={styles.acceptButton}
+        onPress={() => handleNotificationButtonTapped(alert)}
+      >
+        <Text style={styles.acceptButtonText}>{getNotificationButtonTitle(alert)}</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -96,14 +116,14 @@ export default function NotificationsScreen() {
     }
   };
 
-  const acceptFriendRequest = async (fromUserID: string) => {
+  const acceptFriendRequest = async (fromUserID: string, alertID: string) => {
     try {
       const userID = await SecureStore.getItemAsync('userID');
       const authToken = await SecureStore.getItemAsync('authToken');
-
+  
       console.log('[acceptFriendRequest] Accepting request from:', fromUserID); // Log for debugging
       console.log('User ID:', userID); // Log for debugging
-
+  
       const response = await fetch(`${apiUrl}/acceptFriendRequest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,17 +133,18 @@ export default function NotificationsScreen() {
           forUserID: fromUserID,
         }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         Alert.alert('Error', errorData.error || 'Could not accept request');
         return;
       }
-
+  
       const data = await response.json();
       if (data.success) {
         Alert.alert('Success', 'Friend request accepted');
         await fetchNotifications(); // Refresh list
+        dismissNotification(alertID);  // Dismiss notification after success
       } else {
         Alert.alert('Error', data.error || 'Could not accept request');
       }
@@ -131,7 +152,7 @@ export default function NotificationsScreen() {
       Alert.alert('Error', `${err || 'unknown error'}`);
     }
   };
-
+  
   const handlePullToRefresh = () => {
     setIsRefreshing(true);
     console.log("Pull to refresh")
@@ -186,23 +207,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   table: {
-    paddingTop: 10,
+    paddingTop: 20,
     height: (Dimensions.get('window').height),
   },
   card: {
     padding: 16,
-    borderRadius: 10,
-    backgroundColor: '#eee',
+    borderRadius: 20,
+    marginTop:20,
     marginBottom: 10,
+    width: '95%',
+    alignSelf: 'center',
   },
   cardTitle: {
     fontSize: 18,
     marginBottom: 8,
   },
   cardBody: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 14,
+    marginBottom: 8,   
   },
+  dismissButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
+    backgroundColor: '#ff6666',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  dismissText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  acceptButton: {
+    marginTop: 10,
+    backgroundColor: '#ffffff',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: '#2a2d38',
+    fontWeight: 'bold',
+  },
+  
 });
 
 

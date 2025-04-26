@@ -59,7 +59,7 @@ export default function ImageView() {
     
   return (
     <View style={[styles.screen, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <TouchableOpacity onPress={() => router.back()} style={[styles.backButton,{backgroundColor: isDarkMode ? '#757678':'#dadde0'}]}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
       </TouchableOpacity>
       {error && <Text style={styles.error}>{error}</Text>}
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 10,
     padding: 8,
-    backgroundColor: '#ccc',
     borderRadius: 5,
     marginBottom: Constants.statusBarHeight,
   },
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
     marginVertical: 20, // creates spacing below the title
   },
   lightBackground: {
-    backgroundColor: 'white',
+    backgroundColor: '#bec1c4',
   },
   darkBackground: {
     backgroundColor: 'black',

@@ -270,7 +270,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       <View style={styles.header}>
         {previousID ? ( 
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Text style={textStyle}>{'< Back'}</Text>
+          <Text style={[textStyle,{color: 'white'}]}>{'< Back'}</Text>
         </TouchableOpacity>
         ): null }
 
@@ -340,8 +340,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   backButton: {
-    padding: 10,
-    backgroundColor: '#ccc',
+    padding: 8,
+    backgroundColor: '#444',
     borderRadius: 5,
   },
   profileButton: {

@@ -100,6 +100,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
 
 const styles = StyleSheet.create({
   list: {
+    marginTop: 30,
     // width: '100%',
     width: (Dimensions.get('window').width),
     // height: '100%',

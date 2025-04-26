@@ -163,12 +163,7 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
             }}>
               <Text style={styles.textStyle}>Take a Picture</Text>
             </Pressable>
-            <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
-              setIsAddFolderViewVisible(true);
-              setModalVisible(false);
-            }}>
-              <Text style={styles.textStyle}>Create Folder</Text>
-            </Pressable>
+            
           </LinearGradient>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>

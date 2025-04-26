@@ -14,7 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient'; // Importing LinearGradient
+import { LinearGradient } from 'expo-linear-gradient';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
@@ -121,102 +121,59 @@ export default function Friends() {
     });
   }, [friends]);
 
-  const UserProfile = ({ userID }: { userID: string }) => (
-    <View style={styles.UserProfile}>
+  const UserProfile = ({ userID, isDarkMode }: { userID: string; isDarkMode: boolean }) => (
+    <View style={[styles.UserProfile, isDarkMode ? styles.darkProfile : styles.lightProfile]}>
       <Image
         source={{
-          uri: profilePictures[userID] || '../assets/images/default-profile-picture.jpeg', // Show default if no picture is found
+          uri: profilePictures[userID] || '../assets/images/default-profile-picture.jpeg',
         }}
         style={styles.profilePicture}
       />
       <Text style={[styles.title, textStyle]}>{userID}</Text>
     </View>
   );
-
+  
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        {/* Conditionally apply LinearGradient for light mode and dark mode */}
-        {!isDarkMode ? (
-          <LinearGradient
-            colors={['#FFFFFF', '#92A0C3']}
-            style={styles.gradientBackground}
+        <LinearGradient
+          colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']}
+          style={styles.gradientBackground}
+        >
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
           >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
-            >
-              <Text style={textStyle}>{'< Back'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.backButtonText}>{'< Back'}</Text>
+          </TouchableOpacity>
 
-            <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+          <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
 
-            <TouchableOpacity
-              style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
-              onPress={() => router.push('/addFriends')}
-            >
-              <Image
-                source={require('../assets/images/plus.png')}
-                style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]}
-              />
-            </TouchableOpacity>
-
-            {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
-
-            <View style={styles.table}>
-              {loading ? (
-                <ActivityIndicator style={{ marginTop: 10 }} />
-              ) : (
-                <FlatList
-                  data={friends}
-                  renderItem={({ item }) => <UserProfile userID={item.userID} />}
-                  ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
-                  keyExtractor={(item) => item.userID}
-                />
-              )}
-            </View>
-          </LinearGradient>
-        ) : (
-        
-          <LinearGradient
-            colors={['#030303', '#767676']}
-            style={styles.gradientBackground}
+          <TouchableOpacity
+            style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
+            onPress={() => router.push('/addFriends')}
           >
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
-            >
-              <Text style={textStyle}>{'< Back'}</Text>
-            </TouchableOpacity>
+            <Image
+              source={require('../assets/images/plus.png')}
+              style={[styles.plusImage, { tintColor: 'white' }]} // Ensure the plus icon is white
+            />
+          </TouchableOpacity>
 
-            <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
+          {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
 
-            <TouchableOpacity
-              style={[styles.addButton, isDarkMode ? styles.darkAddButton : styles.lightAddButton]}
-              onPress={() => router.push('/addFriends')}
-            >
-              <Image
-                source={require('../assets/images/plus.png')}
-                style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]}
+          <View style={styles.table}>
+            {loading ? (
+              <ActivityIndicator style={{ marginTop: 10 }} />
+            ) : (
+              <FlatList
+                data={friends}
+                renderItem={({ item }) => <UserProfile userID={item.userID} isDarkMode={isDarkMode} />}
+                ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
+                keyExtractor={(item) => item.userID}
               />
-            </TouchableOpacity>
-
-            {error && <Text style={[styles.error, textStyle]}>{error}</Text>}
-
-            <View style={styles.table}>
-              {loading ? (
-                <ActivityIndicator style={{ marginTop: 10 }} />
-              ) : (
-                <FlatList
-                  data={friends}
-                  renderItem={({ item }) => <UserProfile userID={item.userID} />}
-                  ListEmptyComponent={<Text style={textStyle}>You have no friends</Text>}
-                  keyExtractor={(item) => item.userID}
-                />
-              )}
-            </View>
-          </LinearGradient>
-        )}
+            )}
+          </View>
+        </LinearGradient>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -231,7 +188,6 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   plusImage: {
-    tintColor: 'black',
     height: 20,
     width: 20,
   },
@@ -244,25 +200,29 @@ const styles = StyleSheet.create({
   },
   UserProfile: {
     padding: 20,
-    marginVertical: 8,
-    marginHorizontal: 16,
+    width: 380,
+    height: 68,
     flexDirection: 'row',
-    borderColor: 'black',
-    borderWidth: 2,
-    borderRadius: 8,
+    borderRadius: 20,
   },
+  darkProfile: {
+    backgroundColor: '#444',
+  },
+  lightProfile: {
+    backgroundColor: '#C1C8D9',
+  },  
   profilePicture: {
-    width: 60,
-    height: 60,
-    left: 2,
-    borderRadius: 50,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    borderRadius: 25,
     zIndex: 10,
-    backgroundColor: 'red',
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 32,
-    left: 10,
-    top: 8,
+    fontSize: 22,
+    marginLeft: 30,
+    
   },
   backButton: {
     position: 'absolute',
@@ -272,6 +232,9 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  backButtonText: {
+    color: 'white', 
   },
   table: {
     marginTop: 0,
