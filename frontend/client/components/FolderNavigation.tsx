@@ -299,6 +299,16 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       placeholderTextColor="#888"/>
       </View>
 
+      {currentDirName !== "Home" && (
+      <View style={{ alignItems: 'flex-start', marginLeft: 20, marginBottom: 10 }}>
+      <TouchableOpacity onPress={() => router.push('/tabs/manageFolder')} style={styles.manageFolderButton}>
+      <Text style={[textStyle, { color: 'white' }]}>Manage Folder</Text>
+      </TouchableOpacity>
+      </View>
+)}
+
+
+
       {currentDirName === "Home" ? ( 
         <Text style={[styles.recentlyOpened, textStyle]}>Recently opened</Text>
         ): null }
@@ -404,6 +414,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  manageFolderButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    backgroundColor: '#444',
+    borderRadius: 5,
+    top:10,
+    left:0,
+  },  
 });
 
 export default FolderNavigation;
