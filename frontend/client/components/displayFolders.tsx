@@ -133,27 +133,32 @@ const styles = StyleSheet.create({
     color: 'white',
   },
  ///////////////////
-  image: {
-    width: imageWidth,
-    height: imageHeight,
-    resizeMode: 'cover' 
-  },
+ image: {
+  width: imageWidth,
+  height: imageHeight,
+  resizeMode: 'cover',
+  borderRadius: 5,
+  overflow: 'hidden',  // Ensures the content inside the border is clipped
+},
   listBackground: {
     flex: 1,
     height: '100%',
     width: '100%',
     marginBottom: 10,
     alignItems: 'center',
+    borderRadius: imageWidth / 2,
   },
   lightText: {
     color: 'black',
     paddingLeft: 4,
+    paddingTop:8,
     fontSize: 14,
     width: imageWidth
   },
   darkText: {
     color: 'white',
     paddingLeft: 4,
+    paddingTop:8,
     fontSize: 14,
     width : imageWidth
   },
