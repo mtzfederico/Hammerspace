@@ -110,7 +110,7 @@ const ManageFolderScreen: React.FC = () => {
             style={[styles.backButton, { backgroundColor: colorScheme === 'dark' ? '#444' : '#C1C8D9' }]}
             onPress={() => navigation.goBack()} // Use navigation.goBack() to navigate back
           >
-            <Text style={[styles.backText, { color: colorScheme === 'dark' ? 'white' : 'white' }]}> {'<Back'}</Text>
+            <Text style={[ { color: colorScheme === 'dark' ? 'white' : 'white' }]}> {'<Back'}</Text>
           </TouchableOpacity>
 
           <Text style={[styles.title, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>User Permissions</Text>
