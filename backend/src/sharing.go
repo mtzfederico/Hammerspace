@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -64,7 +65,7 @@ func handleShareFile(c *gin.Context) {
 		return
 	}
 
-	// file exists
+	// file exists, check if it is already shared. If it is, check if the permission needs to be changed
 
 	// TODO: Make sure this works
 	// sharedFileID is empty if the file is inside of a shared dir. I.E., the user has access to the file because it is inside of a directory/folder that is shared with the user.
@@ -175,7 +176,117 @@ func handleShareFile(c *gin.Context) {
 		return
 	}
 
-	// TODO get the client to re-encrypt the file with all recipients, upload it, and set processed to true on the db
+	// TODO: reencrypt the fKey with the user's publicKey
+
+	// return to the client, the list of publicKeys that have access to the file, get it to encrypt it, and send it back.
+	sharedWith := []string{}
+	// TODO; work on this
+	perms, err := getUsersWithFileAccess(c, request.FileID, 0, nil)
+
+	publicKeys, err := getPublicKeysForUsers(c, sharedWith, request.UserID)
+
+	c.JSON(200, gin.H{"success": true})
+}
+
+func handleUpdateFolderKey(c *gin.Context) {
+	/*
+		Upload file:
+			curl -F "userID=testUser" -F "authToken=K1xS9ehuxeC5tw==" -F "parentDir=root" -F "file=@testFile.txt" localhost:9090/uploadFile
+	*/
+
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	userID := c.PostForm("userID")
+	authToken := c.PostForm("authToken")
+	// parentDir is a UUID for an actual folder. If it is the root/home folder, then it is 'root'
+	sharedFolderID := c.PostForm("sharedFolderID")
+
+	if userID == "" || authToken == "" {
+		c.JSON(400, gin.H{"success": false, "error": "Authentication Missing"})
+		log.Error("[handleUpdateFolderKey] No userID or authToken in request")
+		return
+	}
+
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, userID, authToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleFileUpload] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+
+	if sharedFolderID == "" {
+		c.JSON(400, gin.H{"success": false, "error": "sharedFolderID Missing"})
+		log.Error("[handleUpdateFolderKey] No parentDir in request")
+		return
+	}
+
+	fmt.Printf("[handleUpdateFolderKey] WARNING: authToken not verified. userID: '%s' authToken: '%s'. parentDir: '%s'\n", userID, authToken, sharedFolderID)
+
+	// Check that parentDir is a valid folder and that the user can create a new directory in that location.
+	permission, err := getFolderPermission(c, sharedFolderID, userID, true)
+	if err != nil {
+		if errors.Is(err, errDirNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "Directory doesn't exist"})
+			return
+		}
+
+		log.WithField("Error", err).Error("[handleUpdateFolderKey] Error getting parentDir permission")
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0), Please try again later"})
+		return
+	}
+	if permission != WritePermission {
+		c.JSON(403, gin.H{"success": false, "error": "No write permission on directory"})
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("Error", err).Error("[handleUpdateFolderKey] Error getting uploaded file")
+		return
+	}
+
+	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Trace("[handleUpdateFolderKey] Received new fKey")
+
+	filePath := fmt.Sprintf("%s%s_fKey", serverConfig.TMPStorageDir, sharedFolderID)
+	err = c.SaveUploadedFile(file, filePath)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithFields(log.Fields{"error": err, "filename": file.Filename, "size": file.Size, "header": file.Header, "filePath": filePath}).Error("[handleUpdateFolderKey] Error saving uploaded file")
+		return
+	}
+
+	// TODO: somehow validate the file, a user could upload random data and fuck the key up
+
+	objKey := fmt.Sprintf("folderkeys/%s", sharedFolderID)
+
+	file2, err := os.Open(filePath)
+	if err != nil {
+		c.JSON(400, gin.H{"success": false, "error": "File name is too long"})
+		log.Debug("[handleUpdateFolderKey] Filename too long")
+		err = os.Remove(filePath)
+		if err != nil {
+			log.WithError(err).Error("[handleUpdateFolderKey] Failed to delete file after error")
+		}
+		return
+	}
+	defer file2.Close()
+
+	_, err = uploadFile(c, s3Client, serverConfig.S3BucketName, file2, objKey)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+		log.WithFields(log.Fields{"error": err, "filename": file.Filename, "size": file.Size, "header": file.Header, "filePath": filePath}).Error("[handleFihandleUpdateFolderKeyleUpload] Error uploading file")
+		return
+	}
 
 	c.JSON(200, gin.H{"success": true})
 }

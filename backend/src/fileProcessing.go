@@ -62,7 +62,7 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string,
 	}
 
 	// encrypt and upload
-	res, err := encryptAndUploadFile(ctx, filePath, objKey.String(), fileID, parentDir, userID)
+	res, err := encryptAndUploadFile(ctx, filePath, objKey.String(), parentDir, userID)
 	if err != nil {
 		return fmt.Errorf("encryptAndUploadFile failed: %w", err)
 	}

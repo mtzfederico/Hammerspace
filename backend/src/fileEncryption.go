@@ -16,7 +16,7 @@ import (
 
 // Encrpts the file at the specified path and uploads it to S3 with the specified object key
 // Missing way of specifing the publicKeys
-func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey, fileID, parentDir, userID string) (*s3.PutObjectOutput, error) {
+func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey, parentDir, userID string) (*s3.PutObjectOutput, error) {
 	// get file
 	fileIn, err := os.Open(filePath)
 	if err != nil {
@@ -24,26 +24,21 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey, fileID, paren
 	}
 	defer fileIn.Close()
 
-	// Get the public key associated with the parent folder
-	// TODO: This is not working for non shareed dirs
-	// add userID to this
+	// Get the public key associated with the parent directory
 	publicKey, err := getPublicKeyForDirectory(ctx, parentDir, userID, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public key for folder %s: %w", parentDir, err)
 	}
 
 	// Parse the public key into an age recipient
-	recipients, err := age.ParseX25519Recipient(publicKey)
+	recipient, err := age.ParseX25519Recipient(publicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
 
 	// encrypt
 	encryptedData := &bytes.Buffer{}
-	// variadic function
-	// https://go.dev/ref/spec#Passing_arguments_to_..._parameters
-	// https://gobyexample.com/variadic-functions
-	ageWriter, err := age.Encrypt(encryptedData, []age.Recipient{recipients}...)
+	ageWriter, err := age.Encrypt(encryptedData, recipient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start encrypting the file: %w", err)
 	}
@@ -87,7 +82,7 @@ func encryptAndUploadFile(ctx context.Context, filePath, s3ObjKey, fileID, paren
 func getPublicKeyForDirectory(ctx context.Context, dirID, userID string, callNumber int) (string, error) {
 	// 10 might break folders inside folders inside folders
 	if callNumber > 10 {
-		return "", fmt.Errorf("called more than 10 times")
+		return "", fmt.Errorf("called 10 times")
 	}
 
 	if dirID == "" {
@@ -124,13 +119,13 @@ func getPublicKeyForDirectory(ctx context.Context, dirID, userID string, callNum
 		}
 
 		// dir not found in the encryptionKeys db
-		// Assume that the directory is the user's directory
-		// TODO: there might be a case scenario missing here. Maybe modifiying a shared file
-		userKey, err := getPublicKeyForUser(ctx, userID)
+		// get the key for the parentDir
+		callNumber++
+		parentDirID, err := getParentDirID(ctx, dirID)
 		if err != nil {
-			return "", nil
+			return "", fmt.Errorf("failed to get parentDirID. callNumber: %d. %w", callNumber, err)
 		}
-		return userKey, nil
+		return getPublicKeyForDirectory(ctx, parentDirID, userID, callNumber)
 	}
 
 	/*
@@ -177,6 +172,7 @@ func getPublicKeys(ctx context.Context, fileID string) ([]age.Recipient, error) 
 }
 */
 
+/*
 func getUserIDFromFileID(ctx context.Context, fileID string) (string, error) {
 	var userID string
 	err := db.QueryRowContext(ctx, "SELECT userID FROM files WHERE id = ? LIMIT 1", fileID).Scan(&userID)
@@ -187,7 +183,7 @@ func getUserIDFromFileID(ctx context.Context, fileID string) (string, error) {
 		return "", err
 	}
 	return userID, nil
-}
+}*/
 
 func getPublicKeyForUser(ctx context.Context, userID string) (string, error) {
 	var publicKey string
@@ -223,6 +219,9 @@ func encryptFolderKeyForUsers(folderKey []byte, recipients []age.Recipient) ([]b
 	// Encrypt the folder key in-memory
 	encryptedData := &bytes.Buffer{}
 
+	// variadic function
+	// https://go.dev/ref/spec#Passing_arguments_to_..._parameters
+	// https://gobyexample.com/variadic-functions
 	ageWriter, err := age.Encrypt(encryptedData, recipients...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start encrypting the folder key: %w", err)
@@ -243,7 +242,7 @@ func encryptFolderKeyForUsers(folderKey []byte, recipients []age.Recipient) ([]b
 	return encryptedData.Bytes(), nil
 }
 
-func uploadEncryptedFolderKey(ctx context.Context, s3Client *s3.Client, encryptedKey []byte, folderID string) error {
+func uploadEncryptedFolderKey(ctx context.Context, encryptedKey []byte, folderID string) error {
 	// S3 object key format (customize as needed)
 	objKey := fmt.Sprintf("folderkeys/%s", folderID)
 
@@ -301,3 +300,100 @@ func handleGetFolderKey(c *gin.Context) {
 	extraHeaders := map[string]string{"Cache-Control": "private"}
 	c.DataFromReader(200, int64(*file.ContentLength), "application/vnd.age", file.Body, extraHeaders)
 }
+
+func getPublicKeysForUsers(ctx context.Context, shareWith []string, userID string) ([]age.Recipient, error) {
+	shareWith = append(shareWith, userID)
+
+	publicKeys := []age.Recipient{}
+	for _, userID := range shareWith {
+		pubKey, err := getPublicKeyForUser(ctx, userID)
+		if err != nil {
+			log.WithField("userID", userID).WithError(err).Error("[getPublicKeysForUsers] Failed to fetch user's public key")
+			continue
+		}
+
+		recipient, err := age.ParseX25519Recipient(pubKey)
+		if err != nil {
+			log.WithFields(log.Fields{"pubKey": pubKey, "shareWith": shareWith}).WithError(err).Error("[getPublicKeysForUsers] Invalid public key")
+			// TODO: maybe return an error here
+			continue
+		}
+		publicKeys = append(publicKeys, recipient)
+	}
+	return publicKeys, nil
+}
+
+func getPublicKeysForUsersWithFolderAccess(ctx context.Context, shareWith []string, userID string) ([]age.Recipient, error) {
+	shareWith = append(shareWith, userID)
+
+	publicKeys := []age.Recipient{}
+	for _, userID := range shareWith {
+		pubKey, err := getPublicKeyForUser(ctx, userID)
+		if err != nil {
+			log.WithField("userID", userID).WithError(err).Error("[getPublicKeysForUsers] Failed to fetch user's public key")
+			continue
+		}
+
+		recipient, err := age.ParseX25519Recipient(pubKey)
+		if err != nil {
+			log.WithFields(log.Fields{"pubKey": pubKey, "shareWith": shareWith}).WithError(err).Error("[getPublicKeysForUsers] Invalid public key")
+			// TODO: maybe return an error here
+			continue
+		}
+		publicKeys = append(publicKeys, recipient)
+	}
+	return publicKeys, nil
+}
+
+/*
+
+// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
+	// sharedDir > someDir > actualFile
+	//
+	// It is recursive until the root has been reached
+	//
+	// sharedDir is shared with userA
+	// someDir is shared with userB
+	// actualFile is shared with userC
+	// users that can access actualFile: userA, userB, userC
+
+	if userPermissions == nil {
+		userPermissions = []UserFilePermission{}
+	}
+
+	rows, err := db.QueryContext(ctx, "select userID, isReadOnly from sharedFiles where fileID=?", fileID)
+	if err != nil {
+		return nil, fmt.Errorf("QueryContext Error. callNumber: %d. %w", callNumber, err)
+	}
+
+	defer rows.Close()
+
+	// var newUserIDs []string
+	for rows.Next() {
+		var userID string
+		var isReadOnly bool
+		err := rows.Scan(&userID, &isReadOnly)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan Error. callNumber: %d. %w", callNumber, err)
+		}
+
+		if isReadOnly {
+			userPermissions = append(userPermissions, UserFilePermission{userID, ReadOnlyPermission})
+		} else {
+			userPermissions = append(userPermissions, UserFilePermission{userID, WritePermission})
+		}
+	}
+
+	parentDir, err := getParentDirID(ctx, fileID)
+	if err != nil {
+		return userPermissions, fmt.Errorf("getParentDirID Error. callNumber: %d. %w", callNumber, err)
+	}
+
+	if parentDir == RootDirectoryID || parentDir == "" {
+		return userPermissions, nil
+	}
+
+	// Check the parentDir
+	return getUsersWithFileAccess(ctx, parentDir, callNumber, userPermissions)
+
+*/

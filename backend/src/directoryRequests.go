@@ -472,13 +472,13 @@ func handleCreateDirectory(c *gin.Context) {
 		for _, userID := range shareWith {
 			pubKey, err := getPublicKeyForUser(c, userID)
 			if err != nil {
-				log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch public key")
+				log.WithField("userID", userID).WithError(err).Error("[handleCreateDirectory] Failed to fetch user's public key")
 				continue
 			}
 
 			recipient, err := age.ParseX25519Recipient(pubKey)
 			if err != nil {
-				log.WithField("pubKey", pubKey).WithError(err).Error("[handleCreateDirectory] Invalid public key")
+				log.WithFields(log.Fields{"pubKey": pubKey, "shareWith": shareWith}).WithError(err).Error("[handleCreateDirectory] Invalid public key")
 				// TODO: maybe return an error here
 				continue
 			}
@@ -494,7 +494,7 @@ func handleCreateDirectory(c *gin.Context) {
 		}
 
 		// Upload the single encrypted key once
-		err = uploadEncryptedFolderKey(c, s3Client, encryptedKey, dirID.String())
+		err = uploadEncryptedFolderKey(c, encryptedKey, dirID.String())
 		if err != nil {
 			log.WithError(err).Error("[handleCreateDirectory] Failed to upload encrypted folder key")
 			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (6)"})
@@ -650,6 +650,7 @@ func getFolderPermission(ctx context.Context, fileID, userID string, allowShared
 }
 
 // Returns a list of userIDs that have access to the fileID specified and the permission type. The fileID can also be a folder
+// It is a recursive function, on initial call set callNumber to 0 and userPermissions to nil
 func getUsersWithFileAccess(ctx context.Context, fileID string, callNumber int, userPermissions []UserFilePermission) ([]UserFilePermission, error) {
 	// It needs to consider the cases when a file is inside of a shared folder and when the file is inside a folder that is inside the shared folder
 	// sharedDir > someDir > actualFile
