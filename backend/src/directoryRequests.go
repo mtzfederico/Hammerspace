@@ -110,6 +110,7 @@ func handleRemoveDirectory(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("request dirID is here ", request.DirID)
 	// check that user owns the directory
 	perm, err := getFolderPermission(c, request.DirID, request.UserID, false)
 	if err != nil {
@@ -175,6 +176,13 @@ func handleRemoveDirectory(c *gin.Context) {
 
 		// append id deleted
 		ids = append(ids, id)
+	}
+	err = removeFileFromDB(c, request.DirID, request.UserID)
+	if err != nil {
+		// handle the error
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4), Please try again later"})
+		log.WithFields(log.Fields{"error": err, "fileID": request.DirID, "userID": request.UserID}).Error("[handleRemoveFile] Failed to delete file from DB")
+		return
 	}
 
 	// the loop might take too long on big directories, this should probably be done in the background

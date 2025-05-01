@@ -10,6 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import { FileItem } from '@/components/displayFolders';
 import { decryptFile } from './decryption';
 import getSharedFolders from '@/services/getSharedFolders';
+import FileContextMenu from './fileContextMenu';
 
 type FolderNavigationProps = {
   initialParentID: string;
@@ -36,8 +37,15 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const isDarkMode = colorScheme === 'dark';
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
-  const searchBarStyle = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
+  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
+  const [showMenu, setShowMenu] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<FileItem | null>(null);
 
+  // a list of the image mime subtypes that the app can open.
+  // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
   const SupportedImageTypes: string[] = ["jpeg", "png", "heic", "gif", "jp2"];
 
   useEffect(() => {
@@ -161,12 +169,22 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   
 
   const handleItemLongPress = (item: FileItem) => {
-    console.log("item long pressed:", item);
+    console.log("item long pressed. fileID: " + item.id + " fileName: " + item.name + " type: " + item.type);
+    // File context menu 
+    setSelectedItem(item);
+    setShowMenu(true);
   };
 
-  const filteredFiles = files.filter(file =>
-    file.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCloseContextMenu = () => {
+    setShowMenu(false);
+  };
+
+  const refreshScreen = () => {
+    refreshData()
+    router.replace(router.reload() as any)
+  }
+  var searchBarStyle = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
+  var searchBarPlaceHoldertextColor = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
 
   return (
     <View style={[styles.container]}>
@@ -216,12 +234,11 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       )}
 
       <View style={{ flex: 1 }}>
-        <DisplayFolders
-          data={filteredFiles}
-          onFolderPress={handleFolderPress}
-          onFilePress={handleFilePress}
-          onItemLongPress={handleItemLongPress}
-        />
+      <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
+      {/* Conditionally render the FileContextMenu */}
+      {showMenu && selectedItem && (
+        <FileContextMenu item={selectedItem} onClose={handleCloseContextMenu} onItemRemoved={() => refreshScreen()} />
+      )}
       </View>
 
       <View style={styles.addButtonContainer}>
