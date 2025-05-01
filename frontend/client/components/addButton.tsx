@@ -157,12 +157,73 @@ const AddButton = ({addFolder, addFile, parentID}: AddButtonProps  ) => {
             >
               <Text style={styles.textStyle}>Create Folder</Text>
             </Pressable>
-            <Pressable style={[styles.button, actionBtnTextStyle]} onPress={() => {
-              // open camera
-              setModalVisible(false);
-            }}>
-              <Text style={styles.textStyle}>Take a Picture</Text>
-            </Pressable>
+            <Pressable
+  style={[styles.button, actionBtnTextStyle]}
+  onPress={async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission denied', 'Camera access is required to take a picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (result.canceled || result.assets.length === 0) {
+      console.log("[launchCameraAsync] cancelled");
+      return;
+    }
+
+    const image = result.assets[0];
+    const imageUri = image.uri;
+    const mimeType = image.mimeType || 'image/jpeg';
+    const fileSize = image.fileSize || -1;
+    const fileName = image.fileName || 'camera_photo.jpg';
+
+    const formData = new FormData();
+    formData.append('file', {
+      uri: imageUri,
+      name: fileName,
+      type: mimeType,
+      size: fileSize,
+    } as any);
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
+    formData.append("parentDir", parentID);
+
+    try {
+      const response = await fetch(`${apiUrl}/uploadFile`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('[Camera Upload] File uploaded successfully:', data);
+        const dirID = String(data.fileID);
+        const size = JSON.parse(data.bytesUploaded);
+        addFile(fileName, imageUri, dirID, mimeType, parentID, size);
+      } else {
+        console.error('[Camera Upload] Failed. Status:', response.status, 'Error:', data.error);
+        Alert.alert("Upload failed", data.error || "Unknown error");
+      }
+    } catch (error) {
+      console.error("[Camera Upload] Exception:", error);
+      Alert.alert("Error", "An error occurred while uploading the photo.");
+    }
+
+    setModalVisible(false);
+  }}
+>
+  <Text style={styles.textStyle}>Take a Picture</Text>
+</Pressable>
+
             
           </LinearGradient>
         </KeyboardAvoidingView>
