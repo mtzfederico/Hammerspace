@@ -235,61 +235,76 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   // CqpIEl2Zmb4H6Q==
   // raging
   //curl -X POST "http://localhost:9090/sync" -H 'Content-Type: application/json' -d '{"userID":"raging","authToken":"CqpIEl2Zmb4H6Q=="}'
-
   export const syncWithBackend = async (userID: string, authToken: string) => {
     const db = await SQLite.openDatabaseAsync('hammerspace.db');
     try {
       const response = await fetch(`${apiURL}/sync`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userID, authToken }),
       });
-
+  
       if (!response.ok) {
         let errorMessage = `Failed to sync: ${response.status} - ${response.statusText}`;
         try {
           const errorData = await response.json();
-          if (errorData && errorData.error) {
+          if (errorData?.error) {
             errorMessage += ` - ${errorData.error}`;
           }
         } catch (jsonError) {
           console.error("Failed to parse error JSON", jsonError);
         }
         console.error('[syncWithBackend] Failed to sync with backend:', errorMessage);
-      throw new Error(errorMessage);
-    }
-
+        throw new Error(errorMessage);
+      }
+  
       const data = await response.json();
-     
       console.log('[syncWithBackend] Received items:', data.folders);
-     // console.log("syncWithBackend response: " + JSON.stringify(data));
   
       if (Array.isArray(data.folders)) {
-        // Clear local folders for the given user
-        await db.runAsync('DELETE FROM folders WHERE userID = ?;', [userID]);
+        const receivedIDs = new Set<string>();
   
-        // Insert synced folders
         for (const folder of data.folders) {
-          console.log(`[syncWithBackend] syncing dir: ${folder.parentDir}`)
-
-          try { 
-          await db.runAsync(
-            'INSERT OR REPLACE INTO folders (id, parentDir, name, type, uri, fileSize, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            folder.id, folder.parentDir, folder.name, folder.type, "" ,folder.fileSize, folder.userID
-          );
-        } catch (error) {
-          console.error('[syncWithBackend] Error inserting folder:', error);
+          receivedIDs.add(folder.id);
+  
+          console.log(`[syncWithBackend] syncing dir: ${folder.parentDir}`);
+          try {
+            const existing = await db.getFirstAsync<{ uri: string }>(
+              'SELECT uri FROM folders WHERE id = ? AND userID = ?',
+              folder.id, userID
+            );
+  
+            const preservedURI = existing?.uri ?? "";
+  
+            await db.runAsync(
+              'INSERT OR REPLACE INTO folders (id, parentDir, name, type, uri, fileSize, userID) VALUES (?, ?, ?, ?, ?, ?, ?)',
+              folder.id, folder.parentDir, folder.name, folder.type, preservedURI, folder.fileSize, folder.userID
+            );
+          } catch (error) {
+            console.error('[syncWithBackend] Error inserting/updating folder:', error);
+          }
         }
-      }
+  
+        // Remove local entries not present in the backend response
+        const existingRows = await db.getAllAsync<{ id: string }>(
+          'SELECT id FROM folders WHERE userID = ?',
+          userID
+        );
+  
+        for (const row of existingRows) {
+          if (!receivedIDs.has(row.id)) {
+            console.log(`[syncWithBackend] Deleting local folder ID ${row.id} not found in backend`);
+            await db.runAsync('DELETE FROM folders WHERE id = ? AND userID = ?', row.id, userID);
+          }
+        }
+  
         console.log('[syncWithBackend] Sync completed with no errors');
-      // Log all non-folder entries after syncing
+  
         const nonFolderRows = await db.getAllAsync(
-      'SELECT id, parentDir, name, type, uri, fileSize, userID FROM folders WHERE type != ?',
-      ['folder']
-    );
-      console.log('[syncWithBackend] Non-folder rows:', nonFolderRows);
+          'SELECT id, parentDir, name, type, uri, fileSize, userID FROM folders WHERE type != ?',
+          ['folder']
+        );
+        console.log('[syncWithBackend] Non-folder rows:', nonFolderRows);
       } else {
         console.error('[syncWithBackend] No folders received from backend');
       }
@@ -297,6 +312,7 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
       console.error('[syncWithBackend] Error syncing with backend:', error);
     }
   };
+  
     
   
   /*
