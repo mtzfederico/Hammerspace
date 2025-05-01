@@ -269,8 +269,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     <View style={[styles.container]}>
       <View style={styles.header}>
         {previousID ? ( 
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-          <Text style={[textStyle,{color: 'white'}]}>{'< Back'}</Text>
+        <TouchableOpacity onPress={handleBackPress} style={[styles.backButton,{ backgroundColor: colorScheme === 'dark' ? '#444' : '#C1C8D9' }]}>
+          <Text style={[textStyle,{color: colorScheme === 'dark' ? 'white' : 'white'}]}>{'<Back'}</Text>
         </TouchableOpacity>
         ): null }
 
@@ -301,8 +301,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
       {currentDirName !== "Home" && (
       <View style={{ alignItems: 'flex-start', marginLeft: 20, marginBottom: 10 }}>
-      <TouchableOpacity onPress={() => router.push('/tabs/manageFolder')} style={styles.manageFolderButton}>
-      <Text style={[textStyle, { color: 'white' }]}>Manage Folder</Text>
+      <TouchableOpacity onPress={() => router.push('/manageFolder')} style={[styles.manageFolderButton, { backgroundColor: colorScheme === 'dark' ? '#444' : '#C1C8D9' }]}>
+      <Text style={[textStyle, { color: colorScheme === 'dark' ? 'white' : 'white' }]}>Manage Folder</Text>
       </TouchableOpacity>
       </View>
 )}
