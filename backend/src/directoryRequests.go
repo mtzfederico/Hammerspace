@@ -329,7 +329,7 @@ func handleShareDirectory(c *gin.Context) {
 // Returns the user's that have access to a file/folder
 func handleGetSharedWith(c *gin.Context) {
 	/*
-		curl -X POST "localhost:9090/getSharedWith" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","fileID": "0195677e-5b7e-7445-b3e6-2f3dddb22683"}'
+		curl -X POST "localhost:9090/getSharedWith" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "0195677e-5b7e-7445-b3e6-2f3dddb22683"}'
 	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -359,25 +359,27 @@ func handleGetSharedWith(c *gin.Context) {
 	// TODO: Test this with shared files including ones that the user doesn't have access to
 
 	// Check that the user can actually get this info. I.E., the user has access to the file.
-	_, err = getObjectKey(c, request.FileID, request.UserID, true)
-	if err != nil {
-		if errors.Is(err, errUserAccessNotAllowed) {
-			// User does not have access to the file
-			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
-			log.WithField("error", err).Debug("[handleGetSharedWith] User tried to get details without permission")
-			return
-		}
+	// TODO: change this since getObjectKey only checks files
+	/*
+		_, err = getObjectKey(c, request.FileID, request.UserID, true)
+		if err != nil {
+			if errors.Is(err, errUserAccessNotAllowed) {
+				// User does not have access to the file
+				c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
+				log.WithField("error", err).Debug("[handleGetSharedWith] User tried to get details without permission")
+				return
+			}
 
-		if errors.Is(err, errFileNotFound) {
-			c.JSON(400, gin.H{"success": false, "error": "File not found"})
-			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
-			return
-		}
+			if errors.Is(err, errFileNotFound) {
+				c.JSON(400, gin.H{"success": false, "error": "File not found"})
+				log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
+				return
+			}
 
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetSharedWith] getObjectKey error")
-		return
-	}
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+			log.WithField("error", err).Error("[handleGetSharedWith] getObjectKey error")
+			return
+		}*/
 
 	users, err := getUsersWithFileAccess(c, request.FileID, 0, nil)
 	if err != nil {
