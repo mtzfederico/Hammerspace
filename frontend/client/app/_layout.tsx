@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import 'react-native-get-random-values';
 
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
@@ -53,14 +54,14 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
             {/* Show the home or tab screen if the user is logged in */}
-            <Stack.Screen
-            name="tabs" // This will auto-reference `app/tabs.tsx`
-            options={{ headerShown: false }}
-          />
          <Stack.Screen
             name="login" // This will auto-reference `app/login.tsx`
             options={{ headerShown: false }}
           />
+             <Stack.Screen
+          name="tabs" 
+        options={{ headerShown: false }}
+    />
         <Stack.Screen
             name="register" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
@@ -74,9 +75,34 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="PDFView"
+            name="PDFView/[URI]" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="ImageView/[URI]" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TextView/[URI]" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="addFriends" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="profile/changepassword"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="sharedfolder" // This will auto-reference `app/tabs.tsx`
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+          name="manageFolder"
+          options={{ headerShown: false }} 
+          />
+
       </Stack>
     </ThemeProvider>
   );

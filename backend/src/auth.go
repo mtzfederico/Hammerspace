@@ -159,10 +159,15 @@ func handleSignup(c *gin.Context) {
 	token, err := generateAuthToken(c, signupData.UserID)
 	if err != nil {
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleLogin] Failed to generate authToken")
+		log.WithField("error", err).Error("[handleSignup] Failed to generate authToken")
 		return
 	}
-
+	err = insertPublicKey(c, signupData.UserID, signupData.PublicKey)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3), Please try again later"})
+		log.WithField("error", err).Error("[handleSignup] Failed to insert public key")
+		return
+	}
 	c.JSON(200, gin.H{"success": true, "userID": signupData.UserID, "authToken": token})
 }
 
@@ -395,7 +400,7 @@ func createAccount(ctx context.Context, userID string, email string, newPass str
 	}
 
 	log.Debug("creating account")
-	_, err = db.ExecContext(ctx, "INSERT INTO users (userID, email, password, roleID, createdDate) VALUES (?, ?, ?, ?, now());", userID, email, newPassHashed, DefaultRoleID)
+	_, err = db.ExecContext(ctx, "INSERT INTO users (userID, email, password, roleID, profilePictureID, createdDate) VALUES (?, ?, ?, ?,?, now());", userID, email, newPassHashed, DefaultRoleID, "default")
 	return err
 }
 
@@ -412,7 +417,7 @@ func changePassword(ctx context.Context, userID string, newPass string) error {
 	return err
 }
 
-// Generate a random base64 url encoded string
+// Generate a random base64 url encoded string. This is used for authTokens. for a unique ID use getNewID()
 // https://medium.com/@jcox250/generating-prefixed-base64-ids-in-golang-e7731bd89c1b
 func generateBase64ID(size int) (string, error) {
 	b := make([]byte, size)
@@ -423,6 +428,13 @@ func generateBase64ID(size int) (string, error) {
 	// Encode our bytes as a base64 encoded string using URLEncoding
 	encoded := base64.URLEncoding.EncodeToString(b)
 	return encoded, nil
+}
+
+func insertPublicKey(ctx context.Context, userID string, key string) error {
+	const description string = "Public key"
+	log.Debug("inserting public key")
+	_, err := db.ExecContext(ctx, "INSERT INTO encryptionKeys (publicKey, userID, description, createdDate) VALUES (?, ?, ?,now());", key, userID, description)
+	return err
 }
 
 // https://gowebexamples.com/password-hashing/

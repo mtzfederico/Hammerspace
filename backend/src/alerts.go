@@ -105,11 +105,9 @@ func handleRemoveAlert(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true})
 }
 
-// ----------------------------------------------------------------------
-
 // Returns a list with all of the alerts for the specified userID
 func getAlerts(ctx context.Context, userID string) ([]Alert, error) {
-	rows, err := db.QueryContext(ctx, "select id, description, fileID, fileOwner, createdDate from activeAlerts where userID=?", userID)
+	rows, err := db.QueryContext(ctx, "select id, alertType, dataPrimary, IFNULL(dataSecondary, ''), createdDate from activeAlerts where userID=?", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +118,7 @@ func getAlerts(ctx context.Context, userID string) ([]Alert, error) {
 	var alerts []Alert = []Alert{}
 	for rows.Next() {
 		var alert Alert
-		err := rows.Scan(&alert.ID, &alert.Description, &alert.FileID, &alert.FileOwner, &alert.CreatedDate)
+		err := rows.Scan(&alert.ID, &alert.AlertType, &alert.DataPrimary, &alert.DataSecondary, &alert.CreatedDate)
 		if err != nil {
 			return nil, err
 		}
@@ -132,12 +130,12 @@ func getAlerts(ctx context.Context, userID string) ([]Alert, error) {
 }
 
 // adds an alert for the specified userID with the specified values
-func addAlert(ctx context.Context, userID, description, fileID, fileOwner string) error {
+func addAlert(ctx context.Context, userID, alertType, dataPrimary, dataSecondary string) error {
 	alertID, err := getNewID()
 	if err != nil {
 		return fmt.Errorf("failed to get a new ID. %w", err)
 	}
-	_, err = db.ExecContext(ctx, "INSERT INTO activeAlerts (id, userID, description, fileID, fileOwner, createdDate) VALUES (?, ?, ?, ?, ?, now());", alertID, userID, description, fileID, fileOwner)
+	_, err = db.ExecContext(ctx, "INSERT INTO activeAlerts (id, userID, alertType, dataPrimary, dataSecondary, createdDate) VALUES (?, ?, ?, ?, ?, now());", alertID, userID, alertType, dataPrimary, dataSecondary)
 	return err
 }
 

@@ -17,7 +17,6 @@
         "backgroundColor": "#ffffff"
       }
     },
-      
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -34,7 +33,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you upload them to hammerspace."
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

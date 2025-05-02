@@ -6,9 +6,11 @@ frontend/client/node_modules/
 # Expo
 /.expo/
 
+
 dist/
 web-build/
 expo-env.d.ts
+router.d.ts
 
 # Native
 *.orig.*
@@ -37,3 +39,4 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+frontend/client/.expo/types/router.d.ts

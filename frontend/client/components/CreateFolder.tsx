@@ -1,8 +1,9 @@
-import React, { useState} from "react";
+import React, { useState, useEffect} from "react";
 import { StyleSheet, View,useColorScheme , StatusBar} from "react-native";
 import Dialog from "react-native-dialog";
 import sendFolder from "./sendFolder";
-
+import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 interface CreateFolderProps {
   isVisible: boolean;
   setIsVisible: (visible: boolean) => void;
@@ -11,51 +12,53 @@ interface CreateFolderProps {
 }
 
 const CreateFolder =  ({ isVisible, setIsVisible, addFolder, parentID}: CreateFolderProps) => {
-  console.log("Create Folder ParentID " + parentID)
+  const router = useRouter();
   const [inputValue, setInputValue] = useState('');
+  const [isShared, setIsShared] = useState(false);
+ 
 
   const handleInput = (text: string) => {
-      setInputValue(text);
+    setInputValue(text);
   };
 
   const handleCancel = () => {
-    console.log('cancel')
     setIsVisible(false);
     setInputValue('');
   };
- 
-  const handleSubmission =  async () => {
-      // Process the input value here (e.g., save it, display it, etc.)
-      const input = inputValue.trim()
-      const type = "folder"
-      if(input == "") {
-        alert("please enter Folder name")
 
-      } else {
-        setIsVisible(false); // Close the dialog
-
-        // Create Folder in Backend
-        if (!parentID) {
-          console.error("ParentID is not set");
-          return;
-        }
-
-        console.log("Create Folder in parentID " + parentID)
-        // Call the sendFolder function to make request to the backend
-        const dirID = await sendFolder(input, parentID); // Ensure you're passing parentID here
-        if (dirID == null) {
-          console.error("Failed to create folder");
-          return;
-        }
-
-        // After receiving the dirID, pass it back to the parent component
-        console.log("handleSubmission " + input + " " + type + " " + dirID + " " + parentID) 
-        addFolder(input, type, dirID, parentID); // Ensure you're passing the correct parentID
-
-        console.log("folder created")
+  const handleSubmission = async () => {
+    const input = inputValue.trim();
+    if (input === "") {
+      alert("Please enter a folder name");
+      return;
     }
 
-  }
+    setIsVisible(false);
+
+    if (isShared) {
+      // Navigate to the shared folder screen
+      router.push({
+        pathname: "/sharedfolder",
+        params: {
+          folderName: input,
+          parentID: parentID,
+        }
+      });
+      return;
+    }
+
+    const type = "folder";
+    const dirID = await sendFolder(input, parentID, []);
+    if (dirID == null) {
+      console.error("Failed to create folder");
+      return;
+    }
+
+    addFolder(input, type, dirID, parentID);
+  };
+
+
+  
 /*
 
  const handleCreate = () => {
@@ -82,8 +85,14 @@ return (
             value={inputValue}
             placeholder="Enter text here"
           />
+          <Dialog.Switch
+            label="Make this a shared folder"
+            value={isShared}
+            onValueChange={setIsShared}
+          />
           <Dialog.Button label="Cancel" onPress={handleCancel} />
-          <Dialog.Button label="Yes"  onPress={handleSubmission}/>
+          <Dialog.Button label="Create Folder" onPress={() => handleSubmission()} />
+          
         </Dialog.Container>
       ): null }
     </View>

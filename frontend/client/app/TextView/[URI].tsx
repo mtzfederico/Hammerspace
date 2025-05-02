@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
   Text,
   ActivityIndicator,
   StyleSheet,
-  Button,
-  Image,
-  Platform,
-  Alert,
   TouchableOpacity,
   useColorScheme,
+  ScrollView
 } from 'react-native';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { router, useLocalSearchParams } from 'expo-router';
-import { WebView } from 'react-native-webview';
+import * as FileSystem from 'expo-file-system';
 import Constants from 'expo-constants';
+import { getFolderKey } from '@/services/getFolderKey';
+import { saveFolderKey } from '@/services/database';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export default function PDFView() {
+export default function TextView() {
   const { URI: encodedURI } = useLocalSearchParams<{ URI: string }>();
   console.log("Encoded URI" + encodedURI)
   const userID =  String(SecureStore.getItem('userID'));
@@ -32,60 +31,52 @@ export default function PDFView() {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
 
+  const [textToShow, SetTextToShow] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [filePath, setFilePath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // https://docs.expo.dev/router/basics/navigation/#using-dynamic-route-variables-and-query-parameters-in-the-destination-page
 
-
   useEffect(() => {
-    try {
+    const loadView = async () => {
+      try {
         setLoading(true)
         var uri = decodeURI(encodedURI as string)
         console.log("FIle URI: " + uri);
-        setFilePath(uri);
+        const textFromFile = await FileSystem.readAsStringAsync(uri);
+        SetTextToShow(textFromFile || "Error loading text from file")
       } catch (e) {
         // Catches a malformed URI
-        console.error("failed to decode URI. " + e);
-        setError("Failed to decode URI. " + e);
+        console.error("failed to load file. " + e);
+        setError("Failed to load file. " + e);
       }
 
       setLoading(false)
-      
+    };
+    
+    loadView();
     }, []);
-
-    console.log("Final WebView file path:", filePath);
     
   return (
-    <View style={[styles.screen, backgroundStyle]}>
+    <SafeAreaProvider>
+      <SafeAreaView style={backgroundStyle} edges={['top', 'bottom']}>
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
       </TouchableOpacity>
       {error && <Text style={styles.error}>{error}</Text>}
       {loading ? (
-            <ActivityIndicator style={{ marginTop: 10 }} />
-        ) : (
-            // TODO: when null maybe set the path to an error page
-            <WebView style={styles.container}  originWhitelist={['*']}
-              source={{ uri: filePath || '' }}
-              allowFileAccess={true}  // Allow file access
-              // TODO: this should be checked. Malicious JS could access other files
-              allowUniversalAccessFromFileURLs={true}  // Allow access to local URLs in JS.
-              javaScriptEnabled={true}
-              startInLoadingState={true}
-              renderLoading={() => <ActivityIndicator size="large" color="#0000ff" />}
-            />
+            <ActivityIndicator style={{ marginTop: 10 }}/>
+        ):(
+          <ScrollView style={styles.scrollView}>
+            <Text style={[styles.textBody, textStyle]}>{textToShow}</Text>
+            </ScrollView>
           )}
-    </View>
+        </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    paddingTop: 40, // extra padding for top
-  },
   backButton: {
     position: 'absolute',
     top: 50,
@@ -99,9 +90,12 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 16,
   },
-  container: {
-    flex: 1,
-    marginTop: Constants.statusBarHeight,
+  scrollView: {
+    marginTop: 30,
+  },
+  textBody: {
+    marginLeft: 8,
+    marginRight: 5,
   },
   header: {
     fontSize: 22,
@@ -110,10 +104,8 @@ const styles = StyleSheet.create({
   },
   error: {
     color: 'red',
-    marginBottom: 8,
-  },
-  imagePickerWrapper: {
-    marginVertical: 20, // creates spacing below the title
+    marginLeft: 8,
+    marginTop: 60,
   },
   lightBackground: {
     backgroundColor: 'white',

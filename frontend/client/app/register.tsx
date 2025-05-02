@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Image, ImageBackground, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import {addUser} from '../../client/services/database';
+import  {generateKeys}  from '@/components/decryption';
 import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
 //Register Screen
 export default function Register() {
+ 
   const [email, setEmail] = useState('');
   const [userID, setUserID] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();  // Initialize the router for navigation
   const minLength = 8
   const maxLength = 30
-
+  let publicKey = "publicKey" // Placeholder for the public key, to be generated
   const handleRegister = async () => {
     setLoading(true);
     setError('');  // Clear any previous errors
@@ -29,13 +32,33 @@ export default function Register() {
       return;
     }
 
-    if (password.length < minLength || password.length > maxLength) {
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      setLoading(false);
+      return;
+    }
+
+    const passLen = password.length;
+    if (passLen < minLength || passLen > maxLength) {
       setError('Password must be between 8 and 30 characters.');
       setLoading(false);
       return;
     }
 
     try {
+      try {
+        publicKey = await generateKeys();
+        console.log('Public Key:', publicKey);
+      } catch (err) {
+        console.error('generateKeys failed:', err);
+        setError('Key generation failed');
+        setLoading(false);
+        return;
+      }
+      
+
+      console.log(apiUrl)
+      console.log("before fetch")
       const response = await fetch(`${apiUrl}/signup`, {
         method: 'POST',
         headers: {
@@ -45,6 +68,7 @@ export default function Register() {
           email,
           userID,
           password,
+          publicKey
         }),
       });
 
@@ -70,65 +94,82 @@ export default function Register() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <View style={styles.container}>
-      <Text style={styles.title}>Hammerspace</Text>
-      <Text style={styles.subtitle}>Welcome!</Text>
-      <Text style={styles.description}>Create a free account or login to get started.</Text>
-      <TextInput
-          style={styles.input}
-          placeholder="Email"
-          autoCapitalize="none"
-           placeholderTextColor="#ccc"
-          value={email}
-          onChangeText={setEmail}
-        />
+      <ImageBackground source={require('../assets/images/login-background.png')} style={styles.backgroundImage} resizeMode='cover'>
+        <View style={styles.container}>
+          <Text style={styles.title}>Hammerspace</Text>
+          <Text style={styles.subtitle}>Welcome!</Text>
+          <Text style={styles.description}>Create a free account or login to get started.</Text>
+          {loading && <ActivityIndicator size="large" style={{margin: 20}} color="white" />}
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            autoCapitalize="none"
+            placeholderTextColor="#ccc"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Username"
+            autoCapitalize="none"
+            placeholderTextColor="#ccc"
+            value={userID.trim()}
+            onChangeText={setUserID}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            placeholderTextColor="#ccc"
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+          />
+          {error && <Text style={styles.error}>{error}</Text>}
+          <Pressable style={styles.loginButton} onPress={handleRegister} disabled={loading}>
+            <Text style={styles.loginButtonText}>Register</Text>
+          </Pressable>
 
-      <TextInput
-        style={styles.input}
-        placeholder="username"
-        autoCapitalize="none"
-        placeholderTextColor="#ccc"
-        value={userID}
-        onChangeText={setUserID}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#ccc"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error && <Text style={styles.error}>{error}</Text>}
-      <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
-        <Text style={styles.loginButtonText}>Register</Text>
-      </TouchableOpacity>
+          <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
 
-      <Text style={styles.footerText}>By continuing you accept our Terms & Conditions and Privacy Policy</Text>
-
-      <TouchableOpacity onPress={() => router.push('/')}>
-        <Text style={styles.loginLink}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
-    </View>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.loginLink}>Already have an account? Login</Text>
+          </Pressable>
+        </View>
+      </ImageBackground>
     </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#b2b2ed',
     padding: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#fff',
+    fontFamily: 'Kavoon',
+    color: 'rgba(204, 204, 204, 1)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.250980406999588)',
+    textShadowRadius: 4,
+    textShadowOffset: {"width":0,"height":4},
   },
   subtitle: {
+    top:5,
     fontSize: 20,
     color: '#fff',
   },

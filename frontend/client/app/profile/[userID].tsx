@@ -7,22 +7,26 @@ import {
   Button,
   Image,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   Alert,
   Platform,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { useColorScheme } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { deleteEverythingLocally } from '@/services/database';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
 export default function UserProfileScreen() {
   const { userID: forUserID } = useLocalSearchParams<{ userID: string }>();
-  const [profilePictureUri, setProfilePictureUri] = useState<string | null>(null);
+  const [profilePictureUri, setProfilePictureUri] = useState<any>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,12 +34,19 @@ export default function UserProfileScreen() {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
   const [error, setError] = useState<string | null>(null);
-  const [profilePicture, setProfilePicture] = useState<string | null>(null);
-  const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
+  // const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  // const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
+  const navigation = useNavigation();
+  const [usedStorageMB, setUsedStorageMB] = useState<number | null>(null);
+  const [totalStorageMB, setTotalStorageMB] = useState<number | null>(null);
+
+  
+  const defaultProfilePicture = require('@/assets/images/default-profile-picture.jpeg');
+  console.log('defaultProfilePicture:', defaultProfilePicture);
 
   useEffect(() => {
     const init = async () => {
@@ -46,6 +57,7 @@ export default function UserProfileScreen() {
       } 
       setIsOwnProfile(storedUserID === forUserID);
       await checkLocalProfilePicture(storedUserID, storedToken, forUserID);
+      console.log('Profile picture URI:', profilePictureUri);
     };
 
     init()
@@ -63,6 +75,7 @@ export default function UserProfileScreen() {
       await fetchProfilePicture(userID, token, forUserID);
     }
   };
+
   const fetchProfilePicture = async (userID: string, authToken: string, forUserID:string) => {
     setLoading(true);
     try {
@@ -77,9 +90,28 @@ export default function UserProfileScreen() {
           forUserID,
         }),
       });
+      const contentType = response.headers.get('Content-Type') || '';
 
       if (!response.ok) {
-        throw new Error('Failed to fetch image');
+        console.log(`[fetchProfilePicture] Status ${response.status}`);
+        const data = await response.json();
+        throw new Error(data.error || response.status + ' ' + response.statusText);
+      }
+  
+      // Handle default case (JSON with profilePictureID = "default")
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        if (data.profilePictureID === 'default' || data.profilePictureID === '') {
+          console.log('Setting default profile picture:', defaultProfilePicture);
+          setProfilePictureUri(defaultProfilePicture);
+           console.log('Using default profile picture' + profilePictureUri);
+           
+          return;   
+        } else {
+          console.warn('Unexpected JSON response:', data);
+          setProfilePictureUri(defaultProfilePicture);
+          return;
+        }
       }
 
       const blob = await response.blob();
@@ -97,8 +129,8 @@ export default function UserProfileScreen() {
       };
       reader.readAsDataURL(blob);
     } catch (error) {
-      console.error('Image fetch failed:', error);
-      Alert.alert('Error', 'Could not load profile picture.');
+      console.error('Image fetch failed: ', error);
+      Alert.alert('Could not load profile picture', '' + error || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -140,123 +172,240 @@ export default function UserProfileScreen() {
   };
 
   const handleUpload = async () => {
-    if (!profilePicture) {
-  	setError('Please select a picture to upload');
-  	return;
-	}
+    setLoading(true);
+    setError(null);
+    console.log("Uploading profile picture");
+    if (!selectedImage) {
+      setError('Please select a picture to upload');
+      setLoading(false);
+      return;
+	  }
 
-   
+    const formData = new FormData();
+    formData.append('file', {
+      uri: selectedImage,
+      name: 'profile-picture',
+      type: mimeType,
+    } as any);
+      
 
+    formData.append("userID", storedUserID);
+    formData.append("authToken", storedToken);
 
-    
-	const formData = new FormData();
-	formData.append('file', {
-  	uri: profilePicture,
-  	name: 'profile-picture',
-  	type: profilePictureMimeType,
-	} as any);
-    
+    try {
+      const response = await fetch(`${apiUrl}/updateProfilePicture`, {
+        method: 'POST',
+        body: formData,
+      });
 
-	formData.append("userID", storedUserID);
-	formData.append("authToken", storedToken);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
+      }
 
-	setLoading(true);
-	setError(null);
-
-	try {
-  	const response = await fetch(`${apiUrl}/updateProfilePicture`, {
-    	method: 'POST',
-    	body: formData,
-  	});
-
-  	const data = await response.json();
-  	if (!response.ok) {
-    	throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
-  	}
-
-  	if (data.success) {
-    	Alert.alert('Success', 'Profile picture updated successfully');
-  	}
-	} catch (err: any) {
-  	setError(err.message || 'Error uploading profile picture. Please try again.');
-	} finally {
-  	setLoading(false);
-	}
+      if (data.success) {
+        Alert.alert('Success', 'Profile picture updated successfully');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error uploading profile picture. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleLogout = async () => {
+    // dropDatabase();
+    // return
+    setLoading(true);
+    try {
+      const response = await fetch(`${apiUrl}/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          { userID: storedUserID, authToken: storedToken } ),
+      });
+      const data = await response.json();
+      if (data.success || data.error === "Invalid Credentials") { 
+        // the item's should still be deleted if the backend returns certain errors like "Invalid Credentials"
+        // delete the files that are stored locally and truncate the db
+        await deleteEverythingLocally();
+        await SecureStore.deleteItemAsync('authToken');
+        await SecureStore.deleteItemAsync('userID');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'login' as never }],
+        });
+      }
+      else {
+        console.log(`Failed to log out '${data.error}'`)
+        Alert.alert('Failed to log out', data.error || `${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting SecureStore items:', error);
+    }
+    setLoading(false);
+  }
 
   return (
-    <View style={[styles.container, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
-      </TouchableOpacity>
-
-      <Text style={[styles.header, textStyle]}>
-        {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
-      </Text>
-
-      {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
-
-      {profilePictureUri && (
-        <Image source={{ uri: profilePictureUri }} style={styles.profileImage} />
-      )}
-
-      {isOwnProfile && (
-        <>
-          <Button title="Pick New Image" onPress={handlePickImage} />
-          {selectedImage && (
+    <SafeAreaProvider>
+      <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={[StyleSheet.absoluteFill]}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+          <Pressable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
+            <Text style={[styles.backText, { color: isDarkMode ? 'white' : 'black' }]}>{'< Back'}</Text>
+          </Pressable>
+    
+          <Text style={[styles.yourProfileText, textStyle]}>
+            {isOwnProfile ? 'Your Profile' : `User: ${forUserID}`}
+          </Text>
+    
+          {loading && <ActivityIndicator size="large" style={{ margin: 20 }} />}
+    
+          {selectedImage ? (
             <Image source={{ uri: selectedImage }} style={styles.profileImage} />
+          ):((
+              <Image source={typeof profilePictureUri === 'string' ? { uri: profilePictureUri } : profilePictureUri} style={styles.profileImage} resizeMode="cover"/>
+            )
           )}
-          <Button
-            title="Upload"
-            onPress={handleUpload}
-            disabled={!selectedImage || loading}
-          />
-        </>
-      )}
-    </View>
+    
+          {isOwnProfile && (
+            <>
+            <View style={styles.pickNewImgBtn}>
+              <Button title="Pick New Image" onPress={handlePickImage} color = "#5467c7"/>
+            </View>
+            {selectedImage && (
+              <Pressable style={styles.uploadButton} onPress={handleUpload} disabled={!selectedImage || loading}>
+                <Text style={styles.uploadText}>Upload</Text>
+              </Pressable>
+            )}
+            
+              <View style={styles.friendsText}>
+                <Text style={[styles.smallHeader, textStyle]} onPress={() => router.push('/friends')}>Your Friends</Text>
+              </View>
+
+              <Pressable style={styles.changePasswordButton} onPress={() => router.push('/profile/changepassword')}>
+                  <Text style={[styles.changePasswordText, { color: isDarkMode ? 'white' : '#2a2d38' }]}>Change Password</Text>
+              </Pressable>
+
+              <Text style={[styles.logoutText]} onPress={() => {
+                  Alert.alert('Log Out', 'Are you sure you want to log out?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Log Out', style: 'destructive', onPress: handleLogout },
+                    ]);
+                  }}
+                >Logout</Text>
+            </>
+          )}
+        </SafeAreaView>
+      </LinearGradient>
+    </SafeAreaProvider>
   );
+  
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 40,
+    paddingTop: 0,
     paddingHorizontal: 16,
     alignItems: 'center',
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginVertical: 20,
+    margin: 0,
   },
   backButton: {
     position: 'absolute',
-    top: 40,
+    top: 70,
     left: 20,
     padding: 8,
-    backgroundColor: '#ccc',
     borderRadius: 5,
+  },
+  yourProfileText: {
+    position: 'relative',
+    fontSize: 28,
+    fontWeight: 'bold',
+    // marginBottom: 20,
+    marginTop: 150,
+    color: 'black',
+  },
+  profileImage: {
+    position: 'relative',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    // marginVertical: 20,
+    marginTop: 20,
+    // top: 40,
+  },
+  pickNewImgBtn: {
+    position: 'relative',
+    color: "#5467c7",
+    // paddingTop: 30,
+    marginTop: 10,
+  },
+  uploadButton: {
+    position: 'relative',
+    marginTop: 0,
+    backgroundColor: '#transparent',
+    borderRadius: 8,
+    // paddingVertical: 2,
+    // paddingHorizontal: 10,
+    alignSelf: 'center',
+  },
+  uploadText: {
+    color: '#787878',
+    fontSize: 18,
   },
   backText: {
     fontSize: 16,
   },
   lightBackground: {
-    backgroundColor: 'white',
+    backgroundColor: '#787878',
   },
   darkBackground: {
     backgroundColor: 'black',
   },
   lightText: {
-    color: 'black',
+    color: '#2a2d38',
   },
   darkText: {
     color: 'white',
+  },
+  friendsText: {
+    position: 'relative',
+    paddingTop: 80,
+    // bottom: 400, 
+    fontSize: 22,
+    marginBottom: 30,
+    fontWeight: 'bold',
+    alignSelf: 'center', 
+  },
+  // Used for "Your Friends" text
+  smallHeader: {
+    fontSize: 22,
+    fontWeight: '600',
+  },
+  changePasswordButton: {
+    position: 'relative',
+    paddingTop: 50,
+    // bottom: 200,
+    alignSelf: 'center',
+    backgroundColor: '#transparent',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  changePasswordText: {
+    fontSize: 22,
+    fontWeight: '600',
+    alignSelf: 'center',
+  },
+  logoutText: {
+    position: 'absolute',
+    // paddingTop: 125,
+    bottom: 95, 
+    fontSize: 22,
+    fontWeight: 'bold',
+    alignSelf: 'center', 
+    color: 'red',
   },
 });

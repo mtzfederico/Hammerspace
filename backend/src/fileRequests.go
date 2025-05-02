@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +17,13 @@ var (
 	errUserAccessNotAllowed error = errors.New("user doesn't have access to item")
 	// File not found in the files DB error
 	errFileNotFound error = errors.New("file not found")
+	// Error returned when trying to get the objKey of a file that is still being processed
+	errFileProcessing error = errors.New("file is still processing")
+)
+
+const (
+	// The maximum file name length in the files table on the db
+	MaxFileNameLength = 265
 )
 
 // Handles the requests to uplooad files to the server
@@ -95,8 +103,14 @@ func handleFileUpload(c *gin.Context) {
 		return
 	}
 
-	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Debug("[handleFileUpload] Received file")
+	log.WithFields(log.Fields{"filename": file.Filename, "size": file.Size, "header": file.Header}).Trace("[handleFileUpload] Received file")
 	contentType := file.Header.Get("Content-Type")
+
+	if len(file.Filename) > MaxFileNameLength {
+		c.JSON(400, gin.H{"success": false, "error": "File name is too long"})
+		log.Debug("[handleFileUpload] Filename too long")
+		return
+	}
 
 	// filePath := fmt.Sprintf("%s%s", serverConfig.TMPStorageDir, file.Filename)
 	filePath := fmt.Sprintf("%s%s", serverConfig.TMPStorageDir, fileID)
@@ -119,7 +133,7 @@ func handleFileUpload(c *gin.Context) {
 
 	// Start processing the file here
 	expectedMIMEType := file.Header.Get("Content-Type")
-	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType)
+	err = processFile(context.Background(), filePath, fileID.String(), expectedMIMEType, parentDir, userID)
 	if err != nil {
 		log.WithField("err", err).Error("[handleFileUpload] Error processing file")
 	}
@@ -162,14 +176,32 @@ func handleGetFile(c *gin.Context) {
 	// check that file exists, and the user has access to it, and get the s3 objKey
 	objKey, err := getObjectKey(c, request.FileID, request.UserID, true)
 	if err != nil {
+		if errors.Is(err, errFileNotFound) {
+			c.JSON(400, gin.H{"success": false, "error": "File not found"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetFile] No file with that fileID found")
+			return
+		}
+
+		if errors.Is(err, errFileProcessing) {
+			c.JSON(400, gin.H{"success": false, "error": "File is being processed, try again later"})
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Trace("[handleGetFile] File is still being processed")
+			return
+		}
+
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get object key")
 		return
 	}
 
+	if objKey == "" {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
+		log.WithField("fileID", request.FileID).Error("[handleGetFile] Object key is empty")
+		return
+	}
+
 	file, err := getFile(c, s3Client, serverConfig.S3BucketName, objKey)
 	if err != nil {
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1)"})
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (3)"})
 		log.WithField("error", err).Error("[handleGetFile] Failed to get file")
 		return
 	}
@@ -215,11 +247,11 @@ func handleRemoveFile(c *gin.Context) {
 		if errors.Is(err, errUserAccessNotAllowed) {
 			// User is not the owner and can't delete it
 			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
-			log.WithField("error", err).Debug("[handleRemoveFile] User tried to delete file without proper permission")
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleRemoveFile] User tried to delete file without proper permission")
 			return
 		}
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Error("[handleRemoveFile] Failed to verify token")
 		return
 	}
 
@@ -243,6 +275,47 @@ func handleRemoveFile(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "fileID": request.FileID})
 }
 
+func handleRenameItem(c *gin.Context){ 
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request RenameItemRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to decode JSON")
+		return
+	}
+
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(401, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+	
+	err = renameFile(db, request.FileID, request.NewName)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Failed to rename file"})
+		log.WithFields(log.Fields{
+			"error":  err,
+			"fileID": request.FileID,
+		}).Error("[handleRenameItem] Failed to rename file")
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true})
+
+}
+
 // ---------------------------------------------------------------------------
 
 // Checks that the file actually exists and returns the objKey used in s3.
@@ -255,7 +328,7 @@ func handleRemoveFile(c *gin.Context) {
 func getObjectKey(ctx context.Context, fileID string, userID string, allowShared bool) (string, error) {
 	// https://www.w3schools.com/sql/func_mysql_ifnull.asp
 	// objKey can be null, but go doesn't support strings set to null/nil. If the value is null, it is set to an empty string.
-	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, '') from files where id=? AND type!='folder'", fileID)
+	rows, err := db.QueryContext(ctx, "select userID, IFNULL(objKey, ''), processed from files where id=? AND type!='folder'", fileID)
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +337,8 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowShared
 
 	if rows.Next() {
 		var fileOwnerUserID, objKey string
-		err := rows.Scan(&fileOwnerUserID, &objKey)
+		var processed bool
+		err := rows.Scan(&fileOwnerUserID, &objKey, &processed)
 		if err != nil {
 			return "", err
 		}
@@ -286,7 +360,16 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowShared
 			}
 		}
 		// The user has access to this item
+
+		if !processed {
+			return "", errFileProcessing
+		}
 		return objKey, nil
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", fmt.Errorf("error getting rows. %w", err)
+		}
 	}
 
 	// This should probably never be reached
@@ -299,7 +382,7 @@ func saveFileToDB(ctx context.Context, fileID, parentDir, fileName, ownerUserID,
 }
 
 func removeFileFromDB(ctx context.Context, fileID, userID string) error {
-	_, err := db.ExecContext(ctx, "DELETE FROM files WHERE id=?, userID=?) VALUES (?, ?);", fileID, userID)
+	_, err := db.ExecContext(ctx, "DELETE FROM files WHERE id = ? AND userID = ?;", fileID, userID)
 	return err
 }
 
@@ -336,3 +419,25 @@ func getMIMEType(extension string) string {
 	}
 }
 */
+
+// This is the renameFile functiion where it updates the file name for a given file ID
+func renameFile(db *sql.DB, fileID, newName string) error {
+	query := `
+		UPDATE files 
+		SET name = ?, lastModified = CURRENT_TIMESTAMP 
+		WHERE id = ?`
+	result, err := db.Exec(query, newName, fileID)
+	if err != nil {
+		return fmt.Errorf("failed to rename file: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not get affected rows: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no file found with ID %s", fileID)
+	}
+
+	return nil
+}

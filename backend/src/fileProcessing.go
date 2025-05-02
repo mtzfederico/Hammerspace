@@ -20,9 +20,11 @@ var (
 	errUnsuportedImgType error = errors.New("the image file format is not supported")
 	// A list of the suported image types for a profile picture
 	supportedImageTypes = []string{"jpeg", "jp2", "png", "gif"}
+	// A list of the file types that the filetype library can't recognize that are ok to be assumed to be safe.
+	excemptedFileTypes = []string{"text/plain", "application/xml", "text/xml"}
 )
 
-func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string) error {
+func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string, parentDir, userID string) error {
 	buf, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open the file: %w", err)
@@ -38,7 +40,7 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 		fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
 
 		if kind.MIME.Value != expectedMIMEType {
-			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Error("[processFile] Mismatched MIME Types")
+			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Warning("[processFile] Mismatched MIME Types")
 			// addAlert(ctx, )
 			// return errUnexpectedFileType
 		}
@@ -46,10 +48,12 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 		// TODO: process the mime type
 
 	} else {
-		// TODO: decide how to handle unknown files
-		// Set the mime to application/octet-stream??
-		log.Info("[processFile] errUnknownFileType")
-		// return errUnknownFileType
+		log.WithFields(log.Fields{"fileID": fileID, "expectedMIMEType": expectedMIMEType}).Info("[processFile] File Type not recognized")
+		if !slices.Contains(excemptedFileTypes, expectedMIMEType) {
+			// return errUnknownFileType
+			// TODO: decide how to handle unknown files
+			// Set the mime to application/octet-stream??
+		}
 	}
 
 	objKey, err := getNewID()
@@ -58,7 +62,7 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string)
 	}
 
 	// encrypt and upload
-	res, err := encryptAndUploadFile(ctx, filePath, objKey.String())
+	res, err := encryptAndUploadFile(ctx, filePath, objKey.String(), fileID, parentDir, userID)
 	if err != nil {
 		return fmt.Errorf("encryptAndUploadFile failed: %w", err)
 	}

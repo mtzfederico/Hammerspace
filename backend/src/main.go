@@ -15,7 +15,7 @@ import (
 // Info on the last commit. <Full Hash>__<Date in ISO8601>__<Author Name>__<Author Email>
 // https://icinga.com/blog/embedding-git-commit-information-in-go-binaries/
 //
-//go:generate sh -c "printf %s $(git log -1 --format='%H__%cI__%aN__%aE') > dev_commit.txt"
+//go:generate sh -c "printf %s $(git log -1 --format='%H;%cI;%aN;%aE') > dev_commit.txt"
 //go:embed dev_commit.txt
 var LastCommitInfo string
 
@@ -122,6 +122,8 @@ func main() {
 	router.POST("shareFile", handleShareFile)
 	router.POST("removeFile", handleRemoveFile)
 	router.POST("getSharedWith", handleGetSharedWith)
+	router.POST("getSharedFolders", handleGetSharedFolders)
+	router.POST("renameItem" , handleRenameItem)
 
 	router.POST("createDir", handleCreateDirectory)
 	router.POST("getDir", handleGetDirectory)
@@ -134,6 +136,13 @@ func main() {
 
 	router.POST("getProfilePicture", handleGetProfilePicture)
 	router.POST("updateProfilePicture", handleUpdateProfilePicture)
+
+	router.POST("getFriends", handleGetFriends)
+	router.POST("addFriends", handleAddFriends)
+	// router.POST("getPendingFriendRequests", handleGetPendingFriendRequests)
+	router.POST("acceptFriendRequest", handleAcceptFriendRequest)
+
+	router.POST("getEncryptedFolderKey", handleGetFolderKey)
 
 	router.Run(serverConfig.ListenOn)
 

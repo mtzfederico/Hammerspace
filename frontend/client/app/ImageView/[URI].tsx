@@ -10,6 +10,7 @@ import {
   Alert,
   TouchableOpacity,
   useColorScheme,
+  Dimensions
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,7 +19,7 @@ import Constants from 'expo-constants';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-export default function PDFView() {
+export default function ImageView() {
   const { URI: encodedURI } = useLocalSearchParams<{ URI: string }>();
   console.log("Encoded URI" + encodedURI)
   const userID =  String(SecureStore.getItem('userID'));
@@ -52,30 +53,24 @@ export default function PDFView() {
       }
 
       setLoading(false)
-      
     }, []);
 
     console.log("Final WebView file path:", filePath);
     
   return (
     <View style={[styles.screen, backgroundStyle]}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+      <TouchableOpacity onPress={() => router.back()} style={[styles.backButton,{backgroundColor: isDarkMode ? '#757678':'#dadde0'}]}>
         <Text style={[styles.backText, textStyle]}>{'< Back'}</Text>
       </TouchableOpacity>
       {error && <Text style={styles.error}>{error}</Text>}
       {loading ? (
             <ActivityIndicator style={{ marginTop: 10 }} />
         ) : (
-            // TODO: when null maybe set the path to an error page
-            <WebView style={styles.container}  originWhitelist={['*']}
-              source={{ uri: filePath || '' }}
-              allowFileAccess={true}  // Allow file access
-              // TODO: this should be checked. Malicious JS could access other files
-              allowUniversalAccessFromFileURLs={true}  // Allow access to local URLs in JS.
-              javaScriptEnabled={true}
-              startInLoadingState={true}
-              renderLoading={() => <ActivityIndicator size="large" color="#0000ff" />}
-            />
+          <Image
+            resizeMode="contain"
+            style={styles.image}
+            source={{ uri: filePath || '' }}
+          />
           )}
     </View>
   );
@@ -92,7 +87,6 @@ const styles = StyleSheet.create({
     left: 20,
     zIndex: 10,
     padding: 8,
-    backgroundColor: '#ccc',
     borderRadius: 5,
     marginBottom: Constants.statusBarHeight,
   },
@@ -108,6 +102,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
+  image: {
+    width: Dimensions.get('window').width,
+    height: (Dimensions.get('window').height),
+  },
   error: {
     color: 'red',
     marginBottom: 8,
@@ -116,7 +114,7 @@ const styles = StyleSheet.create({
     marginVertical: 20, // creates spacing below the title
   },
   lightBackground: {
-    backgroundColor: 'white',
+    backgroundColor: '#bec1c4',
   },
   darkBackground: {
     backgroundColor: 'black',
