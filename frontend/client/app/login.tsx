@@ -45,9 +45,18 @@ export default function Login() {
       const data = await response.json();
       console.log("data: " + JSON.stringify(data))
       if (data.success) {
+        const authToken = String(data.authToken);
+        const userID = String(data.userID);
+
+        if (authToken === null || userID === null) {
+          console.error("got null for authToken or userID in the response. " + response.status);
+          setError("got null for authToken or userID in the response (" + response.status + ")");
+          return;
+        }
+
         console.log("Lmaomsoklf s, do " + data.authToken)
-        await SecureStore.setItem('authToken', String(data.authToken));
-        await SecureStore.setItem('userID', String(data.userID));
+        await SecureStore.setItem('authToken', authToken);
+        await SecureStore.setItem('userID', userID);
         router.replace('/tabs/homescreen');
       } else {
         setError(data.error || `log in request failed. Status: ${response.status}`);
