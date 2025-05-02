@@ -37,10 +37,9 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const isDarkMode = colorScheme === 'dark';
   const backgroundStyle = isDarkMode ? styles.darkBackground : styles.lightBackground;
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
-  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
-  const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-  const [loadingFiles, setLoadingFiles] = useState(true);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
+//  const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+ // const [loadingFiles, setLoadingFiles] = useState(true);
+ // const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
   const [showMenu, setShowMenu] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null);
 
