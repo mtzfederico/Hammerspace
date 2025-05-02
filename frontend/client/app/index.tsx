@@ -24,21 +24,19 @@ export default function appIndex(){
   }, []);
 
   // Show home or tab screen if logged in
-  if (isLoggedIn === null) {
-    return null; // Wait for login check
-  }
+ 
 
-  if(isLoggedIn === true){
-    return (
-    router.replace('/tabs/homescreen') // Redirect to the home screen
-  )
-} else {
-    return (
-      router.replace('/login') // Redirect to the login screen
-    )
-  }
-    
- /* return (
-    <Login/>
-  ) */
+  
+  useEffect(() => {
+    if (isLoggedIn === null) return; // Don't redirect until status is known
+
+    if (isLoggedIn) {
+      router.replace('/tabs/homescreen');
+    } else {
+      router.replace('/login');
+    }
+  }, [isLoggedIn]);
+
+  // Optional: return a loading spinner here
+  return null;
 }
