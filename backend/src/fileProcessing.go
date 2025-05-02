@@ -40,10 +40,13 @@ func processFile(ctx context.Context, filePath, fileID, expectedMIMEType string,
 		fmt.Printf("File type: %s. MIME: %s\n", kind.Extension, kind.MIME.Value)
 
 		if kind.MIME.Value != expectedMIMEType {
-			log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Warning("[processFile] Mismatched MIME Types")
-			body := fmt.Sprintf("expected type '%s' got '%s'", expectedMIMEType, kind.MIME.Value)
-			addAlert(ctx, userID, "fileTypeMismatched", body, fileID)
-			// return errUnexpectedFileType
+			// image/heic and image/heif are the same thing, different file extension
+			if !(expectedMIMEType == "image/heic" && kind.MIME.Value == "image/heif") {
+				log.WithFields(log.Fields{"expectedMIMEType": expectedMIMEType, "actualMIME": kind.MIME.Value}).Warning("[processFile] Mismatched MIME Types")
+				body := fmt.Sprintf("expected type '%s' got '%s'", expectedMIMEType, kind.MIME.Value)
+				addAlert(ctx, userID, "fileTypeMismatched", body, fileID)
+				// return errUnexpectedFileType
+			}
 		}
 
 		// TODO: process the mime type
