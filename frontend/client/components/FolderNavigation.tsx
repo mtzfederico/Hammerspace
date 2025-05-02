@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useColorScheme, TextInput, Image, ActivityIndicator } from 'react-native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import DisplayFolders from './displayFolders';
 import { getItemsInParentDB, syncWithBackend, getFileURIFromDB, updateFileUri, deleteFileLocally } from '../services/database';
@@ -32,8 +32,10 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const [previousID, setPreviousID] = useState(null);
   const [currentDirName, setCurrentDirName] = useState('Home');
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
    // a list of the image mime subtypes that the app can open.
    // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
   const [searchQuery, setSearchQuery] = useState('');
@@ -166,26 +168,33 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   };
 
   const handleFilePress = async (item: FileItem) => {
-    const mimeParts = item.type.split('/');
-    if (mimeParts.length !== 2) return;
+    if (loading) return; // Prevent double taps
+
+    setLoading(true);
+    try { 
+      const mimeParts = item.type.split('/');
+      if (mimeParts.length !== 2) return;
+    
+      const fileURI = await getDecryptedFileURI(item);
+      if (!fileURI) return;
+    
+      const encodedURI = encodeURIComponent(fileURI);
   
-    const fileURI = await getDecryptedFileURI(item);
-    if (!fileURI) return;
-  
-    const encodedURI = encodeURIComponent(fileURI);
- 
-    if (item.type === "application/pdf") {
-      router.push(`/PDFView/${encodedURI}`);
-    } else if (
-      (mimeParts[0] === "text" && ["plain", "csv", "css", "javascript", "html", "markdown"].includes(mimeParts[1])) ||
-      (mimeParts[0] === "application" && ["json", "xml"].includes(mimeParts[1]))
-    ) {
-      router.push(`/TextView/${encodedURI}`);
-    } else if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
-      router.push(`/ImageView/${encodedURI}`);
-    } else {
-        // TODO: show something when the fle type is not supported
-      console.warn("[handleFilePress] Unsupported file type:", item.type);
+      if (item.type === "application/pdf") {
+        router.push(`/PDFView/${encodedURI}`);
+      } else if (
+        (mimeParts[0] === "text" && ["plain", "csv", "css", "javascript", "html", "markdown"].includes(mimeParts[1])) ||
+        (mimeParts[0] === "application" && ["json", "xml"].includes(mimeParts[1]))
+      ) {
+        router.push(`/TextView/${encodedURI}`);
+      } else if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
+        router.push(`/ImageView/${encodedURI}`);
+      } else {
+          // TODO: show something when the fle type is not supported
+        console.warn("[handleFilePress] Unsupported file type:", item.type);
+      }
+    } finally {
+        setLoading(false);
     }
   };
   
@@ -202,15 +211,11 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     setShowMenu(false);
   };
 
-  const refreshScreen = () => {
-    refreshData()
-    router.replace(router.reload() as any)
-  }
   var searchBarStyle = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
   var searchBarPlaceHoldertextColor = isDarkMode ? styles.searchBarDark : styles.searchBarLight;
 
   return (
-    <View style={[styles.container]}>
+    <View style={[styles.container]} pointerEvents={loading ? 'none' : 'auto'}>
       <View style={styles.header}>
         {previousID ? (
           <TouchableOpacity onPress={handleBackPress} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
@@ -278,6 +283,24 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       <View style={styles.addButtonContainer}>
         <AddButton addFolder={addFolder} parentID={currentParentDirID} addFile={addFile} />
       </View>
+      {loading && (
+  <View
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 999,
+    }}
+    pointerEvents="auto"
+  >
+    <ActivityIndicator size="large" color="#fff" />
+  </View>
+      )}
     </View>
   );
 };
