@@ -144,7 +144,7 @@ export default function Friends() {
             onPress={() => router.back()}
             style={[styles.backButton, isDarkMode ? styles.darkBackButton : styles.lightBackButton]}
           >
-            <Text style={styles.backButtonText}>{'< Back'}</Text>
+            <Text style={[styles.backButtonText,{color: isDarkMode ? 'white' : 'black'}]}>{'< Back'}</Text>
           </TouchableOpacity>
 
           <Text style={[styles.pageTitle, textStyle]}>Friends</Text>
@@ -155,7 +155,7 @@ export default function Friends() {
           >
             <Image
               source={require('../assets/images/plus.png')}
-              style={[styles.plusImage, { tintColor: 'white' }]} // Ensure the plus icon is white
+              style={[styles.plusImage, { tintColor: isDarkMode ? 'white' : 'black' }]} 
             />
           </TouchableOpacity>
 

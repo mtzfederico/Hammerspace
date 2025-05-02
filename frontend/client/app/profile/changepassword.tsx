@@ -52,7 +52,7 @@ export default function ChangePasswordScreen() {
   return (
     <LinearGradient colors={ colorScheme === 'dark'? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={styles.container}>
       <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' },]}>
-        <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
+        <Text style={[styles.backText, { color: isDarkMode ? '#fff' : 'black' }]}>{'< Back'}</Text>
       </TouchableOpacity>
       <Text style={[styles.title, {color: colorScheme == 'dark' ? 'white' : '#2a2d38'},]}>Change Password</Text>
       <TextInput

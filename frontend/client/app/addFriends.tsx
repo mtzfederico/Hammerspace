@@ -75,7 +75,7 @@ export default function AddFriends() {
           { backgroundColor: isDark ? '#333' : '#C1C8D9' },
         ]}
       >
-        <Text style={[styles.backText, { color: isDark ? '#fff' : '#fff' }]}>
+        <Text style={[styles.backText, { color: isDark ? '#fff' : 'black' }]}>
           {'< Back'}
         </Text>
       </TouchableOpacity>

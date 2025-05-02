@@ -253,7 +253,7 @@ export default function UserProfileScreen() {
       <LinearGradient colors={isDarkMode ? ['#030303', '#767676'] : ['#FFFFFF', '#92A0C3']} style={[StyleSheet.absoluteFill]}>
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
           <Pressable onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
-            <Text style={[styles.backText, { color: isDarkMode ? '#fff' : '#fff' }]}>{'< Back'}</Text>
+            <Text style={[styles.backText, { color: isDarkMode ? 'white' : 'black' }]}>{'< Back'}</Text>
           </Pressable>
     
           <Text style={[styles.yourProfileText, textStyle]}>

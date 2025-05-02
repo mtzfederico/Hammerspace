@@ -212,7 +212,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       <View style={styles.header}>
         {previousID ? (
           <TouchableOpacity onPress={handleBackPress} style={[styles.backButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
-            <Text style={[textStyle,{color:'white'}]}>{'<Back'}</Text>
+            <Text style={[textStyle,{color: isDarkMode ? 'white' : 'black'}]}>{'<Back'}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -245,8 +245,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       {currentDirName !== "Home" && (
         <View style={{ alignItems: 'flex-start', marginLeft: 20, marginBottom: 10 }}>
           <TouchableOpacity onPress={() => router.push('/manageFolder')} style={[styles.manageFolderButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
-            <Text style={[textStyle, { color: 'white' }]}>Manage Folder</Text>
-          </TouchableOpacity>
+            <Text style={[textStyle, { color: isDarkMode ? 'white' : 'black' }]}>Manage Folder</Text>
+          </TouchableOpacity> 
         </View>
       )}
 
@@ -255,7 +255,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       )}
 
       <View style={{ flex: 1 }}>
-        
+
       {/* Search Bar */}
       <DisplayFolders
       data={files.filter((item) =>
