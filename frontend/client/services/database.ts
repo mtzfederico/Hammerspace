@@ -172,9 +172,24 @@ export const insertFile = async (name: string, uri: string, dirID: string, type:
   db.runAsync(
     'INSERT INTO folders (id,parentDir,name,type,fileSize,uri,userID) VALUES (?, ?, ?,?,?,?,?)', dirID, parentID, name, type, size, uri, userID );
   }catch (error) {
-    console.error('Error inserting file' + error)
+    console.log('Error inserting file' + error)
   }
 };
+
+export const  removeFile = async (id: string, userID: string) => {
+  const db = await SQLite.openDatabaseAsync('hammerspace.db');
+  try { 
+  await db.runAsync(
+    'DELETE FROM folders WHERE id = ? AND userID = ?',
+    id, userID
+  );
+  } catch (error){
+    console.log(error)
+  }
+
+ 
+}
+
 
   export const getFileURIFromDB = async (id: string) => {
     console.log('[getFileURIFromDB] called with ID:', id);

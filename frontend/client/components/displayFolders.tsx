@@ -24,11 +24,12 @@ type DisplayFoldersProps = {
   onFolderPress: (id: string, name: string) => void;
   onFilePress: (item: FileItem) => void;
   onItemLongPress: (item: FileItem) => void;
+  refreshingKey: any
 };
 
-const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: DisplayFoldersProps) => {
+const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress, refreshingKey}: DisplayFoldersProps) => {
   console.log("display is happening " + JSON.stringify(data))
-  
+  console.log("refresh key is here " + refreshingKey)
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const storedToken =  String(SecureStore.getItem('authToken'));
@@ -87,6 +88,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          extraData={refreshingKey}
           // ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
           ListEmptyComponent={<Text style={emptyMsgStyle}>You have no files</Text>} //updated for dark mode
           numColumns={numColumns}

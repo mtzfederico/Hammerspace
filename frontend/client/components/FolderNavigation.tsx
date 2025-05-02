@@ -51,6 +51,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
  // const [initialLoadComplete, setInitialLoadComplete] = useState(false); // Add this state
   const [showMenu, setShowMenu] = useState(false);
   const [selectedItem, setSelectedItem] = useState<FileItem | null>(null);
+  const [refreshingKey, setRefreshingKey] = useState(0);
 
   // a list of the image mime subtypes that the app can open.
   // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
@@ -86,6 +87,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
      // getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
     setSearchQuery('');
     getItemsInParentDB(currentParentDirID, storedUserID, setFiles);
+    setRefreshingKey(prev => prev + 1); 
   };
 
   const handleFolderPress = (dirID: string, folderName: string) => {
@@ -264,11 +266,12 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     onFolderPress={handleFolderPress}
     onFilePress={handleFilePress}
     onItemLongPress={handleItemLongPress}
+    refreshingKey={refreshingKey}
     />
 
       {/* Conditionally render the FileContextMenu */}
       {showMenu && selectedItem && (
-        <FileContextMenu item={selectedItem} onClose={handleCloseContextMenu} onItemRemoved={() => refreshScreen()} />
+        <FileContextMenu item={selectedItem} onClose={handleCloseContextMenu} onItemRemoved={() => refreshData()} />
       )}
       </View>
 

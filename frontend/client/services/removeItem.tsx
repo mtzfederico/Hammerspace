@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import {removeFile} from "./database"
 
 // Interface for the item
 interface FileItem {
@@ -45,6 +46,7 @@ const removeItem = async (item: FileItem) => {
 
     if (response.ok) {
       console.log('Item removed successfully:', result);
+      removeFile(item.id, userID)
       return result;
     } else {
       console.error('Error removing item:', result.error);
