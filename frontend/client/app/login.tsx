@@ -46,8 +46,9 @@ export default function Login() {
       console.log("data: " + JSON.stringify(data))
       if (data.success) {
         console.log("Lmaomsoklf s, do " + data.authToken)
-        await SecureStore.setItem('authToken', String(data.authToken));
-        await SecureStore.setItem('userID', String(data.userID));
+        console.log("\n  [PickDocument] authToken is here " + data.authToken + "\n")
+        await SecureStore.setItemAsync('authToken', String(data.authToken));
+        await SecureStore.setItemAsync('userID', String(data.userID));
         router.replace('/tabs/homescreen');
       } else {
         setError(data.error || `log in request failed. Status: ${response.status}`);
