@@ -62,7 +62,7 @@ func handleFileUpload(c *gin.Context) {
 	}
 
 	if !valid {
-		c.JSON(400, gin.H{"success": false, "error": "Invalid Credentials"})
+		c.JSON(401, gin.H{"success": false, "error": "Invalid Credentials"})
 		return
 	}
 

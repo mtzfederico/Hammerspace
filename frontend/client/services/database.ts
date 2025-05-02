@@ -334,10 +334,10 @@ export const renameFile = async (id: string, userID: string, newName: string) =>
         );
         console.log('[syncWithBackend] Non-folder rows:', nonFolderRows);
       } else {
-        console.error('[syncWithBackend] No folders received from backend');
+        console.log('[syncWithBackend] No folders received from backend');
       }
     } catch (error) {
-      console.error('[syncWithBackend] Error syncing with backend:', error);
+      console.log('[syncWithBackend] Error syncing with backend:', error);
     }
   };
   
