@@ -114,6 +114,8 @@ export default function UserProfileScreen() {
         }
       }
 
+      console.log("profile picture contentType: ", contentType);
+
       const blob = await response.blob();
 
       const reader = new FileReader();
