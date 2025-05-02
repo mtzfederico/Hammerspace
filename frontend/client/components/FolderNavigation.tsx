@@ -255,7 +255,17 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
       )}
 
       <View style={{ flex: 1 }}>
-      <DisplayFolders data={files} onFolderPress={handleFolderPress} onFilePress={handleFilePress} onItemLongPress={handleItemLongPress} />
+        
+      {/* Search Bar */}
+      <DisplayFolders
+      data={files.filter((item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )}
+    onFolderPress={handleFolderPress}
+    onFilePress={handleFilePress}
+    onItemLongPress={handleItemLongPress}
+    />
+
       {/* Conditionally render the FileContextMenu */}
       {showMenu && selectedItem && (
         <FileContextMenu item={selectedItem} onClose={handleCloseContextMenu} onItemRemoved={() => refreshScreen()} />
