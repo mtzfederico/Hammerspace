@@ -247,11 +247,11 @@ func handleRemoveFile(c *gin.Context) {
 		if errors.Is(err, errUserAccessNotAllowed) {
 			// User is not the owner and can't delete it
 			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
-			log.WithField("error", err).Debug("[handleRemoveFile] User tried to delete file without proper permission")
+			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleRemoveFile] User tried to delete file without proper permission")
 			return
 		}
 		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2), Please try again later"})
-		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Error("[handleRemoveFile] Failed to verify token")
 		return
 	}
 
@@ -324,6 +324,11 @@ func getObjectKey(ctx context.Context, fileID string, userID string, allowShared
 			return "", errFileProcessing
 		}
 		return objKey, nil
+	} else {
+		err = rows.Err()
+		if err != nil {
+			return "", fmt.Errorf("error getting rows. %w", err)
+		}
 	}
 
 	// This should probably never be reached
@@ -336,7 +341,7 @@ func saveFileToDB(ctx context.Context, fileID, parentDir, fileName, ownerUserID,
 }
 
 func removeFileFromDB(ctx context.Context, fileID, userID string) error {
-	_, err := db.ExecContext(ctx, "DELETE FROM files WHERE id=?, userID=?) VALUES (?, ?);", fileID, userID)
+	_, err := db.ExecContext(ctx, "DELETE FROM files WHERE id = ? AND userID = ?;", fileID, userID)
 	return err
 }
 
