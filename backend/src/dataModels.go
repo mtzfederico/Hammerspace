@@ -170,5 +170,5 @@ type RenameItemRequest struct {
 	AuthToken string `json:"authToken"`
 	// The fileID in the DB, NOT the S3 objKey
 	FileID string `json:"dirID"`
-	NewName string `json: newName`
+	NewName string `json:"newName"`
 }

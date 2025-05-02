@@ -116,6 +116,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
       const imagePath = `${FileSystem.documentDirectory}${userID}_profile.jpg`;
       const fileInfo = await FileSystem.getInfoAsync(imagePath);
+      console.log("image file path " + fileInfo.uri)
       if (fileInfo.exists) {
         setProfileImageUri(imagePath);
       }
@@ -232,7 +233,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
           onPress={() => router.push(`/profile/${storedUserID}` as any)}
         >
           {profileImageUri ? (
-            <Image source={{ uri: profileImageUri }} style={styles.profileImage} />
+            <Image source={{ uri: profileImageUri}} style={styles.profileImage} />
           ) : (
             <SimpleLineIcons name="user" size={24} color={isDarkMode ? 'white' : 'black'} />
           )}
