@@ -164,3 +164,11 @@ type GetFolderKeyRequest struct {
 	AuthToken string `json:"authToken"`
 	FolderID  string `json:"folderID"`
 }
+
+type RenameItemRequest struct {
+	UserID    string `json:"userID"`
+	AuthToken string `json:"authToken"`
+	// The fileID in the DB, NOT the S3 objKey
+	FileID string `json:"dirID"`
+	NewName string `json: newName`
+}

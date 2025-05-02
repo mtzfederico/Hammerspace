@@ -275,6 +275,47 @@ func handleRemoveFile(c *gin.Context) {
 	c.JSON(200, gin.H{"success": true, "fileID": request.FileID})
 }
 
+func handleRenameItem(c *gin.Context){ 
+	if c.Request.Body == nil {
+		c.JSON(400, gin.H{"success": false, "error": "No data received"})
+		return
+	}
+
+	var request RenameItemRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (0)"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to decode JSON")
+		return
+	}
+
+	// verify that the token is valid
+	valid, err := isAuthTokenValid(c, request.UserID, request.AuthToken)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (1), Please try again later"})
+		log.WithField("error", err).Error("[handleRemoveFile] Failed to verify token")
+		return
+	}
+
+	if !valid {
+		c.JSON(401, gin.H{"success": false, "error": "Invalid Credentials"})
+		return
+	}
+	
+	err = renameFile(db, request.FileID, request.NewName)
+	if err != nil {
+		c.JSON(500, gin.H{"success": false, "error": "Failed to rename file"})
+		log.WithFields(log.Fields{
+			"error":  err,
+			"fileID": request.FileID,
+		}).Error("[handleRenameItem] Failed to rename file")
+		return
+	}
+
+	c.JSON(200, gin.H{"success": true})
+
+}
+
 // ---------------------------------------------------------------------------
 
 // Checks that the file actually exists and returns the objKey used in s3.

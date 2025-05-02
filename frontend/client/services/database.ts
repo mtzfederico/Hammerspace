@@ -190,6 +190,19 @@ export const  removeFile = async (id: string, userID: string) => {
  
 }
 
+export const renameFile = async (id: string, userID: string, newName: string) => {
+  const db = await SQLite.openDatabaseAsync('hammerspace.db');
+  try {
+    // Update the name in the 'items' table for both files and folders
+    await db.runAsync(
+      'UPDATE folders SET name = ? WHERE id = ? AND userID = ?',
+      newName, id, userID
+    );
+  } catch (error) {
+    console.error('renameFileOrFolder error:', error);
+  }
+};
+
 
   export const getFileURIFromDB = async (id: string) => {
     console.log('[getFileURIFromDB] called with ID:', id);
