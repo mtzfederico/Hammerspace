@@ -13,37 +13,58 @@ import {
   Keyboard,
   useColorScheme,
 } from 'react-native';
+import { useLocalSearchParams, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SecureStore from 'expo-secure-store';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
 
-interface User {
-  id: number;
-  name: string;
-}
-
-type Permission = 'view' | 'edit';
-
-interface FolderUser extends User {
+interface UserWithPermission {
+  userID: string;
   permission: Permission;
 }
 
+type Permission = 'read' | 'write';
+
+// interface FolderUser extends UserWithPermission {
+//   permission: Permission;
+// }
+
 const ManageFolderScreen: React.FC = () => {
+  const { dirID: dirID } = useLocalSearchParams<{ dirID: string }>();
   const colorScheme = useColorScheme(); // Automatically detect light or dark mode
-  const [folderUsers, setFolderUsers] = useState<FolderUser[]>([]); // This will hold the folder members
+  const [folderUsers, setFolderUsers] = useState<UserWithPermission[]>([]); // This will hold the folder members. was FolderUser
   const [isModalVisible, setModalVisible] = useState<boolean>(false);
   const [newUserName, setNewUserName] = useState<string>('');
   const [openDropdownUserId, setOpenDropdownUserId] = useState<number | null>(null);
-  const [allUsers, setAllUsers] = useState<User[]>([]); // All users from your backend
+  const [allUsers, setAllUsers] = useState<UserWithPermission[]>([]); // All users from your backend
 
   const navigation = useNavigation(); // Initialize the navigation hook
+  const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
+  const userID = String(SecureStore.getItem('userID'));
+  const authToken = String(SecureStore.getItem('authToken'));
+  
 
   // Fetch the actual users from your backend or authentication service
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('https://your-api.com/users'); // Replace with correct API endpoint
+        const response = await fetch(`${apiUrl}/getSharedWith`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userID: userID,
+            authToken: authToken,
+            dirID: dirID,
+          }),
+        });
         const data = await response.json();
-        setAllUsers(data); // Assuming the response contains an array of users
+
+        if (response.status != 200) {
+          alert(`Error getting users. ${data.error || `${response.status} ${response.statusText}`}`);
+        }
+
+        // setAllUsers(data.users); // Assuming the response contains an array of users
+        setFolderUsers(data.users);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -52,26 +73,25 @@ const ManageFolderScreen: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const changePermission = (id: number, permission: Permission) => {
+  const changePermission = (userID: string, permission: Permission) => {
     setFolderUsers((prev) =>
       prev.map((user) =>
-        user.id === id ? { ...user, permission } : user
+        user.userID === userID ? { ...user, permission } : user
       )
     );
     setOpenDropdownUserId(null); // Close dropdown
   };
 
-  const removeUser = (id: number) => {
-    setFolderUsers((prev) => prev.filter((user) => user.id !== id));
+  const removeUser = (userID: string) => {
+    setFolderUsers((prev) => prev.filter((user) => user.userID !== userID));
   };
 
   const addUser = () => {
     if (newUserName.trim() === '') return;
 
-    const newUser: FolderUser = {
-      id: Date.now(), // Generate a temporary ID 
-      name: newUserName,
-      permission: 'view',
+    const newUser: UserWithPermission = {
+      userID: newUserName,
+      permission: 'read',
     };
     setFolderUsers([...folderUsers, newUser]);
     setNewUserName('');
@@ -83,16 +103,16 @@ const ManageFolderScreen: React.FC = () => {
     Keyboard.dismiss();
   };
 
-  const renderUserItem = ({ item }: { item: FolderUser }) => (
+  const renderUserItem = ({ item }: { item: UserWithPermission }) => (
     <View style={styles.userItem}>
-      <Text style={[styles.userName, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>{item.name}</Text>
+      <Text style={[styles.userName, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>{item.userID}</Text>
       <View style={styles.permissionContainer}>
-        <Text style={[styles.permissionLabel, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>{item.permission === 'edit' ? 'Edit' : 'View'}</Text>
+        <Text style={[styles.permissionLabel, { color: colorScheme === 'dark' ? '#fff' : '#000' }]}>{item.permission === 'write' ? 'Edit' : 'View'}</Text>
         <Switch
-          value={item.permission === 'edit'}
-          onValueChange={(value) => changePermission(item.id, value ? 'edit' : 'view')}
+          value={item.permission === 'write'}
+          onValueChange={(perm) => changePermission(item.userID, perm ? 'write' : 'read')}
         />
-        <TouchableOpacity onPress={() => removeUser(item.id)}>
+        <TouchableOpacity onPress={() => removeUser(item.userID)}>
           <Text style={styles.removeText}>Remove</Text>
         </TouchableOpacity>
       </View>
@@ -117,7 +137,7 @@ const ManageFolderScreen: React.FC = () => {
 
           <FlatList
             data={folderUsers}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.userID}
             renderItem={renderUserItem}
           />
 

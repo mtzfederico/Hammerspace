@@ -8,7 +8,6 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-//const apiUrl = "http://216.37.99.155:9090"
 
 // login screen
 export default function Login() {

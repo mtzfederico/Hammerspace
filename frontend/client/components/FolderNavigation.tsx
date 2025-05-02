@@ -251,7 +251,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
 
       {currentDirName !== "Home" && (
         <View style={{ alignItems: 'flex-start', marginLeft: 20, marginBottom: 10 }}>
-          <TouchableOpacity onPress={() => router.push('/manageFolder')} style={[styles.manageFolderButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
+          <TouchableOpacity onPress={() => router.push(`/manageFolder/${currentParentDirID}`)} style={[styles.manageFolderButton, { backgroundColor: isDarkMode ? '#444' : '#C1C8D9' }]}>
             <Text style={[textStyle, { color: isDarkMode ? 'white' : 'black' }]}>Manage Folder</Text>
           </TouchableOpacity> 
         </View>
