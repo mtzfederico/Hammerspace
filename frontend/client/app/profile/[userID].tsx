@@ -92,8 +92,8 @@ export default function UserProfileScreen() {
       });
       const contentType = response.headers.get('Content-Type') || '';
 
-      if (!response.ok) {
-        console.log(`[fetchProfilePicture] Status ${response.status}`);
+      if (!response.ok || contentType === '') {
+        console.log(`[fetchProfilePicture] Status ${response.status}. contentType: ${contentType}`);
         const data = await response.json();
         throw new Error(data.error || response.status + ' ' + response.statusText);
       }

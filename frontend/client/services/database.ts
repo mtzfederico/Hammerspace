@@ -430,7 +430,7 @@ export const renameFile = async (id: string, userID: string, newName: string) =>
       await db.runAsync('DELETE FROM users');
 
       FileSystem.deleteAsync(FileSystem.documentDirectory || '', {
-        idempotent: true
+        idempotent: false
       });
     } catch (error) {
       console.error('[deleteFileLocally] Error getting items:', error);
