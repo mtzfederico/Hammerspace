@@ -34,8 +34,7 @@ export default function UserProfileScreen() {
   const storedToken =  String(SecureStore.getItem('authToken'));
   const storedUserID =  String(SecureStore.getItem('userID'));
   const [error, setError] = useState<string | null>(null);
-  // const [profilePicture, setProfilePicture] = useState<string | null>(null);
-  // const [profilePictureMimeType, setProfilePictureMimeType] = useState<string | null>(null);
+
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const textStyle = isDarkMode ? styles.darkText : styles.lightText;
@@ -66,17 +65,28 @@ export default function UserProfileScreen() {
   const checkLocalProfilePicture = async (userID: string, token: string, forUserID: string) => {
     const localUri = FileSystem.documentDirectory + `${forUserID}_profile.jpg`;
     const fileInfo = await FileSystem.getInfoAsync(localUri);
-
+  
+    // Check if file exists and if the file size is too small (potentially an invalid file)
     if (fileInfo.exists) {
-      console.log('Using cached image');
-      setProfilePictureUri(localUri);
+      console.log('Cached image found, checking file size');
+  
+      if (fileInfo.size && fileInfo.size < 50) { // Adjust size threshold as needed (50 bytes in this case)
+        console.log('File is too small, deleting cached image');
+        await FileSystem.deleteAsync(localUri);
+        setProfilePictureUri(defaultProfilePicture);
+        await fetchProfilePicture(userID, token, forUserID);
+        return;
+      } else {
+        console.log('Using cached image');
+        setProfilePictureUri(localUri);
+      }
     } else {
-      console.log('Downloading image');
+      console.log('No cached image found');
       await fetchProfilePicture(userID, token, forUserID);
     }
   };
 
-  const fetchProfilePicture = async (userID: string, authToken: string, forUserID:string) => {
+  const fetchProfilePicture = async (userID: string, authToken: string, forUserID: string) => {
     setLoading(true);
     try {
       const response = await fetch(`${apiUrl}/getProfilePicture`, {
@@ -98,15 +108,13 @@ export default function UserProfileScreen() {
         throw new Error(data.error || response.status + ' ' + response.statusText);
       }
   
-      // Handle default case (JSON with profilePictureID = "default")
+      // Check if the response is JSON indicating default profile picture
       if (contentType.includes('application/json')) {
         const data = await response.json();
         if (data.profilePictureID === 'default' || data.profilePictureID === '') {
-          console.log('Setting default profile picture:', defaultProfilePicture);
+          console.log('Using default profile picture');
           setProfilePictureUri(defaultProfilePicture);
-           console.log('Using default profile picture' + profilePictureUri);
-           
-          return;   
+          return;
         } else {
           console.warn('Unexpected JSON response:', data);
           setProfilePictureUri(defaultProfilePicture);
@@ -116,8 +124,10 @@ export default function UserProfileScreen() {
 
       console.log("profile picture contentType: ", contentType);
 
+  
+      // If the response is not JSON, proceed with downloading the image as a blob
       const blob = await response.blob();
-
+  
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64data = reader.result?.toString().split(',')[1];
@@ -127,6 +137,7 @@ export default function UserProfileScreen() {
             encoding: FileSystem.EncodingType.Base64,
           });
           setProfilePictureUri(localUri);
+          console.log('[fetchProfilePicture] setProfilePictureUri ' + localUri);
         }
       };
       reader.readAsDataURL(blob);
@@ -137,6 +148,7 @@ export default function UserProfileScreen() {
       setLoading(false);
     }
   };
+
 
   const requestPermission = async () => {
     if (Platform.OS === 'ios') {
@@ -177,35 +189,48 @@ export default function UserProfileScreen() {
     setLoading(true);
     setError(null);
     console.log("Uploading profile picture");
+  
     if (!selectedImage) {
       setError('Please select a picture to upload');
       setLoading(false);
       return;
-	  }
-
+    }
+  
     const formData = new FormData();
     formData.append('file', {
       uri: selectedImage,
       name: 'profile-picture',
       type: mimeType,
     } as any);
-      
-
+  
     formData.append("userID", storedUserID);
     formData.append("authToken", storedToken);
-
+  
     try {
       const response = await fetch(`${apiUrl}/updateProfilePicture`, {
         method: 'POST',
         body: formData,
       });
-
+  
       const data = await response.json();
       if (!response.ok) {
         throw new Error(`${response.status}: ${data.error || 'Error uploading profile picture. Please try again.'}`);
       }
-
+  
       if (data.success) {
+        // After successful upload, update the cached image URI
+        const newProfilePictureUri = data.profilePictureUri; // Assume the server returns the new image URI
+        setProfilePictureUri(newProfilePictureUri); // Update local state with the new URI
+  
+        // Remove the old cached profile picture
+        const oldLocalUri = FileSystem.documentDirectory + `${storedUserID}_profile.jpg`;
+        const fileInfo = await FileSystem.getInfoAsync(oldLocalUri);
+  
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(oldLocalUri);
+          console.log("Deleted old cached profile picture");
+        }
+  
         Alert.alert('Success', 'Profile picture updated successfully');
       }
     } catch (err: any) {
@@ -214,6 +239,7 @@ export default function UserProfileScreen() {
       setLoading(false);
     }
   };
+  
 
   const handleLogout = async () => {
     // dropDatabase();
@@ -249,6 +275,22 @@ export default function UserProfileScreen() {
     }
     setLoading(false);
   }
+
+  const checkFileType = async (uri: string) => {
+    try {
+      // Try reading as text
+      const fileContents = await FileSystem.readAsStringAsync(uri);
+      console.log("This is a text file:", fileContents);
+    } catch (error) {
+      console.log("Failed to read as text, trying binary...");
+      // Try reading as binary (Base64)
+      const fileContents = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log("This is a binary file (Base64):", fileContents);
+    }
+  };
+  console.log("profile ppicture " + [profilePictureUri +""])
 
   return (
     <SafeAreaProvider>
