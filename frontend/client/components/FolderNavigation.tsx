@@ -16,9 +16,16 @@ type FolderNavigationProps = {
   addFolder: (name: string, type: string, dirID: string, parentID: string) => void;
   addFile: (name: string, uri: string, dirID: string, type: string, parentID: string, size: number) => void;
 };
+// Component that handles the folder navigation and file display
+// It uses the DisplayFolders component to show the folders and files
+// It also uses the AddButton component to add new folders and files
+// It uses the getItemsInParentID function to fetch the folders and files from the database
+// It uses the syncWithBackend function to sync the data with the backend
+// Is recursively called when a folder is pressed
 
 const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigationProps) => {
   const router = useRouter();
+   //const [folders, setFolders] = useState<any[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [currentParentDirID, setCurrentParentDirID] = useState<any>(initialParentID);
   const [previousID, setPreviousID] = useState(null);
@@ -26,6 +33,8 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   const [profileImageUri, setProfileImageUri] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+   // a list of the image mime subtypes that the app can open.
+   // Example: 'image/png' gets split at the '/'. MIME.Type is 'image' and MIME.Subtype is 'png'
   const [searchQuery, setSearchQuery] = useState('');
 
   const storedUserID = String(SecureStore.getItem('userID'));
@@ -44,8 +53,17 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     const syncAndRefresh = async () => {
       setLoadingFiles(true);
       await syncWithBackend(storedUserID, storedToken);
-      await refreshData();
-      setLoadingFiles(false);
+           // await getAllFilesURi(currentParentDirID, storedUserID, async (files) => {
+      //   for (const file of files) {
+      //     if (!file.uri || file.uri === 'null') {
+      //       const encryptedUri = await getOrFetchFileUri(file.id);
+      //       const decryptedPath = `${FileSystem.documentDirectory}${file.id}_decrypted.pdf`;
+      //       await decryptFile(encryptedUri, privateKey, `${file.id}_decrypted.pdf`);
+      //       await updateFileUri(file.id, decryptedPath);
+      //     }
+      //   }
+      await refreshData(); // Fetch again after all decryption + URI set
+      setLoadingFiles(false);  // Done loading
       setInitialLoadComplete(true);
     };
 
@@ -53,10 +71,12 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
   }, []);
 
   useEffect(() => {
+
     refreshData();
   }, [currentParentDirID, addFolder, addFile]);
-
+  // reload the data in the list showing the files
   const refreshData = () => {
+     // getFoldersByParentID(currentParentDirID, storedUserID, setFolders);
     setSearchQuery('');
     getItemsInParentDB(currentParentDirID, storedUserID, setFiles);
   };
@@ -93,6 +113,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     checkProfileImage();
   }, []);
 
+   // new attempt at getOrFetchFileUri that also decrypts the file
   const getDecryptedFileURI = async (item: FileItem) => {
     try {
       const localURI = await getFileURIFromDB(item.id);
@@ -143,7 +164,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     if (!fileURI) return;
   
     const encodedURI = encodeURIComponent(fileURI);
-  
+ 
     if (item.type === "application/pdf") {
       router.push(`/PDFView/${encodedURI}`);
     } else if (
@@ -154,6 +175,7 @@ const FolderNavigation = ({ initialParentID, addFolder, addFile }: FolderNavigat
     } else if (mimeParts[0] === "image" && SupportedImageTypes.includes(mimeParts[1])) {
       router.push(`/ImageView/${encodedURI}`);
     } else {
+        // TODO: show something when the fle type is not supported
       console.warn("[handleFilePress] Unsupported file type:", item.type);
     }
   };
