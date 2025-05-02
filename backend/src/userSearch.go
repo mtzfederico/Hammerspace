@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -309,8 +308,8 @@ func handleAcceptFriendRequest(c *gin.Context) {
 	}
 
 	// Create an alert for the sender that their friend request was accepted
-	alertDescription := fmt.Sprintf("%s accepted your friend request", request.UserID)
-	err = addAlert(c, request.ForUserID, alertDescription, "", request.UserID)
+	// alertDescription := fmt.Sprintf("%s accepted your friend request", request.UserID)
+	err = addAlert(c, request.ForUserID, "friendRequestAccepted", request.UserID, "")
 	if err != nil {
 		log.WithField("error", err).Error("[handleAcceptFriendRequest] Failed to create acceptance alert")
 		// Still return success even if alert creation fails

@@ -29,6 +29,23 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return "Friend Request";
     }
+
+    if (alert.alertType === "friendRequestAccepted") {
+      return "Friend Request Accepted";
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return "Folder Shared"
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return "File Shared"
+    }
+
+    if (alert.alertType === "fileTypeMismatched") {
+      return "Unexpected file type";
+    }
+
     return alert.alertType;
   };
 
@@ -36,6 +53,23 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return `${alert.dataPrimary} sent you a friend request`;
     }
+
+    if (alert.alertType === "friendRequestAccepted") {
+      return `${alert.dataPrimary} accepted your friend request`;
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return `${alert.dataPrimary} shared a folder with you`;
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return `${alert.dataPrimary} shared a file with you`;
+    }
+
+    if (alert.alertType === "fileTypeMismatched") {
+      return alert.dataPrimary;
+    }
+
     return alert.dataPrimary;
   };
 
@@ -43,15 +77,25 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return "Accept";
     }
-    return "No handler";
+
+    if (alert.alertType === "sharedFolder") {
+      return "Go to folder";
+    }
+
+    if (alert.alertType === "sharedFile") {
+      return "Go to file";
+    }
+
+    return "Dismiss";
   };
 
-  const handleNotificationButtonTapped = (alert: AlertData): void => {
+  const handleNotificationButtonTapped = async (alert: AlertData): Promise<void> => {
     if (alert.alertType === "friendRequest") {
       acceptFriendRequest(alert.dataPrimary, alert.id);  // Pass the alert id to dismiss after success
       return;
     }
-    return;
+
+    await dismissNotification(alert.id);
   };
   
   
