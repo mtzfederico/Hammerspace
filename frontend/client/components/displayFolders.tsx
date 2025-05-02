@@ -54,13 +54,30 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress, ref
     setIsRefreshing(false);
   };
 
+  const renderTruncatedName = (name: string) => {
+    const maxLength = 20; // Adjust the max length to your requirement
+    const fileExtension = name.substring(name.lastIndexOf('.')); // Extract file extension
+    const baseName = name.substring(0, name.lastIndexOf('.')); // Get base name without extension
+    
+    if (baseName.length > maxLength) {
+      const start = baseName.substring(0, 12); // First part of the file/folder name
+      const end = baseName.substring(baseName.length - 3); // Last part of the file/folder name
+      return `${start}...${end}${fileExtension}`;
+    }
+  
+    return name; // If the name is shorter than the maxLength, just return it
+  };
+
   const renderItem = ({ item }: {item: FileItem}) => {
+    const truncatedName = renderTruncatedName(item.name); // Truncate the name for both files and folders
+
+
     if(item.type == 'folder') {
       return (
         <View style={styles.imageContainer}>
           <Pressable onPress={() => {onFolderPress(item.id, item.name)}} onLongPress={() => {onItemLongPress(item)}}>
             <Image source={defaultFolderIcon}style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
+            <Text style={textStyle}>{truncatedName}</Text>
           </Pressable>
         </View>
       );
@@ -72,7 +89,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress, ref
         <View style={styles.imageContainer}>
           <Pressable onPress={() => {onFilePress(item)}} onLongPress={() => {onItemLongPress(item)}}>
             <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
+            <Text style={textStyle}>{truncatedName}</Text>
           </Pressable>
         </View>
       );
