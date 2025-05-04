@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "client",
+    "name": "Hammerspace",
     "slug": "client",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/magician-top-hat-shines/29265003-f50a-4f40-a0d2-21addf0bcf71.jpg",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,7 +15,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.mmarce05.hammerspace"
     },
     "web": {
       "bundler": "metro",
@@ -46,6 +50,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "78445376-c319-4344-9021-f2b03312b5fe"
+      }
+    },
+    "owner": "mmarce05"
   }
 }

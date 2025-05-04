@@ -75,8 +75,8 @@ export default function Register() {
       const data = await response.json();
       if (data.success) {
         // Registration successful, store the token securely
-        await SecureStore.setItem('authToken', String(data.authToken));
-        await SecureStore.setItem('userID', String(data.userID));
+        await SecureStore.setItemAsync('authToken', String(data.authToken));
+        await SecureStore.setItemAsync('userID', String(data.userID));
         addUser(data.userID, "default")
         // Navigate to the home screen or tab navigator
         router.push('/tabs/homescreen');
