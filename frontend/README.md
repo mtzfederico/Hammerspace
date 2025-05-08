@@ -14,5 +14,3 @@ The UI is written using React Native with Typescript.
 * Create a .env in the frontend/cliennt directory
 * Environment variables must start with EXPO_PUBLIC
 * An example api url would be: `EXPO_PUBLIC_API_URL=http://216.37.99.210:9090`
-
-
