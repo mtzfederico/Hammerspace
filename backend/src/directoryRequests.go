@@ -522,6 +522,9 @@ func handleCreateDirectory(c *gin.Context) {
 		// https://gobyexample.com/goroutines
 		go func() {
 			for _, userID := range shareWith {
+				if request.UserID == userID {
+					continue
+				}
 				err := addAlert(context.Background(), userID, "sharedFolder", request.UserID, dirID.String())
 				if err != nil {
 					log.WithFields(log.Fields{"userID": userID, "dirID": dirID.String(), "error": err.Error()}).Error("[handleCreateDirectory: Goroutine] Failed to send alert to user")

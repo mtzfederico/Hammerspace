@@ -45,6 +45,15 @@ export default function Login() {
       const data = await response.json();
       console.log("data: " + JSON.stringify(data))
       if (data.success) {
+        const authToken = String(data.authToken);
+        const userID = String(data.userID);
+
+        if (authToken === null || userID === null) {
+          console.error("got null for authToken or userID in the response. " + response.status);
+          setError("got null for authToken or userID in the response (" + response.status + ")");
+          return;
+        }
+
         console.log("Lmaomsoklf s, do " + data.authToken)
         console.log("\n  [PickDocument] authToken is here " + data.authToken + "\n")
         await SecureStore.setItemAsync('authToken', String(data.authToken));
