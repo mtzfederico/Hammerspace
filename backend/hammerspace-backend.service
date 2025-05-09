@@ -1,0 +1,15 @@
+# https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-20-04
+# systemctl link hammerspace-backend.service
+
+[Unit]
+Description=HammerSpace backend server
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=/root/Hammerspace/backend/
+ExecStart=/usr/local/bin/hammerspace-backend --config /root/Hammerspace/backend/config.yaml
+
+[Install]
+WantedBy=multi-user.target

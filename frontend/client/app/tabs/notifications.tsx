@@ -14,6 +14,9 @@ export default function NotificationsScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
+  const userID = String(SecureStore.getItem('userID'));
+  const authToken = String(SecureStore.getItem('authToken'));
+
   type AlertData = {
     id: string;
     alertType: string;
@@ -26,6 +29,23 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return "Friend Request";
     }
+
+    if (alert.alertType === "friendRequestAccepted") {
+      return "Friend Request Accepted";
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return "Folder Shared"
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return "File Shared"
+    }
+
+    if (alert.alertType === "fileTypeMismatched") {
+      return "Unexpected file type";
+    }
+
     return alert.alertType;
   };
 
@@ -33,6 +53,23 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return `${alert.dataPrimary} sent you a friend request`;
     }
+
+    if (alert.alertType === "friendRequestAccepted") {
+      return `${alert.dataPrimary} accepted your friend request`;
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return `${alert.dataPrimary} shared a folder with you`;
+    }
+
+    if (alert.alertType === "sharedFolder") {
+      return `${alert.dataPrimary} shared a file with you`;
+    }
+
+    if (alert.alertType === "fileTypeMismatched") {
+      return alert.dataPrimary;
+    }
+
     return alert.dataPrimary;
   };
 
@@ -40,21 +77,51 @@ export default function NotificationsScreen() {
     if (alert.alertType === "friendRequest") {
       return "Accept";
     }
-    return "No handler";
+
+    if (alert.alertType === "sharedFolder") {
+      return "Go to folder";
+    }
+
+    if (alert.alertType === "sharedFile") {
+      return "Go to file";
+    }
+
+    return "Dismiss";
   };
 
-  const handleNotificationButtonTapped = (alert: AlertData): void => {
+  const handleNotificationButtonTapped = async (alert: AlertData): Promise<void> => {
     if (alert.alertType === "friendRequest") {
       acceptFriendRequest(alert.dataPrimary, alert.id);  // Pass the alert id to dismiss after success
       return;
     }
-    return;
+
+    await dismissNotification(alert.id);
   };
   
   
   type ItemProps = {alert: AlertData};
-  const dismissNotification = (id: string) => {
+  const dismissNotification = async  (id: string) => {
     setAlerts(prev => prev.filter(alert => alert.id !== id));
+    try {
+      const response = await fetch(`${apiUrl}/removeAlert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          "userID": userID,
+          "authToken": authToken,
+          "alertID": id,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.status != 200) {
+        throw Error(`Failed to dismiss notification: ${data.error || `Unknown error. ${response.status}`}`)
+      }
+    } catch(error) {
+      console.log("[dismissNotification] error: ", error)
+    }
   };
   
   const Notification = ({ alert }: ItemProps) => (

@@ -8,7 +8,6 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
-//const apiUrl = "http://216.37.99.155:9090"
 
 // login screen
 export default function Login() {
@@ -46,9 +45,19 @@ export default function Login() {
       const data = await response.json();
       console.log("data: " + JSON.stringify(data))
       if (data.success) {
+        const authToken = String(data.authToken);
+        const userID = String(data.userID);
+
+        if (authToken === null || userID === null) {
+          console.error("got null for authToken or userID in the response. " + response.status);
+          setError("got null for authToken or userID in the response (" + response.status + ")");
+          return;
+        }
+
         console.log("Lmaomsoklf s, do " + data.authToken)
-        await SecureStore.setItem('authToken', String(data.authToken));
-        await SecureStore.setItem('userID', String(data.userID));
+        console.log("\n  [PickDocument] authToken is here " + data.authToken + "\n")
+        await SecureStore.setItemAsync('authToken', String(data.authToken));
+        await SecureStore.setItemAsync('userID', String(data.userID));
         router.replace('/tabs/homescreen');
       } else {
         setError(data.error || `log in request failed. Status: ${response.status}`);

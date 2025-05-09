@@ -110,6 +110,7 @@ func handleRemoveDirectory(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("request dirID is here ", request.DirID)
 	// check that user owns the directory
 	perm, err := getFolderPermission(c, request.DirID, request.UserID, false)
 	if err != nil {
@@ -175,6 +176,13 @@ func handleRemoveDirectory(c *gin.Context) {
 
 		// append id deleted
 		ids = append(ids, id)
+	}
+	err = removeFileFromDB(c, request.DirID, request.UserID)
+	if err != nil {
+		// handle the error
+		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (4), Please try again later"})
+		log.WithFields(log.Fields{"error": err, "fileID": request.DirID, "userID": request.UserID}).Error("[handleRemoveFile] Failed to delete file from DB")
+		return
 	}
 
 	// the loop might take too long on big directories, this should probably be done in the background
@@ -321,7 +329,7 @@ func handleShareDirectory(c *gin.Context) {
 // Returns the user's that have access to a file/folder
 func handleGetSharedWith(c *gin.Context) {
 	/*
-		curl -X POST "localhost:9090/getSharedWith" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","fileID": "0195677e-5b7e-7445-b3e6-2f3dddb22683"}'
+		curl -X POST "localhost:9090/getSharedWith" -H 'Content-Type: application/json' -d '{"userID":"testUser","authToken":"K1xS9ehuxeC5tw==","dirID": "0195677e-5b7e-7445-b3e6-2f3dddb22683"}'
 	*/
 	if c.Request.Body == nil {
 		c.JSON(400, gin.H{"success": false, "error": "No data received"})
@@ -351,25 +359,27 @@ func handleGetSharedWith(c *gin.Context) {
 	// TODO: Test this with shared files including ones that the user doesn't have access to
 
 	// Check that the user can actually get this info. I.E., the user has access to the file.
-	_, err = getObjectKey(c, request.FileID, request.UserID, true)
-	if err != nil {
-		if errors.Is(err, errUserAccessNotAllowed) {
-			// User does not have access to the file
-			c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
-			log.WithField("error", err).Debug("[handleGetSharedWith] User tried to get details without permission")
-			return
-		}
+	// TODO: change this since getObjectKey only checks files
+	/*
+		_, err = getObjectKey(c, request.FileID, request.UserID, true)
+		if err != nil {
+			if errors.Is(err, errUserAccessNotAllowed) {
+				// User does not have access to the file
+				c.JSON(403, gin.H{"success": false, "error": "Operation not allowed"})
+				log.WithField("error", err).Debug("[handleGetSharedWith] User tried to get details without permission")
+				return
+			}
 
-		if errors.Is(err, errFileNotFound) {
-			c.JSON(400, gin.H{"success": false, "error": "File not found"})
-			log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
-			return
-		}
+			if errors.Is(err, errFileNotFound) {
+				c.JSON(400, gin.H{"success": false, "error": "File not found"})
+				log.WithFields(log.Fields{"error": err, "fileID": request.FileID}).Debug("[handleGetSharedWith] No file with that fileID found")
+				return
+			}
 
-		c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
-		log.WithField("error", err).Error("[handleGetSharedWith] getObjectKey error")
-		return
-	}
+			c.JSON(500, gin.H{"success": false, "error": "Internal Server Error (2)"})
+			log.WithField("error", err).Error("[handleGetSharedWith] getObjectKey error")
+			return
+		}*/
 
 	users, err := getUsersWithFileAccess(c, request.FileID, 0, nil)
 	if err != nil {
@@ -512,9 +522,12 @@ func handleCreateDirectory(c *gin.Context) {
 		// https://gobyexample.com/goroutines
 		go func() {
 			for _, userID := range shareWith {
+				if request.UserID == userID {
+					continue
+				}
 				err := addAlert(context.Background(), userID, "sharedFolder", request.UserID, dirID.String())
 				if err != nil {
-					log.WithFields(log.Fields{"userID": userID, "dirID": dirID.String()}).Error("[handleCreateDirectory: Goroutine] Failed to send alert to user")
+					log.WithFields(log.Fields{"userID": userID, "dirID": dirID.String(), "error": err.Error()}).Error("[handleCreateDirectory: Goroutine] Failed to send alert to user")
 				}
 			}
 		}()

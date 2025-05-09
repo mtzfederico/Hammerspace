@@ -24,11 +24,12 @@ type DisplayFoldersProps = {
   onFolderPress: (id: string, name: string) => void;
   onFilePress: (item: FileItem) => void;
   onItemLongPress: (item: FileItem) => void;
+  refreshingKey: any
 };
 
-const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: DisplayFoldersProps) => {
+const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress, refreshingKey}: DisplayFoldersProps) => {
   console.log("display is happening " + JSON.stringify(data))
-  
+  console.log("refresh key is here " + refreshingKey)
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const storedToken =  String(SecureStore.getItem('authToken'));
@@ -53,13 +54,30 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
     setIsRefreshing(false);
   };
 
+  const renderTruncatedName = (name: string) => {
+    const maxLength = 20; // Adjust the max length to your requirement
+    const fileExtension = name.substring(name.lastIndexOf('.')); // Extract file extension
+    const baseName = name.substring(0, name.lastIndexOf('.')); // Get base name without extension
+    
+    if (baseName.length > maxLength) {
+      const start = baseName.substring(0, 12); // First part of the file/folder name
+      const end = baseName.substring(baseName.length - 3); // Last part of the file/folder name
+      return `${start}...${end}${fileExtension}`;
+    }
+  
+    return name; // If the name is shorter than the maxLength, just return it
+  };
+
   const renderItem = ({ item }: {item: FileItem}) => {
+    const truncatedName = renderTruncatedName(item.name); // Truncate the name for both files and folders
+
+
     if(item.type == 'folder') {
       return (
         <View style={styles.imageContainer}>
           <Pressable onPress={() => {onFolderPress(item.id, item.name)}} onLongPress={() => {onItemLongPress(item)}}>
             <Image source={defaultFolderIcon}style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
+            <Text style={textStyle}>{truncatedName}</Text>
           </Pressable>
         </View>
       );
@@ -71,7 +89,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
         <View style={styles.imageContainer}>
           <Pressable onPress={() => {onFilePress(item)}} onLongPress={() => {onItemLongPress(item)}}>
             <Image source={hasImage ? { uri: item.uri } : defaultFileIcon} style={styles.image} />
-            <Text style={textStyle}>{item.name}</Text>
+            <Text style={textStyle}>{truncatedName}</Text>
           </Pressable>
         </View>
       );
@@ -87,6 +105,7 @@ const DisplayFolders = ({ data, onFolderPress, onFilePress, onItemLongPress}: Di
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          extraData={refreshingKey}
           // ListEmptyComponent={<Text style={styles.emptyMsg}>You have no files</Text>}
           ListEmptyComponent={<Text style={emptyMsgStyle}>You have no files</Text>} //updated for dark mode
           numColumns={numColumns}
@@ -133,27 +152,32 @@ const styles = StyleSheet.create({
     color: 'white',
   },
  ///////////////////
-  image: {
-    width: imageWidth,
-    height: imageHeight,
-    resizeMode: 'cover' 
-  },
+ image: {
+  width: imageWidth,
+  height: imageHeight,
+  resizeMode: 'cover',
+  borderRadius: 5,
+  overflow: 'hidden',  // Ensures the content inside the border is clipped
+},
   listBackground: {
     flex: 1,
     height: '100%',
     width: '100%',
     marginBottom: 10,
     alignItems: 'center',
+    borderRadius: imageWidth / 2,
   },
   lightText: {
     color: 'black',
     paddingLeft: 4,
+    paddingTop:8,
     fontSize: 14,
     width: imageWidth
   },
   darkText: {
     color: 'white',
     paddingLeft: 4,
+    paddingTop:8,
     fontSize: 14,
     width : imageWidth
   },

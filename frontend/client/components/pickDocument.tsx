@@ -2,15 +2,23 @@ import { insertFile } from '@/services/database';
 import * as DocumentPicker from 'expo-document-picker';
 import * as SecureStore from 'expo-secure-store';
 import { AddFileType } from '@/components/addButton';
+import { store } from 'expo-router/build/global-state/router-store';
 
 const apiUrl = String(process.env.EXPO_PUBLIC_API_URL);
 
-const storedToken = String(SecureStore.getItem('authToken'));
-const storedUserID = String(SecureStore.getItem('userID'));
+
 
 // Function to open the document picker and handle the selected file
 // Then send a request to the server to upload the file
 async function pickDocument(parentDir: string, addFile: AddFileType) {  
+  let storedToken = await (SecureStore.getItemAsync('authToken'));
+  let storedUserID = await (SecureStore.getItemAsync('userID'));
+  storedToken = String(storedToken);
+  storedUserID = String(storedUserID)
+
+  if (!storedToken || !storedUserID) {
+    throw new Error("Missing authToken or userID in SecureStore.");
+  }
   console.log("storedAuthToken: " + storedToken)
   console.log("Uploading file to parentDIR: '" + parentDir + "'")
   try {

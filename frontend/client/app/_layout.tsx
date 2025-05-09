@@ -98,6 +98,11 @@ export default function RootLayout() {
             name="sharedfolder" // This will auto-reference `app/tabs.tsx`
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+          name="manageFolder/[dirID]"
+          options={{ headerShown: false }} 
+          />
+
       </Stack>
     </ThemeProvider>
   );
