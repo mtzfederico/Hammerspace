@@ -9,7 +9,7 @@ The backend is written in Go
     * To only build the binary run the command `make build`. The binary will be in the bin folder.
 
 ## DB Design
-Look at db.sql file
+Look at [db.sql file](src/db.sql)
 
 ## Storage Setup
 We are using [object (or blob storage)](https://en.wikipedia.org/wiki/Object_storage) with the S3 protocol from AWS to store the user's files. While S3 is from AWS, there are many AWS-compatible services such as [Cloudflare R2](https://www.cloudflare.com/developer-platform/products/r2/) which is cheaper.
